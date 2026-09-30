@@ -161,18 +161,29 @@ jobs:
             echo 'EOF'
           } | tee -a "$GITHUB_OUTPUT"
       # A published version never changes: re-running a release (e.g. after a partial failure)
-      # only publishes the images that are missing, it never rebuilds an existing X.Y.Z.
+      # only publishes the images that are missing, it never rebuilds an existing X.Y.Z. Its moving
+      # tags (X.Y, latest) are re-pointed to the published X.Y.Z, in case the first push was cut
+      # before creating them.
       - id: published
         name: Check whether this version is already published
         if: needs.version.outputs.release-tag != ''
         env:
           IMAGE: ${{ needs.version.outputs.image-prefix }}-${{ matrix.image }}
           VERSION: ${{ needs.version.outputs.version }}
+          TAGS: ${{ needs.version.outputs.tags }}
         run: |
           # Fail closed: only a registry answer saying the tag or the package does not exist means
           # "not published"; any other error (network, auth...) stops instead of risking an overwrite.
           if output=$(docker buildx imagetools inspect "$IMAGE:$VERSION" 2>&1); then
             echo "::notice::$IMAGE:$VERSION is already published; not overwriting it"
+            aliases=()
+            for tag in $TAGS; do
+              if [ "$tag" != "$VERSION" ]; then aliases+=(--tag "$IMAGE:$tag"); fi
+            done
+            if [ "${#aliases[@]}" -gt 0 ]; then
+              # Copies the existing manifest under the other tags; nothing is rebuilt.
+              docker buildx imagetools create "${aliases[@]}" "$IMAGE:$VERSION"
+            fi
             echo "skip=true" >> "$GITHUB_OUTPUT"
           elif grep -qiE 'not found|manifest unknown|name unknown' <<< "$output"; then
             echo "skip=false" >> "$GITHUB_OUTPUT"
