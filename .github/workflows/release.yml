@@ -85,7 +85,22 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0 # all tags: "latest" only moves for the highest version
+          # All branches and tags: "latest" only moves for the highest version, and a pushed tag
+          # must be on a release branch.
+          fetch-depth: 0
+      - name: Check the tagged commit is on main or a release/* branch
+        if: github.event_name == 'push' && github.ref_type == 'tag'
+        env:
+          TAG: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+        run: |
+          # A tag pushed by hand or from the Releases page could point anywhere (a feature branch,
+          # an old commit...): only publish code that went through main or a maintenance branch.
+          if ! git branch -r --contains "$SHA" --format='%(refname:short)' \
+              | grep -qE '^origin/(main|release/.+)$'; then
+            echo "::error::$TAG points to ${SHA:0:7}, which is not on main or a release/* branch"
+            exit 1
+          fi
       - id: version
         env:
           EVENT: ${{ github.event_name }}

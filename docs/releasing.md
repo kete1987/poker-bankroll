@@ -73,6 +73,9 @@ milestone** matches the minor version (`v0.1` or `v0.1 <name>`) and it has **no 
 - **From the Releases page** (*Draft a new release* with a new `vX.Y.Z` tag on `main`): the workflow
   publishes the images and keeps the release you wrote. This way skips the checks.
 
+Whatever the way, the workflow refuses a pushed tag whose commit is not on `main` or a `release/*`
+branch, so a tag on a feature branch never becomes a published version.
+
 Follow a build in the *Actions* tab or with `gh run watch`.
 
 If a release run fails half-way, re-run it (*Re-run failed jobs*): images that were already
