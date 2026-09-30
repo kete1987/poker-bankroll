@@ -1,0 +1,28 @@
+# Local development: only PostgreSQL, published on localhost:5433 (not 5432, to avoid clashing
+# with a PostgreSQL installed on the machine) with the database and credentials that
+# backend/src/main/resources/application.yaml uses by default. Change the port with DEV_DB_PORT
+# (and SPRING_DATASOURCE_URL for the backend).
+#
+#   docker compose -f deploy/docker-compose.dev.yml up -d
+#   cd backend && ./mvnw spring-boot:run
+name: poker-bankroll-dev
+
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: pokerbankroll
+      POSTGRES_USER: pokerbankroll
+      POSTGRES_PASSWORD: pokerbankroll
+    ports:
+      - '127.0.0.1:${DEV_DB_PORT:-5433}:5432'
+    volumes:
+      - dev-db-data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U pokerbankroll -d pokerbankroll']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  dev-db-data:
