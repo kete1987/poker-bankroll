@@ -69,10 +69,19 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @Override
     protected @Nullable ResponseEntity<Object> handleHandlerMethodValidationException(
             HandlerMethodValidationException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+        if (ex.isForReturnValue()) {
+            // The controller produced an invalid response: a server bug, not a client error.
+            log.error("Controller returned an invalid value", ex);
+            ProblemDetail problem = problem(ErrorCode.INTERNAL_ERROR, status);
+            return handleExceptionInternal(ex, problem, headers, status, request);
+        }
         Locale locale = LocaleContextHolder.getLocale();
-        List<FieldViolation> errors = ex.getParameterValidationResults().stream()
-                .flatMap(result -> result.getResolvableErrors().stream()
-                        .map(error -> violation(result.getMethodParameter().getParameterName(), error, locale)))
+        // Constraints spanning several parameters are reported apart, with no parameter name.
+        List<FieldViolation> errors = Stream.concat(
+                        ex.getCrossParameterValidationResults().stream().map(error -> violation(null, error, locale)),
+                        ex.getParameterValidationResults().stream()
+                                .flatMap(result -> result.getResolvableErrors().stream()
+                                        .map(error -> violation(result.getMethodParameter().getParameterName(), error, locale))))
                 .toList();
         return validationFailed(ex, errors, headers, status, request);
     }

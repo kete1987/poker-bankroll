@@ -14,6 +14,8 @@ import jakarta.validation.Payload;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraintvalidation.SupportedValidationTarget;
+import jakarta.validation.constraintvalidation.ValidationTarget;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,6 +85,33 @@ class GlobalExceptionHandlerTests {
                 .hasPathSatisfying("$.errors[0].code", code -> code.assertThat().isEqualTo("Min"));
     }
 
+    /**
+     * Spring 7.0 only raises method validation errors when a parameter itself is invalid
+     * ({@code MethodValidationResult#hasErrors} ignores cross-parameter results), so both kinds fail here.
+     */
+    @Test
+    void crossParameterViolationsAreReportedWithoutField() {
+        assertThat(mvc.get().uri("/test/cross-param").param("from", "-1").param("to", "-5"))
+                .hasStatus(HttpStatus.BAD_REQUEST)
+                .bodyJson()
+                .hasPathSatisfying("$.code", code -> code.assertThat().isEqualTo("VALIDATION_FAILED"))
+                .hasPathSatisfying("$.errors.length()", size -> size.assertThat().isEqualTo(2))
+                .hasPathSatisfying("$.errors[0].field", field -> field.assertThat().isNull())
+                .hasPathSatisfying("$.errors[0].code", code -> code.assertThat().isEqualTo("OrderedParams"))
+                .hasPathSatisfying("$.errors[0].message", message -> message.assertThat().isEqualTo("from must not be after to"))
+                .hasPathSatisfying("$.errors[1].field", field -> field.assertThat().isEqualTo("from"))
+                .hasPathSatisfying("$.errors[1].code", code -> code.assertThat().isEqualTo("Min"));
+    }
+
+    @Test
+    void invalidReturnValueIsAnInternalError() {
+        assertThat(mvc.get().uri("/test/invalid-return"))
+                .hasStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+                .bodyJson()
+                .hasPathSatisfying("$.code", code -> code.assertThat().isEqualTo("INTERNAL_ERROR"))
+                .doesNotHavePath("$.errors");
+    }
+
     @Test
     void malformedJsonReturnsMalformedRequest() {
         assertThat(mvc.post().uri("/test/body").contentType(MediaType.APPLICATION_JSON).content("{not json"))
@@ -138,8 +167,41 @@ class GlobalExceptionHandlerTests {
         }
     }
 
+    /** Cross-parameter constraint: validates several method parameters together. */
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Constraint(validatedBy = OrderedParamsValidator.class)
+    @interface OrderedParams {
+        String message() default "from must not be after to";
+
+        Class<?>[] groups() default {};
+
+        Class<? extends Payload>[] payload() default {};
+    }
+
+    @SupportedValidationTarget(ValidationTarget.PARAMETERS)
+    static class OrderedParamsValidator implements ConstraintValidator<OrderedParams, Object[]> {
+
+        @Override
+        public boolean isValid(Object[] args, ConstraintValidatorContext context) {
+            return (int) args[0] <= (int) args[1];
+        }
+    }
+
     @RestController
     static class ErrorTestController {
+
+        @OrderedParams
+        @GetMapping("/test/cross-param")
+        int crossParam(@RequestParam @Min(0) int from, @RequestParam int to) {
+            return to - from;
+        }
+
+        @GetMapping("/test/invalid-return")
+        @Min(10)
+        int invalidReturn() {
+            return 1;
+        }
 
         @PostMapping("/test/body")
         NamedBody body(@Valid @RequestBody NamedBody body) {
