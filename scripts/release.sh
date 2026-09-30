@@ -27,7 +27,11 @@ git diff --quiet && git diff --cached --quiet || fail "there are uncommitted cha
 commit=$(git rev-parse HEAD)
 status=0
 .github/scripts/release-preflight.sh "$version" "$commit" || status=$?
-[ "$status" -ne 1 ] || exit 1
+# 0 = ready, 2 = warnings to confirm; anything else (1, or e.g. 4 when gh is not logged in) blocks.
+case $status in
+  0 | 2) ;;
+  *) fail "release checks did not pass (exit code $status)" ;;
+esac
 
 echo
 echo "About to release $tag from ${commit:0:7}: $(git log -1 --format=%s)"
