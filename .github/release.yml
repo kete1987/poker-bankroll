@@ -1,0 +1,14 @@
+# Groups the auto-generated release notes by the labels of the merged pull requests
+# (PRs carry the same type:* labels as their issue).
+changelog:
+  categories:
+    - title: Features
+      labels: [type:feature]
+    - title: Fixes
+      labels: [bug]
+    - title: Maintenance
+      labels: [type:chore]
+    - title: Dependencies
+      labels: [dependencies]
+    - title: Other changes
+      labels: ['*']

@@ -174,6 +174,16 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   succeeded or was skipped because its part did not change.
 - Actions are pinned to a full commit SHA with the version in a comment; update both together.
 
+### Releases
+- `.github/workflows/release.yml` publishes both images to GHCR (amd64 + arm64): `edge` on every
+  push to `main`; `X.Y.Z`, `X.Y` and `latest` on a `vX.Y.Z` tag (pre-release tags only `X.Y.Z-pre`),
+  plus the GitHub Release with generated notes.
+- The git tag is the only source of the version (`-Drevision` for Maven, `APP_VERSION` for the web
+  build). Do not edit versions by hand in `pom.xml` or `package.json`.
+- Cut releases with `scripts/release.sh X.Y.Z` from an up-to-date `main`; the full flow
+  (milestones, pre-releases, deploying, rolling back) is in `docs/releasing.md`.
+- Give each PR the same `type:*` label as its issue: release notes are grouped by those labels.
+
 ### Style
 - Files are UTF-8 with LF line endings (see `.editorconfig` / `.gitattributes`).
 - Java: 4-space indent. TypeScript, JSON, YAML, Markdown: 2-space indent.
