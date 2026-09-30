@@ -76,8 +76,13 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 | `docker compose down` / `down -v` | Stop the stack / also delete the database volume |
 | `docker compose exec backup /backup.sh` (in `deploy/`) | Take a database backup now (Git Bash: prefix `MSYS_NO_PATHCONV=1`) |
 
-- Images: `backend/Dockerfile` (layered Spring Boot jar on a JRE, user `app`) and `frontend/Dockerfile`
-  (static build on `nginx-unprivileged`, port 8080). Both have a Docker `HEALTHCHECK`.
+- Images: `backend/Dockerfile` (layered Spring Boot jar on Alpine with a Java runtime linked by
+  `jlink`, user `app`) and `frontend/Dockerfile` (static build on `nginx-unprivileged`, port 8080).
+  Both have a Docker `HEALTHCHECK`.
+- The API runtime only has the JDK modules that `jdeps` finds plus a few added by hand (listed and
+  explained in the Dockerfile). If the containerised API fails with `ClassNotFoundException` /
+  `NoClassDefFoundError` for a `java.*`/`javax.*`/`jdk.*`/`com.sun.*` class that works with
+  `./mvnw spring-boot:run`, add its module there.
 - The nginx config is part of the web image: `frontend/nginx/default.conf.template` (SPA fallback,
   long cache for `/assets/`, `/api/` proxied to `${API_UPSTREAM}`, default `api:8080`, `/healthz`).
 - Only `web` publishes a port; `api` and `db` are reachable only inside the Compose network.
