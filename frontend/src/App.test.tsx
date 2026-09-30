@@ -32,6 +32,24 @@ describe('App', () => {
     expect(await within(screen.getByTestId('api-status')).findByText('Unavailable')).toBeVisible();
   });
 
+  it('shows the API as unavailable when a refresh fails after it was online', async () => {
+    const fetchMock = stubFetchJson({ status: 'UP' });
+    const { queryClient } = renderApp();
+    const badge = await screen.findByTestId('api-status');
+    expect(await within(badge).findByText('Online')).toBeVisible();
+
+    fetchMock.mockImplementation(
+      async () =>
+        new Response(JSON.stringify({ status: 'DOWN' }), {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    );
+    await queryClient.refetchQueries({ queryKey: ['health'] });
+
+    expect(await within(badge).findByText('Unavailable')).toBeVisible();
+  });
+
   it('switches to Spanish and remembers the choice', async () => {
     stubFetchJson({ status: 'UP' });
     renderApp();

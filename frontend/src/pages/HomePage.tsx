@@ -21,9 +21,11 @@ function ApiStatus() {
   const { t } = useTranslation();
   const health = useApiHealth();
 
+  // A failed refresh keeps the previous data, so the error state must win over it.
+  const isUp = !health.isError && health.data?.status === 'UP';
   const [color, label] = health.isPending
     ? ['gray', t('home.apiStatus.checking')]
-    : health.data?.status === 'UP'
+    : isUp
       ? ['teal', t('home.apiStatus.up')]
       : ['red', t('home.apiStatus.down')];
 
