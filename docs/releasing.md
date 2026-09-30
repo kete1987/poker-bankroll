@@ -27,9 +27,14 @@ for `linux/amd64` and `linux/arm64`, always with the same tags:
 | `latest` | Every **stable** release | Always run the latest stable version |
 | `0.2.0-rc.1` | Pre-release `v0.2.0-rc.1` | Try a release candidate |
 | `edge` | Every merge to `main` | Try what was just merged, before a release |
-| `sha-<commit>` | Every merge to `main` | Pin a specific `main` build |
+| `sha-<commit>` | Merges to `main` (best effort, see below) | Pin a specific `main` build |
 
 Pre-releases never move `0.X` or `latest`.
+
+`edge` builds of `main` supersede each other: when a new merge arrives while the previous build is
+still running, the older one is cancelled. `edge` always ends up on the latest merge, but a
+`sha-<commit>` image may be missing for a commit that was followed quickly by another one. Use
+versions, not `sha-*`, for anything you need to keep.
 
 ## Flow
 
