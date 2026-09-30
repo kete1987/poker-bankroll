@@ -1,4 +1,5 @@
-# poker-bankroll stack: PostgreSQL + API + web (nginx). Only `web` is published on the host.
+# poker-bankroll stack: PostgreSQL + API + web (nginx) + daily database backups.
+# Only `web` is published on the host.
 #
 #   cp .env.example .env        # then set POSTGRES_PASSWORD
 #   docker compose up -d --build   # build the images from this checkout
@@ -44,6 +45,42 @@ services:
       - '${WEB_PORT:-8080}:8080'
     depends_on:
       api:
+        condition: service_healthy
+
+  # Daily pg_dump of the database to BACKUP_DIR on the host, with daily/weekly/monthly
+  # rotation. See docs/backups.md (restore procedure included).
+  backup:
+    # Keep the PostgreSQL major in sync with the db image (pg_dump cannot dump a newer server).
+    image: prodrigestivill/postgres-backup-local:18-alpine-d257e5d
+    restart: unless-stopped
+    # root by default so it can write to a folder created by Docker (see BACKUP_USER).
+    user: '${BACKUP_USER:-0:0}'
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: ${POSTGRES_DB:-pokerbankroll}
+      POSTGRES_USER: ${POSTGRES_USER:-pokerbankroll}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set (see .env.example)}
+      # gzip-compressed plain SQL; no owner/privileges so a dump restores under any user name.
+      POSTGRES_EXTRA_OPTS: -Z6 --no-owner --no-privileges
+      SCHEDULE: ${BACKUP_SCHEDULE:-@daily}
+      TZ: ${BACKUP_TZ:-UTC}
+      BACKUP_ON_START: 'TRUE'
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-7}
+      BACKUP_KEEP_WEEKS: ${BACKUP_KEEP_WEEKS:-4}
+      BACKUP_KEEP_MONTHS: ${BACKUP_KEEP_MONTHS:-6}
+    volumes:
+      - ${BACKUP_DIR:-./backups}:/backups
+    healthcheck:
+      # The scheduler answers on 8080 inside the container (not published) and returns 503
+      # when the last automatic backup failed.
+      test: ['CMD', 'curl', '-fsS', '-o', '/dev/null', 'http://localhost:8080/']
+      interval: 1m
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+      start_interval: 5s
+    depends_on:
+      db:
         condition: service_healthy
 
 volumes:

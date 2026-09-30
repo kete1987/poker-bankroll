@@ -74,12 +74,16 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 | `cd deploy && cp .env.example .env` | Create the stack configuration (set `POSTGRES_PASSWORD`) |
 | `docker compose up -d --build` (in `deploy/`) | Build both images from the checkout and run db + api + web on `http://localhost:${WEB_PORT:-8080}` |
 | `docker compose down` / `down -v` | Stop the stack / also delete the database volume |
+| `docker compose exec backup /backup.sh` (in `deploy/`) | Take a database backup now (Git Bash: prefix `MSYS_NO_PATHCONV=1`) |
 
 - Images: `backend/Dockerfile` (layered Spring Boot jar on a JRE, user `app`) and `frontend/Dockerfile`
   (static build on `nginx-unprivileged`, port 8080). Both have a Docker `HEALTHCHECK`.
 - The nginx config is part of the web image: `frontend/nginx/default.conf.template` (SPA fallback,
   long cache for `/assets/`, `/api/` proxied to `${API_UPSTREAM}`, default `api:8080`, `/healthz`).
 - Only `web` publishes a port; `api` and `db` are reachable only inside the Compose network.
+- `backup` (`prodrigestivill/postgres-backup-local`, pinned tag) dumps the database daily to
+  `BACKUP_DIR` (default `deploy/backups/`, git-ignored) with daily/weekly/monthly retention.
+  Keep its PostgreSQL major in sync with the `db` image. Restore procedure: `docs/backups.md`.
 
 ## Domain glossary
 
