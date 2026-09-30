@@ -1,0 +1,240 @@
+name: Release
+
+# - Tag vX.Y.Z (or vX.Y.Z-rc.N) pushed (scripts/release.sh or the GitHub UI): publish the images
+#   with that version and create the GitHub Release.
+# - "Run workflow" button on main with a version: check, create the tag and do the same in this run
+#   (a tag pushed with the workflow token does not trigger other workflow runs).
+# - Push to main: publish the "edge" images. Commits reach main only through PRs with CI green
+#   (branch ruleset), so they are not tested again here.
+# See docs/releasing.md.
+on:
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release from main, e.g. 0.1.0 or 0.2.0-rc.1 (no "v")
+        required: true
+        type: string
+      ignore-milestone:
+        description: Release even if this version's milestone is missing or still has open issues
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  # Version releases run one at a time (they move shared tags such as X.Y and latest) and are never
+  # cancelled; a newer edge build supersedes an older one.
+  group: ${{ (github.ref_type == 'tag' || github.event_name == 'workflow_dispatch') && 'release-versions' || format('release-{0}', github.ref) }}
+  cancel-in-progress: ${{ github.event_name == 'push' && github.ref_type == 'branch' }}
+
+# Third-party actions are pinned to a commit SHA (the tag is in the comment).
+jobs:
+  prepare:
+    name: Check and tag
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the tag
+      actions: read # CI status of the commit
+      issues: read # milestone status
+    steps:
+      - name: Only from main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Run this workflow from main (branch selector of 'Run workflow')"
+          exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check the release can be cut
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          IGNORE_MILESTONE: ${{ inputs.ignore-milestone }}
+        run: |
+          status=0
+          .github/scripts/release-preflight.sh "$VERSION" "$GITHUB_SHA" || status=$?
+          # 0 = ready, 2 = milestone warning; anything else (1, or an unexpected tool error) blocks.
+          if [ "$status" -ne 0 ] && [ "$status" -ne 2 ]; then
+            echo "::error::Release checks did not pass (exit code $status)"
+            exit 1
+          fi
+          if [ "$status" -eq 2 ] && [ "$IGNORE_MILESTONE" != true ]; then
+            echo "::error::Fix the milestone first (see the warning), or run again with 'ignore-milestone'"
+            exit 1
+          fi
+      - name: Create and push the tag
+        env:
+          VERSION: ${{ inputs.version }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSION" -m "Release v$VERSION (started by @$ACTOR)" "$GITHUB_SHA"
+          git push origin "v$VERSION"
+
+  version:
+    name: Version
+    needs: prepare
+    # Runs when prepare succeeded or was skipped (tag and main pushes).
+    if: ${{ !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tags: ${{ steps.version.outputs.tags }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+      image-prefix: ${{ steps.version.outputs.image-prefix }}
+      release-tag: ${{ steps.version.outputs.release-tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # All branches and tags: "latest" only moves for the highest version, and a pushed tag
+          # must be on a release branch.
+          fetch-depth: 0
+      - name: Check the tagged commit is on main or a release/* branch
+        if: github.event_name == 'push' && github.ref_type == 'tag'
+        env:
+          TAG: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+        run: |
+          # A tag pushed by hand or from the Releases page could point anywhere (a feature branch,
+          # an old commit...): only publish code that went through main or a maintenance branch.
+          if ! git branch -r --contains "$SHA" --format='%(refname:short)' \
+              | grep -qE '^origin/(main|release/.+)$'; then
+            msg="$TAG points to ${SHA:0:7}, which is not on main or a release/* branch."
+            msg+=" Nothing was published. Delete the tag (git push --delete origin $TAG; git tag -d $TAG),"
+            msg+=" otherwise it counts as the highest version and later releases would not move X.Y/latest."
+            echo "::error::$msg"
+            exit 1
+          fi
+      - id: version
+        env:
+          EVENT: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+          SHA: ${{ github.sha }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          if [ "$EVENT" = workflow_dispatch ]; then
+            REF_TYPE=tag
+            REF_NAME="v$INPUT_VERSION"
+          fi
+          .github/scripts/release-version.sh "$REF_TYPE" "$REF_NAME" "$SHA" | tee -a "$GITHUB_OUTPUT"
+          # Image names must be lowercase (forks may have uppercase owners).
+          echo "image-prefix=ghcr.io/${OWNER,,}/poker-bankroll" | tee -a "$GITHUB_OUTPUT"
+          # GitHub Release to create, if any (none for edge builds).
+          if [ "$REF_TYPE" = tag ]; then release_tag=$REF_NAME; else release_tag=; fi
+          echo "release-tag=$release_tag" | tee -a "$GITHUB_OUTPUT"
+
+  images:
+    name: Image ${{ matrix.image }}
+    needs: version
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - image: api
+            context: backend
+            description: REST API of poker-bankroll, a self-hosted poker bankroll manager
+          - image: web
+            context: frontend
+            description: Web app of poker-bankroll, a self-hosted poker bankroll manager
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Emulation is only needed for the per-arch stages (runtime assembly); the builds run natively.
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: tags
+        name: Image tags
+        env:
+          IMAGE: ${{ needs.version.outputs.image-prefix }}-${{ matrix.image }}
+          TAGS: ${{ needs.version.outputs.tags }}
+        run: |
+          {
+            echo 'list<<EOF'
+            for tag in $TAGS; do echo "$IMAGE:$tag"; done
+            echo 'EOF'
+          } | tee -a "$GITHUB_OUTPUT"
+      # A published version never changes: re-running a release (e.g. after a partial failure)
+      # only publishes the images that are missing, it never rebuilds an existing X.Y.Z. Its moving
+      # tags (X.Y, latest) are re-pointed to the published X.Y.Z, in case the first push was cut
+      # before creating them.
+      - id: published
+        name: Check whether this version is already published
+        if: needs.version.outputs.release-tag != ''
+        env:
+          IMAGE: ${{ needs.version.outputs.image-prefix }}-${{ matrix.image }}
+          VERSION: ${{ needs.version.outputs.version }}
+          TAGS: ${{ needs.version.outputs.tags }}
+        run: |
+          # Fail closed: only a registry answer saying the tag or the package does not exist means
+          # "not published"; any other error (network, auth...) stops instead of risking an overwrite.
+          if output=$(docker buildx imagetools inspect "$IMAGE:$VERSION" 2>&1); then
+            echo "::notice::$IMAGE:$VERSION is already published; not overwriting it"
+            aliases=()
+            for tag in $TAGS; do
+              if [ "$tag" != "$VERSION" ]; then aliases+=(--tag "$IMAGE:$tag"); fi
+            done
+            if [ "${#aliases[@]}" -gt 0 ]; then
+              # Copies the existing manifest under the other tags; nothing is rebuilt.
+              docker buildx imagetools create "${aliases[@]}" "$IMAGE:$VERSION"
+            fi
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          elif grep -qiE 'not found|manifest unknown|name unknown' <<< "$output"; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Could not check whether $IMAGE:$VERSION exists (re-run later): $output"
+            exit 1
+          fi
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        if: steps.published.outputs.skip != 'true'
+        with:
+          context: ${{ matrix.context }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: APP_VERSION=${{ needs.version.outputs.version }}
+          tags: ${{ steps.tags.outputs.list }}
+          labels: |
+            org.opencontainers.image.title=poker-bankroll-${{ matrix.image }}
+            org.opencontainers.image.description=${{ matrix.description }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.version=${{ needs.version.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.licenses=MIT
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+  github-release:
+    name: GitHub Release
+    needs: [version, images]
+    if: ${{ !failure() && !cancelled() && needs.version.outputs.release-tag != '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create the release with generated notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.version.outputs.release-tag }}
+          PRERELEASE: ${{ needs.version.outputs.prerelease }}
+        run: |
+          # The release may already exist if it was created from the GitHub UI.
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "Release $TAG already exists"
+            exit 0
+          fi
+          flags=(--generate-notes --verify-tag)
+          if [ "$PRERELEASE" = true ]; then flags+=(--prerelease); fi
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" "${flags[@]}"

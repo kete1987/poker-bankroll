@@ -1,17 +1,21 @@
 # syntax=docker/dockerfile:1
 
 # ---- Build: static files ----
-FROM node:24-alpine AS build
+# The static build is the same for every CPU architecture: build it once, natively.
+FROM --platform=$BUILDPLATFORM node:24-alpine AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
 
 COPY . .
+# Version shown in the UI; "dev" when not set (see vite.config.ts).
+ARG APP_VERSION
 RUN npm run build
 
 # ---- Runtime: nginx serving the SPA and proxying /api, non-root, port 8080 ----
 FROM nginxinc/nginx-unprivileged:stable-alpine
+LABEL org.opencontainers.image.source="https://github.com/kete1987/poker-bankroll"
 
 # Backend address used by the /api proxy (host:port). Rendered into the config at startup.
 ENV API_UPSTREAM=api:8080

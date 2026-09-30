@@ -6,6 +6,10 @@ const apiProxyTarget = process.env.API_PROXY_TARGET ?? 'http://localhost:8080';
 
 export default defineConfig({
   plugins: [react()],
+  define: {
+    // Set by the Docker build from the release tag (APP_VERSION); "dev" for local builds.
+    __APP_VERSION__: JSON.stringify(process.env.APP_VERSION || 'dev'),
+  },
   build: {
     rolldownOptions: {
       output: {
