@@ -38,8 +38,8 @@ El roadmap completo está en las [issues](https://github.com/kete1987/poker-bank
 
 | Parte | Tecnología |
 |---|---|
-| Base de datos | PostgreSQL 16 |
-| Backend | Java 21, Spring Boot 3, Flyway, OpenAPI |
+| Base de datos | PostgreSQL 18 |
+| Backend | Java 25, Spring Boot 4.1, Flyway, OpenAPI |
 | Frontend | React, TypeScript, Vite, Mantine, TanStack Query, react-i18next, ECharts |
 | Despliegue | Docker Compose (imágenes en GHCR, `amd64` y `arm64`) |
 

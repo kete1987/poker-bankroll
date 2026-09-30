@@ -37,8 +37,8 @@ See the [issues](https://github.com/kete1987/poker-bankroll/issues) for the full
 
 | Part | Technology |
 |---|---|
-| Database | PostgreSQL 16 |
-| Backend | Java 21, Spring Boot 3, Flyway, OpenAPI |
+| Database | PostgreSQL 18 |
+| Backend | Java 25, Spring Boot 4.1, Flyway, OpenAPI |
 | Frontend | React, TypeScript, Vite, Mantine, TanStack Query, react-i18next, ECharts |
 | Deployment | Docker Compose (images published to GHCR, `amd64` and `arm64`) |
 

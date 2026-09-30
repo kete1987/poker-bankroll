@@ -22,21 +22,33 @@ Issue titles carry an ID (`[INF-1]`, `[API-3]`, `[UI-2]`...) used across discuss
 
 | Path | Content |
 |---|---|
-| `backend/` | REST API — Java 21, Spring Boot 3, Flyway, springdoc-openapi |
+| `backend/` | REST API — Java 25, Spring Boot 4.1, Flyway, springdoc-openapi |
 | `frontend/` | Web app — React, Vite, TypeScript, React Router, TanStack Query, Mantine, react-i18next, ECharts |
 | `deploy/` | `docker-compose.yml` (db + api + web + backup), `nginx.conf`, `.env.example` |
 | `docs/` | User and developer documentation |
 | `.github/workflows/` | CI (tests per PR) and release (multi-arch images to GHCR on tag) |
 
 Runtime architecture: `web` (nginx serving the SPA and proxying `/api`) → `api` (Spring Boot)
-→ `db` (PostgreSQL 16). Only `web` exposes a port. Both images share the same version tag.
+→ `db` (PostgreSQL 18). Only `web` exposes a port. Both images share the same version tag.
 
 ## Commands
 
-> The skeletons are created by INF-2 (backend), INF-3 (frontend) and INF-4 (Docker).
 > Update this section in the same PR that introduces or changes a command.
 
-_None yet._
+### Backend (`backend/`)
+
+Requires JDK 25 (`JAVA_HOME`) and a running Docker daemon (tests use Testcontainers).
+Use the Maven wrapper; on Windows use `mvnw.cmd` instead of `./mvnw`.
+
+| Command | What it does |
+|---|---|
+| `./mvnw verify` | Compile and run all tests (starts a PostgreSQL container) |
+| `./mvnw test -Dtest=ClassName` | Run a single test class |
+| `./mvnw spring-boot:test-run` | Run the API on `:8080` against a throwaway PostgreSQL container |
+| `./mvnw spring-boot:run` | Run the API against the PostgreSQL configured in `application.yaml` / env vars |
+
+With the API running: health at `http://localhost:8080/api/actuator/health`, Swagger UI at
+`http://localhost:8080/api/swagger-ui.html`, OpenAPI spec at `http://localhost:8080/api/v3/api-docs`.
 
 ## Domain glossary
 
@@ -71,10 +83,30 @@ _None yet._
 - Currencies live in the `currency` table; adding one must not require code changes.
 
 ### API
-- REST under `/api`, JSON, ISO-8601 dates (`yyyy-MM-dd`).
+- REST, JSON, ISO-8601 dates (`yyyy-MM-dd`).
+- The servlet context path is `/api` (`server.servlet.context-path`), so controllers map
+  `/games`, not `/api/games`. Actuator and OpenAPI live under `/api` too.
 - Responses contain **codes, not translated text** (enums, variant codes, error codes).
-  Error responses: a stable error code plus a message resolved from `Accept-Language`.
+- Errors are RFC 9457 `application/problem+json` built by `GlobalExceptionHandler`, with a
+  `code` property (`ErrorCode` enum) and, for validation errors, an `errors` list of
+  `{field, code, message}` (`field` is `null` for object-level constraints).
+  Business errors throw `ApiException(ErrorCode, args...)`.
+  The `detail` is resolved from `messages.properties` (English, default) /
+  `messages_es.properties` using `Accept-Language`; add every new key to both files.
 - The OpenAPI spec is the contract; frontend types are generated from it (API-7).
+
+### Backend code
+- Base package `io.github.kete1987.pokerbankroll`, organised **by feature**
+  (`game`, `room`, `bankroll`, `stats`...), with cross-cutting code in `common`.
+- Configuration comes from `application.yaml`; override it with standard Spring environment
+  variables (`SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`...).
+- Hibernate never changes the schema (`ddl-auto: validate`); Flyway owns it.
+- Validate input with Bean Validation on request DTOs (`@Valid @RequestBody`) and on simple
+  parameters. Rules spanning several fields go in a **class-level constraint on the DTO**.
+  Do not use cross-parameter constraints on controller methods: Spring MVC 7.0 does not enforce
+  them on their own (pinned by `GlobalExceptionHandlerTests#crossParameterOnlyViolationIsNotEnforcedBySpring`).
+- Integration tests use `@Import(TestcontainersConfiguration.class)`; the PostgreSQL image there
+  must match the one in `deploy/docker-compose.yml`.
 
 ### Database
 - Schema changes only through Flyway migrations in `backend/src/main/resources/db/migration/`.
