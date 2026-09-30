@@ -68,6 +68,9 @@ services:
       BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-7}
       BACKUP_KEEP_WEEKS: ${BACKUP_KEEP_WEEKS:-4}
       BACKUP_KEEP_MONTHS: ${BACKUP_KEEP_MONTHS:-6}
+      # Port of the scheduler's status server used by the healthcheck below (8080 is also the
+      # image default; set here so the healthcheck does not depend on it).
+      HEALTHCHECK_PORT: '8080'
     volumes:
       - ${BACKUP_DIR:-./backups}:/backups
     healthcheck:
