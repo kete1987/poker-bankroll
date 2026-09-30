@@ -1,0 +1,29 @@
+{
+  "app": {
+    "name": "poker-bankroll"
+  },
+  "header": {
+    "language": "Idioma",
+    "toggleColorScheme": "Cambiar entre modo claro y oscuro"
+  },
+  "home": {
+    "title": "Bienvenido a poker-bankroll",
+    "subtitle": "Controla tus resultados de póker y el saldo de cada sala.",
+    "apiStatus": {
+      "label": "API",
+      "checking": "Comprobando…",
+      "up": "Disponible",
+      "down": "No disponible"
+    }
+  },
+  "notFound": {
+    "title": "Página no encontrada",
+    "description": "La página que buscas no existe.",
+    "backHome": "Volver al inicio"
+  },
+  "error": {
+    "title": "Algo ha ido mal",
+    "description": "Se ha producido un error inesperado. Prueba a recargar la página.",
+    "reload": "Recargar"
+  }
+}

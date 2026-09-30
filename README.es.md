@@ -40,7 +40,7 @@ El roadmap completo está en las [issues](https://github.com/kete1987/poker-bank
 |---|---|
 | Base de datos | PostgreSQL 18 |
 | Backend | Java 25, Spring Boot 4.1, Flyway, OpenAPI |
-| Frontend | React, TypeScript, Vite, Mantine, TanStack Query, react-i18next, ECharts |
+| Frontend | React 19, TypeScript 7, Vite 8, Mantine 9, TanStack Query, react-i18next, ECharts |
 | Despliegue | Docker Compose (imágenes en GHCR, `amd64` y `arm64`) |
 
 ```
