@@ -2,6 +2,7 @@ package io.github.kete1987.pokerbankroll.common.error;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Stream;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -13,6 +14,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -55,8 +57,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     protected @Nullable ResponseEntity<Object> handleMethodArgumentNotValid(
             MethodArgumentNotValidException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
-        List<FieldViolation> errors = ex.getBindingResult().getFieldErrors().stream()
-                .map(error -> violation(error.getField(), error, locale))
+        BindingResult result = ex.getBindingResult();
+        // Class-level (cross-field) constraints end up in the global errors, with no field.
+        List<FieldViolation> errors = Stream.concat(
+                        result.getGlobalErrors().stream().map(error -> violation(null, error, locale)),
+                        result.getFieldErrors().stream().map(error -> violation(error.getField(), error, locale)))
                 .toList();
         return validationFailed(ex, errors, headers, status, request);
     }

@@ -2,6 +2,15 @@ package io.github.kete1987.pokerbankroll.common.error;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+import jakarta.validation.Constraint;
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
+import jakarta.validation.Payload;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -36,6 +45,18 @@ class GlobalExceptionHandlerTests {
                 .hasPathSatisfying("$.detail", detail -> detail.assertThat().isEqualTo("The request contains invalid data."))
                 .hasPathSatisfying("$.errors[0].field", field -> field.assertThat().isEqualTo("name"))
                 .hasPathSatisfying("$.errors[0].code", code -> code.assertThat().isEqualTo("NotBlank"));
+    }
+
+    @Test
+    void objectLevelViolationsAreReportedWithoutField() {
+        assertThat(mvc.post().uri("/test/range").contentType(MediaType.APPLICATION_JSON).content("{\"min\":5,\"max\":1}"))
+                .hasStatus(HttpStatus.BAD_REQUEST)
+                .bodyJson()
+                .hasPathSatisfying("$.code", code -> code.assertThat().isEqualTo("VALIDATION_FAILED"))
+                .hasPathSatisfying("$.errors.length()", size -> size.assertThat().isEqualTo(1))
+                .hasPathSatisfying("$.errors[0].field", field -> field.assertThat().isNull())
+                .hasPathSatisfying("$.errors[0].code", code -> code.assertThat().isEqualTo("OrderedRange"))
+                .hasPathSatisfying("$.errors[0].message", message -> message.assertThat().isEqualTo("min must not exceed max"));
     }
 
     @Test
@@ -90,15 +111,44 @@ class GlobalExceptionHandlerTests {
                 .bodyJson().extractingPath("$.code").isEqualTo("METHOD_NOT_ALLOWED");
     }
 
-    record Payload(@NotBlank String name) {
+    record NamedBody(@NotBlank String name) {
+    }
+
+    @OrderedRange
+    record Range(int min, int max) {
+    }
+
+    /** Class-level constraint: its violation is a global error, not bound to any field. */
+    @Target(ElementType.TYPE)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Constraint(validatedBy = OrderedRangeValidator.class)
+    @interface OrderedRange {
+        String message() default "min must not exceed max";
+
+        Class<?>[] groups() default {};
+
+        Class<? extends Payload>[] payload() default {};
+    }
+
+    static class OrderedRangeValidator implements ConstraintValidator<OrderedRange, Range> {
+
+        @Override
+        public boolean isValid(Range range, ConstraintValidatorContext context) {
+            return range == null || range.min() <= range.max();
+        }
     }
 
     @RestController
     static class ErrorTestController {
 
         @PostMapping("/test/body")
-        Payload body(@Valid @RequestBody Payload payload) {
-            return payload;
+        NamedBody body(@Valid @RequestBody NamedBody body) {
+            return body;
+        }
+
+        @PostMapping("/test/range")
+        Range range(@Valid @RequestBody Range range) {
+            return range;
         }
 
         @GetMapping("/test/param")

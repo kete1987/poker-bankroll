@@ -89,7 +89,8 @@ With the API running: health at `http://localhost:8080/api/actuator/health`, Swa
 - Responses contain **codes, not translated text** (enums, variant codes, error codes).
 - Errors are RFC 9457 `application/problem+json` built by `GlobalExceptionHandler`, with a
   `code` property (`ErrorCode` enum) and, for validation errors, an `errors` list of
-  `{field, code, message}`. Business errors throw `ApiException(ErrorCode, args...)`.
+  `{field, code, message}` (`field` is `null` for object-level constraints).
+  Business errors throw `ApiException(ErrorCode, args...)`.
   The `detail` is resolved from `messages.properties` (English, default) /
   `messages_es.properties` using `Accept-Language`; add every new key to both files.
 - The OpenAPI spec is the contract; frontend types are generated from it (API-7).
