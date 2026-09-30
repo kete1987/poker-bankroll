@@ -59,12 +59,14 @@ merges to main ──► edge (published automatically)
 
 All three ways end in the same `Release` workflow run, which builds and publishes everything.
 The first two run the same checks (`.github/scripts/release-preflight.sh`): valid version, tag not
-used yet, **CI green** for the commit (blocking) and, for stable releases, **no open issues** in the
-milestone (a warning you must confirm).
+used yet, **CI green** for the commit (blocking) and, for stable releases, that **exactly one
+milestone** matches the minor version (`v0.1` or `v0.1 <name>`) and it has **no open issues**
+(a warning you must confirm).
 
 - **From GitHub** (no local setup, works from a phone): *Actions → Release → Run workflow*, keep the
   branch on `main`, type the version (`0.2.0` or `0.2.0-rc.1`, without `v`). Tick
-  *allow-open-milestone* only to release on purpose with open issues. The run checks, creates the
+  *ignore-milestone* only to release on purpose when the milestone is missing or still has open
+  issues. The run checks, creates the
   tag on the current `main` commit and publishes.
 - **From your machine**: on an up-to-date, clean `main`, run `scripts/release.sh 0.2.0`. It checks,
   asks for confirmation and pushes the tag; the push starts the workflow.
@@ -72,6 +74,10 @@ milestone (a warning you must confirm).
   publishes the images and keeps the release you wrote. This way skips the checks.
 
 Follow a build in the *Actions* tab or with `gh run watch`.
+
+If a release run fails half-way, re-run it (*Re-run failed jobs*): images that were already
+published for that version are left as they are, only the missing ones are built. A published
+`X.Y.Z` is never rebuilt, so rolling back to it always gives the same bits.
 
 ## Maintenance branches
 

@@ -36,13 +36,27 @@ fi
 echo "CI for ${sha:0:7}: success"
 
 if [[ $version != *-* ]]; then
-  # Milestones are named after the minor version they deliver, e.g. "v0.1 MVP" -> 0.1.x.
+  # Milestones are named after the minor version they deliver: "v0.1" or "v0.1 <name>" -> 0.1.x.
+  # Match the whole minor ("v0.1" must not match "v0.10") and require exactly one milestone, so a
+  # mistyped version (no milestone) is not taken as "nothing left to do".
   minor="v${version%.*}"
-  open=$(gh api "repos/{owner}/{repo}/milestones?state=all" \
-    --jq "[.[] | select(.title | startswith(\"$minor\")) | .open_issues] | add // 0")
-  if [ "$open" -gt 0 ]; then
-    report warning "milestone $minor still has $open open issue(s)"
+  pattern="^${minor//./\\\\.}( |$)"
+  milestones=$(gh api --paginate "repos/{owner}/{repo}/milestones?state=all&per_page=100" \
+    --jq ".[] | select(.title | test(\"$pattern\")) | \"\(.open_issues) \(.title)\"")
+  count=$(printf '%s' "$milestones" | grep -c . || true)
+  if [ "$count" -eq 0 ]; then
+    report warning "there is no milestone for $minor: check the version is the intended one"
     exit 2
   fi
-  echo "Milestone $minor: no open issues"
+  if [ "$count" -gt 1 ]; then
+    report warning "several milestones match $minor: $(printf '%s' "$milestones" | cut -d' ' -f2- | paste -sd ',' -)"
+    exit 2
+  fi
+  open=${milestones%% *}
+  title=${milestones#* }
+  if [ "$open" -gt 0 ]; then
+    report warning "milestone '$title' still has $open open issue(s)"
+    exit 2
+  fi
+  echo "Milestone '$title': no open issues"
 fi
