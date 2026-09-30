@@ -1,0 +1,130 @@
+# Dependabot version updates. How to review the pull requests: see "Dependabot" in AGENTS.md.
+# Options: https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference
+#
+# Common settings for every ecosystem:
+# - Weekly run, Monday morning (Madrid time).
+# - Minor and patch updates of an ecosystem come in one grouped pull request; each major update
+#   gets its own pull request (it does not match the group), so it can be reviewed on its own.
+# - Commit messages and PR titles follow Conventional Commits: `prefix: chore` + `include: scope`
+#   renders `chore(deps): bump ...` (`chore(deps-dev): ...` for npm/Maven development dependencies).
+# - Labels: `dependencies` (release notes) plus the `area:*` label of the part being updated.
+#   Labels that do not exist in the repository are skipped by Dependabot, not created.
+# - Cooldown: a released version is only proposed after 7 days (Dependabot's default is 3), so a
+#   compromised or broken release is usually yanked before it reaches a pull request. Security
+#   updates ignore the cooldown and the open pull request limit.
+version: 2
+
+updates:
+  # Actions in .github/workflows are pinned to a commit SHA with the tag in a trailing comment
+  # (`uses: actions/checkout@<sha> # v7.0.1`): Dependabot updates the SHA and the comment together.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Madrid
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    groups:
+      actions-minor-patch:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: chore
+      include: scope
+    labels: [dependencies, 'area:infra']
+
+  - package-ecosystem: maven
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Madrid
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    groups:
+      maven-minor-patch:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: chore
+      include: scope
+    labels: [dependencies, 'area:backend']
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Madrid
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 10
+    groups:
+      npm-minor-patch:
+        update-types: [minor, patch]
+    ignore:
+      # The Node types follow the Node LTS used at runtime (Node 24: frontend/Dockerfile, CI
+      # `node-version`, `engines`), not the latest Node release. Bump the major by hand together
+      # with the runtime when moving to the next LTS.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+    commit-message:
+      prefix: chore
+      include: scope
+    labels: [dependencies, 'area:frontend']
+
+  # Base images of backend/Dockerfile and frontend/Dockerfile. The tags are floating
+  # (`eclipse-temurin:25-jdk`, `node:24-alpine`...), so patches arrive by rebuilding the image;
+  # `nginxinc/nginx-unprivileged:stable-alpine` has no version in its tag and is not updated.
+  - package-ecosystem: docker
+    directories: [/backend, /frontend]
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Madrid
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 3
+    groups:
+      docker-minor-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Runtimes stay on an LTS line: Java 25 and Node 24. Dependabot would propose every new
+      # major (Java 26, Node 25...), including non-LTS ones, and the runtime version also lives
+      # in files it does not update (CI `java-version`/`node-version`, pom.xml `java.version`,
+      # package.json `engines`). Move to the next LTS by hand, in one PR touching all of them.
+      - dependency-name: eclipse-temurin
+        update-types: ['version-update:semver-major']
+      - dependency-name: node
+        update-types: ['version-update:semver-major']
+    commit-message:
+      prefix: chore
+      include: scope
+    labels: [dependencies, 'area:infra']
+
+  # PostgreSQL image in deploy/docker-compose.yml and deploy/docker-compose.dev.yml (both files
+  # are updated in the same PR). With the `18-alpine` tag only a new PostgreSQL major is ever
+  # proposed: it needs a data upgrade for existing volumes and the same change in
+  # backend/src/test/java/.../TestcontainersConfiguration.java, which Dependabot does not update.
+  - package-ecosystem: docker-compose
+    directory: /deploy
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Madrid
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 2
+    groups:
+      compose-minor-patch:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: chore
+      include: scope
+    labels: [dependencies, 'area:infra']
