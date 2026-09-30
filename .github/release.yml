@@ -1,14 +1,15 @@
-# Groups the auto-generated release notes by the labels of the merged pull requests
-# (PRs carry the same type:* labels as their issue).
+# Groups the auto-generated release notes by the labels of the merged pull requests.
+# PRs carry their issue's labels: type:feature, type:chore, bug (GitHub's default label) or
+# dependencies (added by Dependabot). The type:-prefixed spellings are accepted too.
 changelog:
   categories:
     - title: Features
       labels: [type:feature]
     - title: Fixes
-      labels: [bug]
+      labels: [bug, type:bug]
     - title: Maintenance
       labels: [type:chore]
     - title: Dependencies
-      labels: [dependencies]
+      labels: [dependencies, type:dependencies]
     - title: Other changes
       labels: ['*']

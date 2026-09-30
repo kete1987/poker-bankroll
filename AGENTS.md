@@ -180,9 +180,11 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   plus the GitHub Release with generated notes.
 - The git tag is the only source of the version (`-Drevision` for Maven, `APP_VERSION` for the web
   build). Do not edit versions by hand in `pom.xml` or `package.json`.
-- Cut releases with `scripts/release.sh X.Y.Z` from an up-to-date `main`; the full flow
-  (milestones, pre-releases, deploying, rolling back) is in `docs/releasing.md`.
-- Give each PR the same `type:*` label as its issue: release notes are grouped by those labels.
+- Cut releases with `scripts/release.sh X.Y.Z` from an up-to-date `main`, or from GitHub with
+  *Actions → Release → Run workflow*; both run `.github/scripts/release-preflight.sh`. The full flow
+  (milestones, pre-releases, maintenance branches, deploying, rolling back) is in `docs/releasing.md`.
+- Give each PR the same labels as its issue (`type:feature`, `type:chore` or `bug`; Dependabot adds
+  `dependencies`): release notes are grouped by them (`.github/release.yml`).
 
 ### Style
 - Files are UTF-8 with LF line endings (see `.editorconfig` / `.gitattributes`).

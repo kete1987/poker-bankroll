@@ -36,20 +36,60 @@ Pre-releases never move `0.X` or `latest`.
 1. **Work** happens in issues and pull requests. Every merge to `main` publishes `edge`
    (workflow `Release`). Commits only reach `main` with CI green.
 2. **Try it**: point a test stack at `POKER_BANKROLL_VERSION=edge` and pull.
-3. **Release candidate** (optional, recommended before a minor release): from an up-to-date `main`,
-   run `scripts/release.sh 0.2.0-rc.1`. It creates a GitHub *pre-release* and the `0.2.0-rc.1`
-   images. Fix what is found through normal PRs and cut `rc.2` if needed.
-4. **Release**: when the milestone is done, run `scripts/release.sh 0.2.0`. The script checks
-   that you are on an up-to-date, clean `main`, that CI passed for that commit and that the
-   milestone has no open issues (it warns and asks before going on), then pushes the tag.
-   GitHub Actions publishes the images (`0.2.0`, `0.2`, `latest`) and creates the GitHub Release
-   with notes generated from the merged PRs, grouped by their `type:*` labels.
+3. **Release candidate** (optional): cut `0.2.0-rc.1` (see *How to cut a release* below). It creates
+   a GitHub *pre-release* and the `0.2.0-rc.1` images, without touching `latest`. Fix what is found
+   through normal PRs and cut `rc.2` if needed. Worth it before a minor release (new features);
+   patch releases usually go straight to the release.
+4. **Release**: when the milestone is done, cut `0.2.0`. GitHub Actions publishes the images
+   (`0.2.0`, `0.2`, `latest`) and creates the GitHub Release with notes generated from the merged
+   PRs, grouped by their labels.
 5. **Close the milestone** in GitHub.
 
-A release can also be created from the GitHub UI (*Releases → Draft a new release* with a new
-`vX.Y.Z` tag on `main`): the workflow publishes the images and leaves that release as it is.
+```
+merges to main ──► edge (published automatically)
+                     │
+       release candidate? ── yes ──► v0.2.0-rc.1 ──► try it ──► fix via PR ──► v0.2.0-rc.2 ...
+                     │                                  │
+                     no                                 ok
+                     ▼                                  ▼
+                  v0.2.0  (0.2.0, 0.2, latest + GitHub Release)
+```
 
-Follow a build with `gh run watch` or in the *Actions* tab.
+## How to cut a release
+
+All three ways end in the same `Release` workflow run, which builds and publishes everything.
+The first two run the same checks (`.github/scripts/release-preflight.sh`): valid version, tag not
+used yet, **CI green** for the commit (blocking) and, for stable releases, **no open issues** in the
+milestone (a warning you must confirm).
+
+- **From GitHub** (no local setup, works from a phone): *Actions → Release → Run workflow*, keep the
+  branch on `main`, type the version (`0.2.0` or `0.2.0-rc.1`, without `v`). Tick
+  *allow-open-milestone* only to release on purpose with open issues. The run checks, creates the
+  tag on the current `main` commit and publishes.
+- **From your machine**: on an up-to-date, clean `main`, run `scripts/release.sh 0.2.0`. It checks,
+  asks for confirmation and pushes the tag; the push starts the workflow.
+- **From the Releases page** (*Draft a new release* with a new `vX.Y.Z` tag on `main`): the workflow
+  publishes the images and keeps the release you wrote. This way skips the checks.
+
+Follow a build in the *Actions* tab or with `gh run watch`.
+
+## Maintenance branches
+
+Releases are cut from `main` (trunk-based): there are no long-lived release branches. A
+maintenance branch is only needed when an already released version needs a fix **and** `main`
+already contains unreleased changes that must not ship yet. Then:
+
+1. Fix the bug on `main` first, through a normal PR.
+2. Create the branch from the release tag, once per series: `git switch -c release/0.1 v0.1.0`
+   and push it. Protect it like `main` in the branch rules if it will live long.
+3. Bring the fix: `git cherry-pick -x <commit>` in a PR against `release/0.1` (CI runs there too).
+4. Tag it from that branch: `git tag -a v0.1.1 -m "Release v0.1.1"` on `release/0.1` and
+   `git push origin v0.1.1`. The tag starts the same `Release` workflow, which publishes `0.1.1`
+   and moves `0.1`; `latest` only moves when the version is the highest released one.
+
+`scripts/release.sh` and the *Run workflow* button only release from `main`; extend them to
+`release/*` branches the first time one is needed. If `main` has nothing unreleased, just release
+the fix from `main` as `0.1.1` and skip all of this.
 
 ## Deploying and updating (Docker Compose / Portainer)
 

@@ -1,6 +1,9 @@
 name: Release
 
-# - Tag vX.Y.Z (or vX.Y.Z-rc.N): publish the images with that version and create the GitHub Release.
+# - Tag vX.Y.Z (or vX.Y.Z-rc.N) pushed (scripts/release.sh or the GitHub UI): publish the images
+#   with that version and create the GitHub Release.
+# - "Run workflow" button on main with a version: check, create the tag and do the same in this run
+#   (a tag pushed with the workflow token does not trigger other workflow runs).
 # - Push to main: publish the "edge" images. Commits reach main only through PRs with CI green
 #   (branch ruleset), so they are not tested again here.
 # See docs/releasing.md.
@@ -8,37 +11,100 @@ on:
   push:
     branches: [main]
     tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release from main, e.g. 0.1.0 or 0.2.0-rc.1 (no "v")
+        required: true
+        type: string
+      allow-open-milestone:
+        description: Release even if the milestone of this version still has open issues
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ github.event_name }}-${{ github.ref }}
   # A newer edge build supersedes an older one; a version build must always finish.
-  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+  cancel-in-progress: ${{ github.event_name == 'push' && github.ref_type == 'branch' }}
 
 # Third-party actions are pinned to a commit SHA (the tag is in the comment).
 jobs:
+  prepare:
+    name: Check and tag
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the tag
+      actions: read # CI status of the commit
+      issues: read # milestone status
+    steps:
+      - name: Only from main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Run this workflow from main (branch selector of 'Run workflow')"
+          exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check the release can be cut
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          ALLOW_OPEN_MILESTONE: ${{ inputs.allow-open-milestone }}
+        run: |
+          status=0
+          .github/scripts/release-preflight.sh "$VERSION" "$GITHUB_SHA" || status=$?
+          if [ "$status" -eq 1 ]; then exit 1; fi
+          if [ "$status" -eq 2 ] && [ "$ALLOW_OPEN_MILESTONE" != true ]; then
+            echo "::error::Close the milestone first, or run again with 'allow-open-milestone'"
+            exit 1
+          fi
+      - name: Create and push the tag
+        env:
+          VERSION: ${{ inputs.version }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSION" -m "Release v$VERSION (started by @$ACTOR)" "$GITHUB_SHA"
+          git push origin "v$VERSION"
+
   version:
     name: Version
+    needs: prepare
+    # Runs when prepare succeeded or was skipped (tag and main pushes).
+    if: ${{ !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
       tags: ${{ steps.version.outputs.tags }}
       prerelease: ${{ steps.version.outputs.prerelease }}
       image-prefix: ${{ steps.version.outputs.image-prefix }}
+      release-tag: ${{ steps.version.outputs.release-tag }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # all tags: "latest" only moves for the highest version
       - id: version
         env:
+          EVENT: ${{ github.event_name }}
           REF_TYPE: ${{ github.ref_type }}
           REF_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ inputs.version }}
           SHA: ${{ github.sha }}
           OWNER: ${{ github.repository_owner }}
         run: |
+          if [ "$EVENT" = workflow_dispatch ]; then
+            REF_TYPE=tag
+            REF_NAME="v$INPUT_VERSION"
+          fi
           .github/scripts/release-version.sh "$REF_TYPE" "$REF_NAME" "$SHA" | tee -a "$GITHUB_OUTPUT"
           # Image names must be lowercase (forks may have uppercase owners).
           echo "image-prefix=ghcr.io/${OWNER,,}/poker-bankroll" | tee -a "$GITHUB_OUTPUT"
+          # GitHub Release to create, if any (none for edge builds).
+          if [ "$REF_TYPE" = tag ]; then release_tag=$REF_NAME; else release_tag=; fi
+          echo "release-tag=$release_tag" | tee -a "$GITHUB_OUTPUT"
 
   images:
     name: Image ${{ matrix.image }}
@@ -98,7 +164,7 @@ jobs:
   github-release:
     name: GitHub Release
     needs: [version, images]
-    if: github.ref_type == 'tag'
+    if: ${{ !failure() && !cancelled() && needs.version.outputs.release-tag != '' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -106,7 +172,7 @@ jobs:
       - name: Create the release with generated notes
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ needs.version.outputs.release-tag }}
           PRERELEASE: ${{ needs.version.outputs.prerelease }}
         run: |
           # The release may already exist if it was created from the GitHub UI.
