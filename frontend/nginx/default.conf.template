@@ -1,4 +1,28 @@
 # Rendered by the nginx image at startup: ${API_UPSTREAM} comes from the environment.
+
+# Address the client used, which the API needs to build absolute URLs (e.g. the OpenAPI server).
+# The container listens on 8080 but is usually published on another port (WEB_PORT), so
+# $server_port is not it. If another proxy sits in front (e.g. one terminating HTTPS), keep what
+# it sends; otherwise take the scheme from this request and host:port from its Host header.
+map $http_x_forwarded_proto $client_proto {
+    ''      $scheme;
+    default $http_x_forwarded_proto;
+}
+map $http_x_forwarded_host $client_host {
+    ''      $http_host;
+    default $http_x_forwarded_host;
+}
+map $client_proto $client_default_port {
+    https   443;
+    default 80;
+}
+# Port from X-Forwarded-Port, else from "host:port", else the scheme's default port.
+map "$http_x_forwarded_port|$client_host" $client_port {
+    "~^(?<p>\d+)\|"      $p;
+    "~^\|.*:(?<p>\d+)$"  $p;
+    default              $client_default_port;
+}
+
 server {
     listen 8080;
     server_name _;
@@ -19,12 +43,12 @@ server {
     # Backend: API, actuator and OpenAPI all live under /api.
     location /api/ {
         proxy_pass http://${API_UPSTREAM};
-        proxy_set_header Host $host;
+        proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-Port $server_port;
+        proxy_set_header X-Forwarded-Proto $client_proto;
+        proxy_set_header X-Forwarded-Host $client_host;
+        proxy_set_header X-Forwarded-Port $client_port;
         # Room for CSV imports.
         client_max_body_size 20m;
     }
