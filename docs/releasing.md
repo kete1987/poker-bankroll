@@ -79,7 +79,9 @@ milestone** matches the minor version (`v0.1` or `v0.1 <name>`) and it has **no 
   publishes the images and keeps the release you wrote. This way skips the checks.
 
 Whatever the way, the workflow refuses a pushed tag whose commit is not on `main` or a `release/*`
-branch, so a tag on a feature branch never becomes a published version.
+branch, so a tag on a feature branch never becomes a published version. If that happens, **delete the
+rejected tag** (`git push --delete origin vX.Y.Z`): while it exists it counts as the highest
+version, and later releases would not move `X.Y` or `latest`.
 
 Follow a build in the *Actions* tab or with `gh run watch`.
 

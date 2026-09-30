@@ -99,7 +99,10 @@ jobs:
           # an old commit...): only publish code that went through main or a maintenance branch.
           if ! git branch -r --contains "$SHA" --format='%(refname:short)' \
               | grep -qE '^origin/(main|release/.+)$'; then
-            echo "::error::$TAG points to ${SHA:0:7}, which is not on main or a release/* branch"
+            msg="$TAG points to ${SHA:0:7}, which is not on main or a release/* branch."
+            msg+=" Nothing was published. Delete the tag (git push --delete origin $TAG; git tag -d $TAG),"
+            msg+=" otherwise it counts as the highest version and later releases would not move X.Y/latest."
+            echo "::error::$msg"
             exit 1
           fi
       - id: version
