@@ -71,6 +71,14 @@ En Portainer, crea un stack a partir de `deploy/docker-compose.yml` y define las
 > La aplicación no tiene login. Úsala en tu red local y no la expongas a internet sin
 > poner autenticación delante.
 
+## Copias de seguridad
+
+El stack hace cada día una copia de la base de datos en `deploy/backups/` (conserva 7 diarias,
+4 semanales y 6 mensuales; las variables `BACKUP_*` de `.env` cambian la carpeta, la frecuencia
+y la retención). En Portainer, pon en `BACKUP_DIR` una ruta absoluta del host. En
+[docs/backups.md](docs/backups.md) (en inglés) se explica cómo hacer una copia en el momento,
+restaurarla y llevar las copias a otra máquina.
+
 ## Estructura del repositorio
 
 ```

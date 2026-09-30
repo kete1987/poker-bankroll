@@ -69,6 +69,13 @@ Versions, updates and rollbacks are explained in [docs/releasing.md](docs/releas
 > The app has no login. Run it on your local network and do not expose it to the internet
 > without putting authentication in front of it.
 
+## Backups
+
+The stack backs up the database every day to `deploy/backups/` (keeping 7 daily, 4 weekly and
+6 monthly dumps; set `BACKUP_*` in `.env` to change the folder, schedule or retention). In
+Portainer, set `BACKUP_DIR` to an absolute path of the host. See [docs/backups.md](docs/backups.md)
+to take a backup on demand, restore one and copy them to another machine.
+
 ## Repository layout
 
 ```
