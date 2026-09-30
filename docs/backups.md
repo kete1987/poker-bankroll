@@ -127,8 +127,11 @@ Restoring **replaces all current data** with the content of the dump.
    Optionally, keep a copy of the current data first:
 
    ```bash
-   docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner --no-privileges' | gzip > ~/poker-bankroll-before-restore.sql.gz
+   docker compose exec -T db sh -c 'set -o pipefail; pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner --no-privileges | gzip' > ~/poker-bankroll-before-restore.sql.gz && echo "copy OK"
    ```
+
+   Only rely on this copy if it prints `copy OK`: dump and compression run inside the container
+   with `pipefail`, so a failing `pg_dump` is reported instead of leaving an empty file.
 
 3. Drop the database and create it again, empty (from here on the current data is gone):
 
