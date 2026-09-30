@@ -1,4 +1,4 @@
-import i18n from 'i18next';
+import i18next from 'i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import { initReactI18next } from 'react-i18next';
 
@@ -20,6 +20,15 @@ export function isSupportedLanguage(value: string | undefined): value is Languag
   return SUPPORTED_LANGUAGES.includes(value as Language);
 }
 
+// Own instance instead of i18next's global one, so the app does not share state with anything else.
+const i18n = i18next.createInstance();
+
+// Registered before init: with bundled resources init runs synchronously and fires the first
+// languageChanged right away, so a later listener would miss the detected language.
+i18n.on('languageChanged', (lng) => {
+  document.documentElement.lang = lng;
+});
+
 void i18n
   .use(LanguageDetector)
   .use(initReactI18next)
@@ -37,10 +46,6 @@ void i18n
     },
     interpolation: { escapeValue: false },
   });
-
-i18n.on('languageChanged', (lng) => {
-  document.documentElement.lang = lng;
-});
 
 /** Changes the UI language and remembers it for the next visits. */
 export async function setLanguage(language: Language): Promise<void> {
