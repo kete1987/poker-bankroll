@@ -166,6 +166,14 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - PR description links the issue with `Closes #N` and lists how it was verified.
 - Features come with tests; keep CI green.
 
+### CI
+- `.github/workflows/ci.yml` runs on every pull request and on pushes to `main`.
+- On pull requests only the touched parts run: `backend/` → `./mvnw verify`; `frontend/` →
+  `npm ci`, typecheck, lint, format check, tests, build. Changing the workflow runs both.
+- The **`CI result`** job is the one to require in the branch ruleset: it passes when every job
+  succeeded or was skipped because its part did not change.
+- Actions are pinned to a full commit SHA with the version in a comment; update both together.
+
 ### Style
 - Files are UTF-8 with LF line endings (see `.editorconfig` / `.gitattributes`).
 - Java: 4-space indent. TypeScript, JSON, YAML, Markdown: 2-space indent.
