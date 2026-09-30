@@ -1,7 +1,9 @@
 # syntax=docker/dockerfile:1
 
 # ---- Build: compile the jar and split it into layers ----
-FROM eclipse-temurin:25-jdk AS build
+# The jar does not depend on the CPU architecture: build it once, natively, for every target
+# platform instead of compiling under emulation.
+FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jdk AS build
 WORKDIR /workspace
 
 # Dependencies first, so they stay cached while only the sources change.
@@ -10,13 +12,16 @@ COPY mvnw pom.xml ./
 RUN --mount=type=cache,target=/root/.m2 ./mvnw -B -q dependency:go-offline
 
 COPY src/ src/
+# Version reported by the app (build-info, OpenAPI); defaults to the one in pom.xml.
+ARG APP_VERSION
 # Tests run in CI (they need Docker for Testcontainers), not in the image build.
-RUN --mount=type=cache,target=/root/.m2 ./mvnw -B -q package -DskipTests \
+RUN --mount=type=cache,target=/root/.m2 ./mvnw -B -q package -DskipTests ${APP_VERSION:+-Drevision=$APP_VERSION} \
     && cp target/poker-bankroll-api-*.jar application.jar \
     && java -Djarmode=tools -jar application.jar extract --layers --destination extracted
 
 # ---- Runtime: JRE only, non-root ----
 FROM eclipse-temurin:25-jre-alpine
+LABEL org.opencontainers.image.source="https://github.com/kete1987/poker-bankroll"
 RUN addgroup -S app && adduser -S -G app app
 WORKDIR /app
 

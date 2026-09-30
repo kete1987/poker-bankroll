@@ -61,10 +61,12 @@ docker compose up -d --build  # construye las imágenes desde el código
 Abre `http://<tu-host>:8080` (el puerto se cambia con `WEB_PORT` en `.env`). Los datos se guardan
 en el volumen de Docker `poker-bankroll_db-data`.
 
-Cuando haya versiones publicadas, `docker compose pull && docker compose up -d` usará las imágenes
-ya construidas de GHCR en lugar de construirlas (la versión se elige con `POKER_BANKROLL_VERSION`).
+En lugar de construirlas, `docker compose pull && docker compose up -d` usa las imágenes ya
+publicadas en GHCR (`linux/amd64` y `linux/arm64`). Se eligen con `POKER_BANKROLL_VERSION`: `latest`
+(última versión estable), una versión concreta como `0.1.0`, o `edge` (último merge a `main`).
 En Portainer, crea un stack a partir de `deploy/docker-compose.yml` y define las variables de
-`.env.example`.
+`.env.example`. Las versiones, actualizaciones y vueltas atrás se explican en
+[docs/releasing.md](docs/releasing.md) (en inglés).
 
 > La aplicación no tiene login. Úsala en tu red local y no la expongas a internet sin
 > poner autenticación delante.

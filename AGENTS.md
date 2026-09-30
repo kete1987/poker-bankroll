@@ -178,6 +178,18 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   succeeded or was skipped because its part did not change.
 - Actions are pinned to a full commit SHA with the version in a comment; update both together.
 
+### Releases
+- `.github/workflows/release.yml` publishes both images to GHCR (amd64 + arm64): `edge` on every
+  push to `main`; `X.Y.Z`, `X.Y` and `latest` on a `vX.Y.Z` tag (pre-release tags only `X.Y.Z-pre`),
+  plus the GitHub Release with generated notes.
+- The git tag is the only source of the version (`-Drevision` for Maven, `APP_VERSION` for the web
+  build). Do not edit versions by hand in `pom.xml` or `package.json`.
+- Cut releases with `scripts/release.sh X.Y.Z` from an up-to-date `main`, or from GitHub with
+  *Actions → Release → Run workflow*; both run `.github/scripts/release-preflight.sh`. The full flow
+  (milestones, pre-releases, maintenance branches, deploying, rolling back) is in `docs/releasing.md`.
+- Give each PR the same labels as its issue (`type:feature`, `type:chore` or `bug`; Dependabot adds
+  `dependencies`): release notes are grouped by them (`.github/release.yml`).
+
 ### Dependabot
 - `.github/dependabot.yml` opens weekly PRs for GitHub Actions, Maven (`backend/`), npm
   (`frontend/`), the Dockerfile base images and the PostgreSQL image in `deploy/`. Minor and patch
