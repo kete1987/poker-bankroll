@@ -48,14 +48,21 @@ browser ──► web (nginx + SPA) ──/api──► api (Spring Boot) ──
 
 ## Quick start
 
-_Coming with the first release._ The goal is:
+Requires Docker with Compose. The app is still a skeleton, but the stack already runs:
 
 ```bash
 git clone https://github.com/kete1987/poker-bankroll.git
 cd poker-bankroll/deploy
-cp .env.example .env
-docker compose up -d
+cp .env.example .env          # set POSTGRES_PASSWORD
+docker compose up -d --build  # builds the images from the source
 ```
+
+Open `http://<your-host>:8080` (change the port with `WEB_PORT` in `.env`). Data lives in the
+`poker-bankroll_db-data` Docker volume.
+
+Once releases are published, `docker compose pull && docker compose up -d` will run the ready-made
+images from GHCR instead of building them (choose the version with `POKER_BANKROLL_VERSION`).
+In Portainer, create a stack from `deploy/docker-compose.yml` and set the variables of `.env.example`.
 
 > The app has no login. Run it on your local network and do not expose it to the internet
 > without putting authentication in front of it.

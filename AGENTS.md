@@ -45,7 +45,7 @@ Use the Maven wrapper; on Windows use `mvnw.cmd` instead of `./mvnw`.
 | `./mvnw verify` | Compile and run all tests (starts a PostgreSQL container) |
 | `./mvnw test -Dtest=ClassName` | Run a single test class |
 | `./mvnw spring-boot:test-run` | Run the API on `:8080` against a throwaway PostgreSQL container |
-| `./mvnw spring-boot:run` | Run the API against the PostgreSQL configured in `application.yaml` / env vars |
+| `./mvnw spring-boot:run` | Run the API against the development database (`deploy/docker-compose.dev.yml`, `localhost:5433`) or `SPRING_DATASOURCE_*` |
 
 With the API running: health at `http://localhost:8080/api/actuator/health`, Swagger UI at
 `http://localhost:8080/api/swagger-ui.html`, OpenAPI spec at `http://localhost:8080/api/v3/api-docs`.
@@ -65,6 +65,21 @@ Requires Node 24 LTS. Run `npm ci` once.
 | `npm run build` | Type-check and build to `dist/` |
 
 Before pushing frontend changes: `npm run typecheck && npm run lint && npm run format:check && npm test`.
+
+### Docker (`deploy/`)
+
+| Command | What it does |
+|---|---|
+| `docker compose -f deploy/docker-compose.dev.yml up -d` | PostgreSQL for development on `localhost:5433` (5433 avoids clashing with a local PostgreSQL) |
+| `cd deploy && cp .env.example .env` | Create the stack configuration (set `POSTGRES_PASSWORD`) |
+| `docker compose up -d --build` (in `deploy/`) | Build both images from the checkout and run db + api + web on `http://localhost:${WEB_PORT:-8080}` |
+| `docker compose down` / `down -v` | Stop the stack / also delete the database volume |
+
+- Images: `backend/Dockerfile` (layered Spring Boot jar on a JRE, user `app`) and `frontend/Dockerfile`
+  (static build on `nginx-unprivileged`, port 8080). Both have a Docker `HEALTHCHECK`.
+- The nginx config is part of the web image: `frontend/nginx/default.conf.template` (SPA fallback,
+  long cache for `/assets/`, `/api/` proxied to `${API_UPSTREAM}`, default `api:8080`, `/healthz`).
+- Only `web` publishes a port; `api` and `db` are reachable only inside the Compose network.
 
 ## Domain glossary
 
