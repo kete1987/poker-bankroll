@@ -26,8 +26,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: release-${{ github.event_name }}-${{ github.ref }}
-  # A newer edge build supersedes an older one; a version build must always finish.
+  # Version releases run one at a time (they move shared tags such as X.Y and latest) and are never
+  # cancelled; a newer edge build supersedes an older one.
+  group: ${{ (github.ref_type == 'tag' || github.event_name == 'workflow_dispatch') && 'release-versions' || format('release-{0}', github.ref) }}
   cancel-in-progress: ${{ github.event_name == 'push' && github.ref_type == 'branch' }}
 
 # Third-party actions are pinned to a commit SHA (the tag is in the comment).
@@ -168,11 +169,16 @@ jobs:
           IMAGE: ${{ needs.version.outputs.image-prefix }}-${{ matrix.image }}
           VERSION: ${{ needs.version.outputs.version }}
         run: |
-          if docker buildx imagetools inspect "$IMAGE:$VERSION" > /dev/null 2>&1; then
+          # Fail closed: only a registry answer saying the tag or the package does not exist means
+          # "not published"; any other error (network, auth...) stops instead of risking an overwrite.
+          if output=$(docker buildx imagetools inspect "$IMAGE:$VERSION" 2>&1); then
             echo "::notice::$IMAGE:$VERSION is already published; not overwriting it"
             echo "skip=true" >> "$GITHUB_OUTPUT"
-          else
+          elif grep -qiE 'not found|manifest unknown|name unknown' <<< "$output"; then
             echo "skip=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Could not check whether $IMAGE:$VERSION exists (re-run later): $output"
+            exit 1
           fi
       - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         if: steps.published.outputs.skip != 'true'

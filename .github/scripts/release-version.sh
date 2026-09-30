@@ -7,8 +7,9 @@
 #   tag   v1.2.3-rc.1   -> version=1.2.3-rc.1   tags="1.2.3-rc.1"        prerelease=true
 #   branch main         -> version=edge-<sha7>  tags="edge sha-<sha7>"   prerelease=false
 #
-# "latest" only moves when the version is the highest stable one among the repository's tags, so
-# a fix released from a maintenance branch (e.g. 0.1.1 after 0.2.0) does not take it back.
+# The moving tags only move forward: "X.Y" when the version is the highest stable one of its
+# series and "latest" when it is the highest stable one overall, so an older release (a fix from a
+# maintenance branch, or an old release re-run) never takes them back.
 # Needs the tags in the local clone (fetch-depth: 0 in the workflow).
 #
 # Prints key=value lines, ready to append to $GITHUB_OUTPUT.
@@ -30,10 +31,16 @@ if [ "$ref_type" = "tag" ]; then
     tags=$version
   else
     prerelease=false
-    tags="$version ${version%.*}"
-    highest=$({ git tag --list 'v[0-9]*' | sed 's/^v//' | grep -v -- '-' || true; echo "$version"; } \
-      | sort -V | tail -n 1)
-    if [ "$highest" = "$version" ]; then
+    tags=$version
+    series=${version%.*}
+    # Highest stable version among the existing tags matching a glob, counting this one.
+    highest() {
+      { git tag --list "$1" | sed 's/^v//' | grep -v -- '-' || true; echo "$version"; } | sort -V | tail -n 1
+    }
+    if [ "$(highest "v$series.*")" = "$version" ]; then
+      tags="$tags $series"
+    fi
+    if [ "$(highest 'v[0-9]*')" = "$version" ]; then
       tags="$tags latest"
     fi
   fi
