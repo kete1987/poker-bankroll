@@ -14,6 +14,8 @@
 #
 # Prints key=value lines, ready to append to $GITHUB_OUTPUT.
 set -euo pipefail
+# shellcheck source=semver.sh
+source "$(dirname "$0")/semver.sh"
 
 ref_type=$1
 ref_name=$2
@@ -21,7 +23,7 @@ sha=$3
 
 if [ "$ref_type" = "tag" ]; then
   version=${ref_name#v}
-  if ! [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+  if ! is_version "$version"; then
     echo "::error::Tag '$ref_name' is not a version like v1.2.3 or v1.2.3-rc.1" >&2
     exit 1
   fi
@@ -36,7 +38,12 @@ if [ "$ref_type" = "tag" ]; then
     # Highest stable version (exactly X.Y.Z, so pre-releases and malformed tags such as v9.0.0oops
     # do not count) among the existing tags matching a glob, counting this one.
     highest() {
-      { git tag --list "$1" | sed 's/^v//' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' || true; echo "$version"; } | sort -V | tail -n 1
+      {
+        git tag --list "$1" | sed 's/^v//' | while read -r tag; do
+          if is_stable_version "$tag"; then echo "$tag"; fi
+        done
+        echo "$version"
+      } | sort -V | tail -n 1
     }
     if [ "$(highest "v$series.*")" = "$version" ]; then
       tags="$tags $series"

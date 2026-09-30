@@ -8,6 +8,8 @@
 # Exit 2: only warnings (the milestone of a stable release still has open issues).
 # Needs git (with an "origin" remote) and an authenticated GitHub CLI (gh).
 set -euo pipefail
+# shellcheck source=semver.sh
+source "$(dirname "$0")/semver.sh"
 
 report() { # level message
   if [ -n "${GITHUB_ACTIONS:-}" ]; then echo "::$1::$2"; else echo "$1: $2" >&2; fi
@@ -17,7 +19,7 @@ version=${1:?usage: release-preflight.sh <version> <sha>}
 sha=${2:?usage: release-preflight.sh <version> <sha>}
 tag="v$version"
 
-if ! [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+if ! is_version "$version"; then
   report error "'$version' is not a version like 1.2.3 or 1.2.3-rc.1"
   exit 1
 fi
