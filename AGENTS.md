@@ -178,6 +178,23 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   succeeded or was skipped because its part did not change.
 - Actions are pinned to a full commit SHA with the version in a comment; update both together.
 
+### Dependabot
+- `.github/dependabot.yml` opens weekly PRs for GitHub Actions, Maven (`backend/`), npm
+  (`frontend/`), the Dockerfile base images and the PostgreSQL image in `deploy/`. Minor and patch
+  updates come grouped per ecosystem; every major update has its own PR. New versions are only
+  proposed 7 days after their release (security updates are not delayed).
+- Merge a Dependabot PR only with CI green and the Codex review addressed. CI does not build the
+  Docker images: for base image or `deploy/` updates, run `docker compose up -d --build` in `deploy/`.
+- For a major update, read the release notes / migration guide and fix the code in the same PR.
+- Kept in sync by hand (Dependabot does not update all the places):
+  - PostgreSQL image: Dependabot updates `deploy/docker-compose.yml` and
+    `deploy/docker-compose.dev.yml`; push the same change to `TestcontainersConfiguration.POSTGRES_IMAGE`
+    on the PR branch. A PostgreSQL major also needs an upgrade path for existing data volumes.
+  - Runtimes stay on LTS (Java 25, Node 24), so their majors are ignored in `dependabot.yml`:
+    `eclipse-temurin` and `node` images, `@types/node`. Moving to the next LTS is a manual PR that
+    updates the Dockerfiles, CI (`java-version`, `node-version`), `pom.xml` `java.version`,
+    `package.json` `engines` and `@types/node` together.
+
 ### Style
 - Files are UTF-8 with LF line endings (see `.editorconfig` / `.gitattributes`).
 - Java: 4-space indent. TypeScript, JSON, YAML, Markdown: 2-space indent.
