@@ -132,6 +132,9 @@ jobs:
   images:
     name: Image ${{ matrix.image }}
     needs: version
+    # Explicit condition: with the default one, the skipped "prepare" job (only used by the
+    # Run workflow button) is propagated through "version" and this job is skipped too.
+    if: ${{ !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
