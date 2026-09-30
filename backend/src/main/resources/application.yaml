@@ -1,0 +1,52 @@
+# Defaults target a local PostgreSQL (see deploy/docker-compose.dev.yml).
+# Override with standard Spring environment variables, e.g.
+# SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME, SPRING_DATASOURCE_PASSWORD, SERVER_PORT.
+spring:
+  application:
+    name: poker-bankroll-api
+  datasource:
+    url: jdbc:postgresql://localhost:5432/pokerbankroll
+    username: pokerbankroll
+    password: pokerbankroll
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    locations: classpath:db/migration
+  messages:
+    basename: messages
+    fallback-to-system-locale: false
+  web:
+    locale: en
+    locale-resolver: accept-header
+
+server:
+  port: 8080
+  # Everything (API, actuator, OpenAPI) lives under /api, which is what nginx proxies.
+  servlet:
+    context-path: /api
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+# API docs are part of the product (the frontend types are generated from them), so they stay
+# enabled in every environment. The app is meant for a trusted LAN (see README).
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
