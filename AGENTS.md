@@ -101,6 +101,10 @@ With the API running: health at `http://localhost:8080/api/actuator/health`, Swa
 - Configuration comes from `application.yaml`; override it with standard Spring environment
   variables (`SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`...).
 - Hibernate never changes the schema (`ddl-auto: validate`); Flyway owns it.
+- Validate input with Bean Validation on request DTOs (`@Valid @RequestBody`) and on simple
+  parameters. Rules spanning several fields go in a **class-level constraint on the DTO**.
+  Do not use cross-parameter constraints on controller methods: Spring MVC 7.0 does not enforce
+  them on their own (pinned by `GlobalExceptionHandlerTests#crossParameterOnlyViolationIsNotEnforcedBySpring`).
 - Integration tests use `@Import(TestcontainersConfiguration.class)`; the PostgreSQL image there
   must match the one in `deploy/docker-compose.yml`.
 

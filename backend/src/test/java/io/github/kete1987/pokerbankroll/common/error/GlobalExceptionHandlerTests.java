@@ -103,6 +103,18 @@ class GlobalExceptionHandlerTests {
                 .hasPathSatisfying("$.errors[1].code", code -> code.assertThat().isEqualTo("Min"));
     }
 
+    /**
+     * Pins a Spring MVC 7.0 limitation: a cross-parameter violation on its own is not enforced and
+     * the controller runs. That is why AGENTS.md forbids cross-parameter constraints on controllers
+     * (use a class-level constraint on the request DTO). If this starts failing, Spring now enforces
+     * them and the rule can be revisited.
+     */
+    @Test
+    void crossParameterOnlyViolationIsNotEnforcedBySpring() {
+        assertThat(mvc.get().uri("/test/cross-param").param("from", "5").param("to", "1"))
+                .hasStatusOk();
+    }
+
     @Test
     void invalidReturnValueIsAnInternalError() {
         assertThat(mvc.get().uri("/test/invalid-return"))
