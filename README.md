@@ -39,7 +39,7 @@ See the [issues](https://github.com/kete1987/poker-bankroll/issues) for the full
 |---|---|
 | Database | PostgreSQL 18 |
 | Backend | Java 25, Spring Boot 4.1, Flyway, OpenAPI |
-| Frontend | React, TypeScript, Vite, Mantine, TanStack Query, react-i18next, ECharts |
+| Frontend | React 19, TypeScript 7, Vite 8, Mantine 9, TanStack Query, react-i18next, ECharts |
 | Deployment | Docker Compose (images published to GHCR, `amd64` and `arm64`) |
 
 ```

@@ -23,7 +23,7 @@ Issue titles carry an ID (`[INF-1]`, `[API-3]`, `[UI-2]`...) used across discuss
 | Path | Content |
 |---|---|
 | `backend/` | REST API — Java 25, Spring Boot 4.1, Flyway, springdoc-openapi |
-| `frontend/` | Web app — React, Vite, TypeScript, React Router, TanStack Query, Mantine, react-i18next, ECharts |
+| `frontend/` | Web app — React 19, TypeScript 7, Vite 8, React Router 8, TanStack Query 5, Mantine 9, react-i18next, ECharts 6 |
 | `deploy/` | `docker-compose.yml` (db + api + web + backup), `nginx.conf`, `.env.example` |
 | `docs/` | User and developer documentation |
 | `.github/workflows/` | CI (tests per PR) and release (multi-arch images to GHCR on tag) |
@@ -49,6 +49,22 @@ Use the Maven wrapper; on Windows use `mvnw.cmd` instead of `./mvnw`.
 
 With the API running: health at `http://localhost:8080/api/actuator/health`, Swagger UI at
 `http://localhost:8080/api/swagger-ui.html`, OpenAPI spec at `http://localhost:8080/api/v3/api-docs`.
+
+### Frontend (`frontend/`)
+
+Requires Node 24 LTS. Run `npm ci` once.
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | Dev server on `:5173`; proxies `/api` to `http://localhost:8080` (override with `API_PROXY_TARGET`) |
+| `npm test` | Run all tests once (Vitest + Testing Library, jsdom) |
+| `npm run test:watch` | Tests in watch mode |
+| `npm run typecheck` | Type-check with `tsc -b` |
+| `npm run lint` | Lint with oxlint (warnings fail) |
+| `npm run format` / `npm run format:check` | Format / check formatting with Prettier |
+| `npm run build` | Type-check and build to `dist/` |
+
+Before pushing frontend changes: `npm run typecheck && npm run lint && npm run format:check && npm test`.
 
 ## Domain glossary
 
@@ -112,9 +128,19 @@ With the API running: health at `http://localhost:8080/api/actuator/health`, Swa
 - Schema changes only through Flyway migrations in `backend/src/main/resources/db/migration/`.
 - A migration merged to `main` is **immutable**: fix or change things with a new migration.
 
+### Frontend code
+- Talk to the backend only through `src/api/client.ts` (`apiFetch`): it adds `/api`, sends the UI
+  language as `Accept-Language` and turns error responses into `ApiError` (`status`, `code`,
+  `message`, `errors`). Wrap calls in TanStack Query hooks next to it (see `src/api/health.ts`).
+- UI components come from Mantine; icons from `@tabler/icons-react`; charts through `src/components/Chart.tsx`.
+- Routes are declared in `src/routes.tsx`; tests render the real app with `renderApp(url)` from
+  `src/test/renderApp.tsx` and stub `fetch` (`stubFetchJson`).
+- The light/dark and language choices are stored in `localStorage` under `poker-bankroll.*` keys.
+
 ### Internationalisation
-- No hardcoded user-facing strings in the frontend: use i18n keys.
-- Every new key must be added to **both** `en.json` and `es.json`.
+- No hardcoded user-facing strings in the frontend: use i18n keys (they are type-checked).
+- Every new key must be added to **both** `frontend/src/locales/en.json` and `es.json`
+  (`locales.test.ts` fails otherwise).
 - User-entered data (tournament names, notes) is never translated.
 
 ### Git workflow

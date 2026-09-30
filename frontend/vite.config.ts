@@ -1,0 +1,33 @@
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vitest/config';
+
+// Where `npm run dev` proxies /api to (the backend already serves everything under /api).
+const apiProxyTarget = process.env.API_PROXY_TARGET ?? 'http://localhost:8080';
+
+export default defineConfig({
+  plugins: [react()],
+  build: {
+    rolldownOptions: {
+      output: {
+        // Libraries change less often than app code: separate chunks stay cached between releases.
+        codeSplitting: {
+          groups: [
+            { name: 'mantine', test: /node_modules[\\/]@mantine/ },
+            { name: 'echarts', test: /node_modules[\\/](echarts|zrender)/ },
+            { name: 'vendor', test: /node_modules/ },
+          ],
+        },
+      },
+    },
+  },
+  server: {
+    port: 5173,
+    proxy: {
+      '/api': apiProxyTarget,
+    },
+  },
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+  },
+});

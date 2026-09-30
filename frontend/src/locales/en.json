@@ -1,0 +1,29 @@
+{
+  "app": {
+    "name": "poker-bankroll"
+  },
+  "header": {
+    "language": "Language",
+    "toggleColorScheme": "Switch between light and dark mode"
+  },
+  "home": {
+    "title": "Welcome to poker-bankroll",
+    "subtitle": "Track your poker results and the balance of every room.",
+    "apiStatus": {
+      "label": "API",
+      "checking": "Checking…",
+      "up": "Online",
+      "down": "Unavailable"
+    }
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "The page you are looking for does not exist.",
+    "backHome": "Back to home"
+  },
+  "error": {
+    "title": "Something went wrong",
+    "description": "An unexpected error occurred. Try reloading the page.",
+    "reload": "Reload"
+  }
+}
