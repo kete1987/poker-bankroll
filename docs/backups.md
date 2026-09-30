@@ -113,11 +113,16 @@ Restoring **replaces all current data** with the content of the dump.
    docker compose stop api backup
    ```
 
-2. Choose the dump, for example the one of a given day:
+2. Choose the dump, for example the one of a given day, and **check that it is intact** before
+   touching the database:
 
    ```bash
    ls -l backups/daily backups/last
+   docker compose exec -T db gunzip -t < backups/daily/pokerbankroll-20260930.sql.gz && echo "dump OK"
    ```
+
+   If it does not print `dump OK` (e.g. `unexpected end of file` or `crc error`), the file is
+   truncated or damaged: **do not go on**, pick another dump.
 
    Optionally, keep a copy of the current data first:
 
@@ -125,7 +130,7 @@ Restoring **replaces all current data** with the content of the dump.
    docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner --no-privileges' | gzip > ~/poker-bankroll-before-restore.sql.gz
    ```
 
-3. Drop the database and create it again, empty:
+3. Drop the database and create it again, empty (from here on the current data is gone):
 
    ```bash
    docker compose exec db sh -c 'dropdb -U "$POSTGRES_USER" --force "$POSTGRES_DB" && createdb -U "$POSTGRES_USER" "$POSTGRES_DB"'
@@ -134,10 +139,13 @@ Restoring **replaces all current data** with the content of the dump.
 4. Load the dump (replace the file name with the one you chose):
 
    ```bash
-   docker compose exec -T db sh -c 'gunzip | psql -v ON_ERROR_STOP=1 --quiet -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < backups/daily/pokerbankroll-20260930.sql.gz
+   docker compose exec -T db sh -c 'set -o pipefail; gunzip | psql -v ON_ERROR_STOP=1 --quiet -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < backups/daily/pokerbankroll-20260930.sql.gz && echo "restore OK"
    ```
 
-   `psql` prints a `set_config` line; any error stops the load and is shown.
+   `psql` prints a `set_config` line. It must end with `restore OK`: any error in the SQL
+   (`ON_ERROR_STOP`) or in the decompression (`pipefail`) stops it and is shown. Without
+   `pipefail` a damaged file could load partially and still look successful. If it fails,
+   repeat steps 3 and 4 with another dump, or with the copy of the current data from step 2.
    If your user cannot read the file (see [File permissions](#file-permissions)), feed it with
    `sudo cat <file> | docker compose exec -T db sh -c '...'` instead of `< <file>`.
 
@@ -161,7 +169,7 @@ restore and start the rest:
 
 ```bash
 docker compose up -d --wait db
-# steps 3 and 4 above, with the dump copied to this machine
+# steps 2 (check the dump), 3 and 4 above, with the dump copied to this machine
 docker compose up -d --wait
 ```
 
@@ -173,8 +181,9 @@ host with `docker exec` in place of `docker compose exec` and the database conta
 shown by `docker ps` (e.g. `poker-bankroll-db-1`):
 
 ```bash
+docker exec -i poker-bankroll-db-1 gunzip -t < /srv/poker-bankroll/backups/daily/pokerbankroll-20260930.sql.gz && echo "dump OK"   # step 2
 docker exec poker-bankroll-db-1 sh -c 'dropdb ...'           # step 3, same quoted command
-docker exec -i poker-bankroll-db-1 sh -c 'gunzip | psql ...' < /srv/poker-bankroll/backups/daily/pokerbankroll-20260930.sql.gz   # step 4
+docker exec -i poker-bankroll-db-1 sh -c 'set -o pipefail; gunzip | psql ...' < /srv/poker-bankroll/backups/daily/pokerbankroll-20260930.sql.gz && echo "restore OK"   # step 4
 ```
 
 A backup can be taken from the console of the backup container in Portainer by running
