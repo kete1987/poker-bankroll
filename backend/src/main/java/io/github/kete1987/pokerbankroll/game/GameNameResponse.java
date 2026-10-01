@@ -11,7 +11,8 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * A name given to recorded games, to suggest it for the next one, with what the most recent game
- * of that name (latest date, then latest id) had, so the client can fill it in.
+ * of that name (latest date, then latest id) had, so the client can fill it in. The buy-in is only
+ * worth filling in for a room of the same currency.
  */
 public record GameNameResponse(
         @Schema(description = "As it was written in the most recent game of that name; names that "
@@ -21,8 +22,9 @@ public record GameNameResponse(
         long games,
         GameType gameType,
         Modality modality,
-        @Schema(description = "In the currency of the room of that game, which is not reported")
         BigDecimal buyIn,
+        @Schema(description = "Currency of the buy-in: the one of the room of that game")
+        String currencyCode,
         @Nullable VariantRef variant) {
 
     static GameNameResponse of(GameRepository.NameUse use) {
@@ -33,6 +35,7 @@ public record GameNameResponse(
                 GameType.valueOf(use.getGameType()),
                 Modality.valueOf(use.getModality()),
                 use.getBuyIn(),
+                use.getCurrencyCode(),
                 variantId == null ? null : new VariantRef(variantId, use.getVariantCode(), use.getVariantName()));
     }
 }

@@ -22,6 +22,7 @@ function suggestion(overrides: Partial<GameName>): GameName {
     gameType: 'TOURNAMENT',
     modality: 'NLHE',
     buyIn: 5,
+    currencyCode: 'EUR',
     variant: null,
     ...overrides,
   };
@@ -89,7 +90,7 @@ describe('Name of a game', () => {
     await userEvent.type(name, 'i');
     await waitFor(() => expect(nameSearches(calls)).toEqual([{ q: 'fi', gameType: 'TOURNAMENT' }]));
 
-    // Each with the buy-in, in the currency of the chosen room, and the variant of its last game.
+    // Each with the buy-in, in its own currency, and the variant of its last game.
     expect(await suggested(/Kill The Fish/)).toHaveTextContent('€5.00 · KO');
     const chips = await suggested(/Fish & Chips/);
     expect(chips).toHaveTextContent('€2.50');
@@ -131,6 +132,23 @@ describe('Name of a game', () => {
       variantId: 10,
       modality: 'PLO',
     });
+  });
+
+  it('does not take the buy-in of a game in another currency', async () => {
+    const calls = stubNamesApi([suggestion({ name: 'Big Bang', buyIn: 50, currencyCode: 'USD' })]);
+    renderApp('/games');
+    const form = await openForm();
+    await choose(form, 'Room', 'Winamax (EUR)');
+
+    await userEvent.type(form.getByRole('combobox', { name: 'Name' }), 'big');
+    // The amount is shown as what it was: dollars.
+    const bigBang = await suggested(/Big Bang/);
+    expect(bigBang).toHaveTextContent('$50.00');
+    await userEvent.click(bigBang);
+
+    expect(form.getByRole('combobox', { name: 'Name' })).toHaveValue('Big Bang');
+    expect(form.getByRole('textbox', { name: 'Buy-in' })).toHaveValue('');
+    expect(saved(calls, 'POST')).toHaveLength(0);
   });
 
   it('leaves alone what was typed or chosen before picking a name', async () => {

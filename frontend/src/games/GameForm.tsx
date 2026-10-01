@@ -144,6 +144,8 @@ export function GameForm({ rooms, variants, game, onSave, onSaved, onCancel }: G
   /**
    * A suggested name was picked: a new game takes the buy-in, variant and modality of the last
    * game with that name, except what the user has already set. An edited game only takes the name.
+   * The buy-in is only taken when that game was in the currency of the chosen room: 50 dollars
+   * are not 50 euros.
    */
   function fillFromName(name: string) {
     const suggestion = suggestions.find((candidate) => candidate.name === name);
@@ -151,7 +153,7 @@ export function GameForm({ rooms, variants, game, onSave, onSaved, onCancel }: G
       return;
     }
     const filled: Partial<GameFormValues> = {};
-    if (!setByHand.current.has('buyIn')) {
+    if (!setByHand.current.has('buyIn') && suggestion.currencyCode === currency) {
       filled.buyIn = suggestion.buyIn;
       form.clearFieldError('buyIn');
     }
@@ -171,7 +173,7 @@ export function GameForm({ rooms, variants, game, onSave, onSaved, onCancel }: G
   /** What tells a suggested name apart: the buy-in and the variant of its last game. */
   function nameHint(suggestion: GameName): string {
     return [
-      currency ? format.money(suggestion.buyIn, currency) : format.number(suggestion.buyIn),
+      format.money(suggestion.buyIn, suggestion.currencyCode),
       suggestion.variant && variantLabel(t, suggestion.variant),
     ]
       .filter(Boolean)

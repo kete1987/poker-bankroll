@@ -438,8 +438,9 @@ export interface components {
             ticketPrizeValue?: number | null;
         };
         GameNameResponse: {
-            /** @description In the currency of the room of that game, which is not reported */
             buyIn: number;
+            /** @description Currency of the buy-in: the one of the room of that game */
+            currencyCode: string;
             /** @enum {string} */
             gameType: "TOURNAMENT" | "SIT_AND_GO" | "CASH";
             /**

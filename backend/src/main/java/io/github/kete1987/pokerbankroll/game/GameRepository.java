@@ -45,15 +45,17 @@ public interface GameRepository extends JpaRepository<Game, Long>, JpaSpecificat
      */
     @Query(value = """
             select name, games, game_type as "gameType", modality, buy_in as "buyIn",
+                   currency_code as "currencyCode",
                    variant_id as "variantId", variant_code as "variantCode", variant_name as "variantName"
             from (
                 select btrim(g.name) as name, lower(btrim(g.name)) as name_key, g.played_on,
                        g.game_type_code as game_type, g.modality_code as modality, g.buy_in,
+                       r.currency_code,
                        v.id as variant_id, v.code as variant_code, v.name as variant_name,
                        count(*) over (partition by lower(btrim(g.name))) as games,
                        row_number() over (
                            partition by lower(btrim(g.name)) order by g.played_on desc, g.id desc) as recency
-                from game g left join variant v on v.id = g.variant_id
+                from game g join room r on r.id = g.room_id left join variant v on v.id = g.variant_id
                 where strpos(lower(g.name), lower(:text)) > 0
                   and (cast(:gameType as varchar) is null or g.game_type_code = :gameType)
             ) named
@@ -75,6 +77,8 @@ public interface GameRepository extends JpaRepository<Game, Long>, JpaSpecificat
         String getModality();
 
         BigDecimal getBuyIn();
+
+        String getCurrencyCode();
 
         @Nullable Long getVariantId();
 

@@ -78,9 +78,23 @@ class GameNameApiTests extends ApiIntegrationTest {
         json.extractingPath("$[0].gameType").isEqualTo("TOURNAMENT");
         json.extractingPath("$[0].modality").isEqualTo("PLO");
         json.extractingPath("$[0].buyIn").isEqualTo(5.0);
+        json.extractingPath("$[0].currencyCode").isEqualTo("EUR");
         json.extractingPath("$[0].variant.id").isEqualTo((int) ko);
         json.extractingPath("$[0].variant.code").isEqualTo("KO");
         json.extractingPath("$[0].variant.name").isNull();
+    }
+
+    @Test
+    void theBuyInComesWithTheCurrencyOfTheRoomOfTheMostRecentGame() {
+        long pokerStars = insertRoom("PokerStars", "USD");
+        insertGame("Big Bang", "2026-01-10", "TOURNAMENT", "NLHE", "5.00", null);
+        insertGame(pokerStars, "Big Bang", "2026-01-12", "TOURNAMENT", "NLHE", "50.00", null);
+
+        var json = assertThat(names("bang")).hasStatusOk().bodyJson();
+
+        json.extractingPath("$[0].games").isEqualTo(2);
+        json.extractingPath("$[0].buyIn").isEqualTo(50.0);
+        json.extractingPath("$[0].currencyCode").isEqualTo("USD");
     }
 
     @Test
@@ -177,9 +191,14 @@ class GameNameApiTests extends ApiIntegrationTest {
 
     private long insertGame(String name, String playedOn, String gameType, String modality, String buyIn,
             Long variantId) {
+        return insertGame(winamax, name, playedOn, gameType, modality, buyIn, variantId);
+    }
+
+    private long insertGame(long roomId, String name, String playedOn, String gameType, String modality,
+            String buyIn, Long variantId) {
         return jdbc.queryForObject("""
                 insert into game (name, played_on, room_id, game_type_code, modality_code, buy_in, variant_id)
                 values (?, ?::date, ?, ?, ?, ?::numeric, ?) returning id
-                """, Long.class, name, playedOn, winamax, gameType, modality, buyIn, variantId);
+                """, Long.class, name, playedOn, roomId, gameType, modality, buyIn, variantId);
     }
 }

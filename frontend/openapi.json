@@ -190,8 +190,11 @@
       "GameNameResponse" : {
         "properties" : {
           "buyIn" : {
-            "description" : "In the currency of the room of that game, which is not reported",
             "type" : "number"
+          },
+          "currencyCode" : {
+            "description" : "Currency of the buy-in: the one of the room of that game",
+            "type" : "string"
           },
           "gameType" : {
             "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
@@ -218,7 +221,7 @@
             } ]
           }
         },
-        "required" : [ "buyIn", "gameType", "games", "modality", "name" ],
+        "required" : [ "buyIn", "currencyCode", "gameType", "games", "modality", "name" ],
         "type" : "object"
       },
       "GameRequest" : {
