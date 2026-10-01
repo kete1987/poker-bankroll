@@ -77,7 +77,9 @@
     "bountyPart": "Bounties {{amount}}",
     "inPlay": {
       "title_one": "{{count}} game in play",
-      "title_other": "{{count}} games in play"
+      "title_other": "{{count}} games in play",
+      "truncated_one": "Only the most recent one is listed.",
+      "truncated_other": "Only the {{count}} most recent ones are listed."
     },
     "actions": {
       "finish": "Finish",

@@ -34,8 +34,15 @@ function isDate(value: string): boolean {
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
+/** Largest page or id worth sending: beyond it the backend could not even read the number. */
+const MAX_INTEGER = 2_147_483_647;
+
 function positiveInteger(value: string | null): number | undefined {
-  return value !== null && /^\d+$/.test(value) && Number(value) > 0 ? Number(value) : undefined;
+  if (value === null || !/^\d+$/.test(value)) {
+    return undefined;
+  }
+  const number = Number(value);
+  return number > 0 && number <= MAX_INTEGER ? number : undefined;
 }
 
 function parse(params: URLSearchParams): GameFilters {

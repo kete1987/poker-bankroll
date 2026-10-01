@@ -10,6 +10,8 @@ import { describeGame } from './labels';
 
 interface GamesInPlayProps {
   games: Game[];
+  /** How many there are in all, when more than the ones listed. */
+  total: number;
   onFinish: (game: Game) => void;
   onReEntry: (game: Game) => void;
   onRebuy: (game: Game) => void;
@@ -20,6 +22,7 @@ interface GamesInPlayProps {
 /** The games without a result yet, always on top: they are waiting for something to be done. */
 export function GamesInPlay({
   games,
+  total,
   onFinish,
   onReEntry,
   onRebuy,
@@ -33,8 +36,13 @@ export function GamesInPlay({
     <Card withBorder padding="sm" component="section" aria-labelledby="games-in-play-title">
       <Stack gap="xs">
         <Title order={3} size="h5" id="games-in-play-title">
-          {t('games.inPlay.title', { count: games.length })}
+          {t('games.inPlay.title', { count: total })}
         </Title>
+        {total > games.length && (
+          <Text size="xs" c="dimmed">
+            {t('games.inPlay.truncated', { count: games.length })}
+          </Text>
+        )}
         <Table.ScrollContainer minWidth={720}>
           <Table verticalSpacing="xs">
             <Table.Thead>

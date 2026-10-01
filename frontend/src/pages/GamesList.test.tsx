@@ -178,7 +178,9 @@ describe('Games table', () => {
 
   it('ignores what makes no sense in the URL', async () => {
     const calls = stubGames({ finished: [game({})] });
-    renderApp('/games?from=yesterday&to=2026-02-31&type=BINGO&room=abc&sort=name,up&page=-3');
+    renderApp(
+      '/games?from=yesterday&to=2026-02-31&type=BINGO&room=abc&variant=99999999999999999999&sort=name,up&page=-3',
+    );
 
     await tableRows();
 
@@ -244,6 +246,21 @@ describe('Games table', () => {
     );
     expect(screen.getByRole('textbox', { name: 'Search' })).toHaveValue('');
     expect(screen.queryByRole('button', { name: 'Clear filters' })).not.toBeInTheDocument();
+  });
+
+  it('does not bring back a search that was still waiting when the filters are cleared', async () => {
+    const calls = stubGames({ finished: [game({})] });
+    renderApp('/games?type=CASH');
+    await tableRows();
+
+    await userEvent.type(screen.getByRole('textbox', { name: 'Search' }), 'fish');
+    await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+    // Longer than the wait of the search box.
+    await new Promise((resolve) => setTimeout(resolve, 400));
+
+    expect(lastListQuery(calls)).not.toHaveProperty('q');
+    expect(listQueries(calls).some((query) => 'q' in query)).toBe(false);
+    expect(screen.getByRole('textbox', { name: 'Search' })).toHaveValue('');
   });
 
   it('lets a custom range of dates be typed', async () => {

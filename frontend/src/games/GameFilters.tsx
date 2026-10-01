@@ -142,6 +142,9 @@ export function GameFilters({
           color="gray"
           leftSection={<IconX size={16} />}
           onClick={() => {
+            // A search still waiting to be sent would bring its text back after clearing.
+            search.cancel();
+            setText('');
             setCustomChosen(false);
             onClear();
           }}

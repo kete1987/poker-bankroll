@@ -98,6 +98,7 @@ export function GamesPage() {
       {inPlay.data && inPlay.data.items.length > 0 && (
         <GamesInPlay
           games={inPlay.data.items}
+          total={inPlay.data.totalItems}
           onFinish={(game) => setDialog({ kind: 'finish', game })}
           onReEntry={(game) => setDialog({ kind: 'reEntry', game })}
           onRebuy={(game) => setDialog({ kind: 'rebuy', game })}
