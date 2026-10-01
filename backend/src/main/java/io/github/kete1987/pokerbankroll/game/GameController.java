@@ -5,6 +5,7 @@ import java.time.LocalDate;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import jakarta.validation.Valid;
@@ -77,6 +78,7 @@ class GameController {
     @Operation(summary = "Record a game",
             description = "With only the required fields the game is recorded as in play; "
                     + "send a result (or `status: FINISHED`) to record it finished.")
+    @ApiResponse(responseCode = "201", description = "Created")
     ResponseEntity<GameResponse> create(@Valid @RequestBody GameRequest request) {
         GameResponse game = service.create(request);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").build(game.id());

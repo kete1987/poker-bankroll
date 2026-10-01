@@ -48,6 +48,7 @@ management:
 # API docs are part of the product (the frontend types are generated from them), so they stay
 # enabled in every environment. The app is meant for a trusted LAN (see README).
 springdoc:
+  default-produces-media-type: application/json
   api-docs:
     enabled: true
   swagger-ui:

@@ -5,3 +5,5 @@ coverage/
 *.local
 Dockerfile
 .dockerignore
+tools/
+openapi.json

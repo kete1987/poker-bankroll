@@ -5,6 +5,7 @@ import java.time.LocalDate;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import jakarta.validation.Valid;
@@ -78,6 +79,7 @@ class BankrollController {
     @PostMapping("/movements")
     @Operation(summary = "Record a bankroll movement",
             description = "Of a room (`roomId`), or of the bankroll as a whole (`currencyCode`, no room).")
+    @ApiResponse(responseCode = "201", description = "Created")
     ResponseEntity<MovementResponse> create(@Valid @RequestBody MovementRequest request) {
         MovementResponse movement = service.create(request);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").build(movement.id());

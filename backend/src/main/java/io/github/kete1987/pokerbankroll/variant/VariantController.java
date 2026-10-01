@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.List;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import jakarta.validation.Valid;
@@ -45,6 +46,7 @@ class VariantController {
 
     @PostMapping
     @Operation(summary = "Create a user-defined variant")
+    @ApiResponse(responseCode = "201", description = "Created")
     ResponseEntity<VariantResponse> create(@Valid @RequestBody VariantCreateRequest request) {
         VariantResponse variant = service.create(request);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").build(variant.id());

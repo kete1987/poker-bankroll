@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import io.github.kete1987.pokerbankroll.bankroll.BankrollSummaryResponse.CurrencyBankroll;
-import io.github.kete1987.pokerbankroll.bankroll.BankrollSummaryResponse.Figures;
+import io.github.kete1987.pokerbankroll.bankroll.BankrollSummaryResponse.BankrollFigures;
 import io.github.kete1987.pokerbankroll.bankroll.BankrollSummaryResponse.RoomBankroll;
 import io.github.kete1987.pokerbankroll.catalog.CurrencyRepository;
 import io.github.kete1987.pokerbankroll.common.api.PageResponse;
@@ -200,9 +200,9 @@ public class BankrollService {
             addGames(other.gamesNet, other.ticketsWon, other.gamesInPlay, other.investedInPlay);
         }
 
-        Figures toFigures() {
+        BankrollFigures toFigures() {
             BigDecimal result = gamesNet.add(bonuses);
-            return new Figures(money(deposited), money(withdrawn), money(bonuses), money(adjustments),
+            return new BankrollFigures(money(deposited), money(withdrawn), money(bonuses), money(adjustments),
                     money(gamesNet), money(result),
                     money(deposited.subtract(withdrawn).add(adjustments).add(result)),
                     money(ticketsWon), gamesInPlay, money(investedInPlay));

@@ -77,6 +77,29 @@ updates:
       include: scope
     labels: [dependencies, 'area:frontend']
 
+  # Generator of the frontend API types. It stays on TypeScript 5, which openapi-typescript needs
+  # (the web app itself uses TypeScript 7), so that major is ignored here.
+  - package-ecosystem: npm
+    directory: /frontend/tools/api-types
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Madrid
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    groups:
+      api-types-minor-patch:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
+    commit-message:
+      prefix: chore
+      include: scope
+    labels: [dependencies, 'area:frontend']
+
   # Base images of backend/Dockerfile and frontend/Dockerfile. The tags are floating
   # (`eclipse-temurin:25-jdk`, `node:24-alpine`...), so patches arrive by rebuilding the image;
   # `nginxinc/nginx-unprivileged:stable-alpine` has no version in its tag and is not updated.
