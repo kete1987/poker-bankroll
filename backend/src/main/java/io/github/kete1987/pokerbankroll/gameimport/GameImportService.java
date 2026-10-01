@@ -214,13 +214,21 @@ public class GameImportService {
             GameRequest request = new GameRequest(playedOn, playedAt, room.id(), gameType, modality, variantId,
                     GameStatus.FINISHED, unplaced.name(), buyIn, entries, prize, bounty, ticketPrizeValue,
                     unplaced.ticketDescription(), paidWithTicket, unplaced.notes());
+            String currencyCode;
             try {
-                gameService.create(request);
+                // The currency the game was recorded in: the one the room has now, read under its lock.
+                currencyCode = gameService.create(request).currencyCode();
             } catch (ApiException ex) {
                 apiError(row, fieldOf(ex.getCode()), ex);
                 return;
             }
-            count(request, room.currencyCode());
+            String declared = row.get(GameCsv.CURRENCY);
+            if (declared != null && !declared.equalsIgnoreCase(currencyCode)) {
+                // The room changed its currency while the file was being imported.
+                problem(row, GameCsv.CURRENCY, RowProblem.ROOM_CURRENCY_MISMATCH, roomName, currencyCode, declared);
+                return;
+            }
+            count(request, currencyCode);
         }
 
         /** The room of the row, created if it does not exist; nothing when the row cannot have one. */
