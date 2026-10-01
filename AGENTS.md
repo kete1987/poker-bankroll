@@ -168,6 +168,9 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - State changes that are a single user gesture are their own `POST` sub-resource instead of a
   full `PUT` (e.g. `/games/{id}/finish`, `/games/{id}/re-entries`, `/games/{id}/rebuys`); they return
   the updated resource and fail with a specific `409` code when the resource is not in the right state.
+- Every change to a game loads it with `GameRepository.findForUpdateById` (row lock), so simultaneous
+  requests on the same game (a double click, a re-entry racing a finish) run one after another and
+  none is lost.
 - The OpenAPI spec is the contract; frontend types are generated from it (API-7).
 
 ### Backend code

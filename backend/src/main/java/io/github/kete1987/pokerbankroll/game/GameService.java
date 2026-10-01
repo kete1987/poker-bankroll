@@ -48,14 +48,14 @@ public class GameService {
     }
 
     public GameResponse update(long id, GameRequest request) {
-        Game game = find(id);
+        Game game = findForUpdate(id);
         game.setStatus(statusOf(request, game.getStatus()));
         apply(request, game);
         return GameResponse.of(games.saveAndFlush(game));
     }
 
     public void delete(long id) {
-        games.delete(find(id));
+        games.delete(findForUpdate(id));
     }
 
     /** Sets the result of a game in play and finishes it. */
@@ -93,7 +93,7 @@ public class GameService {
     }
 
     private Game findInPlay(long id) {
-        Game game = find(id);
+        Game game = findForUpdate(id);
         if (!game.isInPlay()) {
             throw new ApiException(ErrorCode.GAME_NOT_IN_PLAY);
         }
@@ -102,6 +102,11 @@ public class GameService {
 
     private Game find(long id) {
         return games.findWithRoomAndVariantById(id).orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
+    }
+
+    /** For every change to a game: its row stays locked until the transaction ends. */
+    private Game findForUpdate(long id) {
+        return games.findForUpdateById(id).orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
     }
 
     /**

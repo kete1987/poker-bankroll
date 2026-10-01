@@ -3,6 +3,12 @@ package io.github.kete1987.pokerbankroll.game;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import com.jayway.jsonpath.JsonPath;
 import io.github.kete1987.pokerbankroll.ApiIntegrationTest;
@@ -529,6 +535,65 @@ class GameApiTests extends ApiIntegrationTest {
         json.extractingPath("$.invested").isEqualTo(7.5);
         json.extractingPath("$.net").isEqualTo(-7.5);
         json.extractingPath("$.status").isEqualTo("IN_PLAY");
+    }
+
+    /** E.g. a double click: every accepted action must build on the latest state of the game. */
+    @Test
+    void simultaneousReEntriesAreAllCounted() throws Exception {
+        long id = create(game("2026-01-19", "Game"));
+        int requests = 8;
+
+        try (var executor = Executors.newFixedThreadPool(requests)) {
+            var start = new CountDownLatch(1);
+            List<Future<Integer>> statuses = new ArrayList<>();
+            for (int i = 0; i < requests; i++) {
+                statuses.add(executor.submit(() -> {
+                    start.await();
+                    return mvc.post().uri("/games/{id}/re-entries", id).exchange().getResponse().getStatus();
+                }));
+            }
+            start.countDown();
+            for (Future<Integer> status : statuses) {
+                assertThat(status.get(30, TimeUnit.SECONDS)).isEqualTo(200);
+            }
+        }
+
+        assertThat(jdbc.queryForObject("select entries from game where id = ?", Integer.class, id))
+                .isEqualTo(1 + requests);
+    }
+
+    /** A re-entry racing a finish is either counted before it or rejected after it, never lost. */
+    @Test
+    void reEntriesRacingAFinishAreCountedOrRejected() throws Exception {
+        long id = create(game("2026-01-19", "Game"));
+        int reEntries = 6;
+
+        List<Future<Integer>> statuses = new ArrayList<>();
+        try (var executor = Executors.newFixedThreadPool(reEntries + 1)) {
+            var start = new CountDownLatch(1);
+            for (int i = 0; i < reEntries; i++) {
+                statuses.add(executor.submit(() -> {
+                    start.await();
+                    return mvc.post().uri("/games/{id}/re-entries", id).exchange().getResponse().getStatus();
+                }));
+            }
+            Future<Integer> finish = executor.submit(() -> {
+                start.await();
+                return postJson("/games/" + id + "/finish", "{\"prize\": 10}").exchange().getResponse().getStatus();
+            });
+            start.countDown();
+            assertThat(finish.get(30, TimeUnit.SECONDS)).isEqualTo(200);
+        }
+
+        int accepted = 0;
+        for (Future<Integer> status : statuses) {
+            assertThat(status.get()).isIn(200, 409);
+            accepted += status.get() == 200 ? 1 : 0;
+        }
+        var row = jdbc.queryForMap("select status, entries, prize from game where id = ?", id);
+        assertThat(row.get("status")).isEqualTo("FINISHED");
+        assertThat(row.get("entries")).isEqualTo(1 + accepted);
+        assertThat((java.math.BigDecimal) row.get("prize")).isEqualByComparingTo("10");
     }
 
     @Test
