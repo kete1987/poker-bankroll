@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.List;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import jakarta.validation.Valid;
@@ -48,6 +49,7 @@ class RoomController {
 
     @PostMapping
     @Operation(summary = "Create a room")
+    @ApiResponse(responseCode = "201", description = "Created")
     ResponseEntity<RoomResponse> create(@Valid @RequestBody RoomRequest request) {
         RoomResponse room = service.create(request);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").build(room.id());

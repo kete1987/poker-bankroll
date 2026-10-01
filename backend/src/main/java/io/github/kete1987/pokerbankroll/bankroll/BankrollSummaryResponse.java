@@ -13,21 +13,21 @@ public record BankrollSummaryResponse(List<CurrencyBankroll> currencies) {
     public record CurrencyBankroll(
             String currencyCode,
             @Schema(description = "The rooms in this currency plus the movements without a room")
-            Figures total,
+            BankrollFigures total,
             @Schema(description = "Movements that belong to no room; they only count in the total")
-            Figures withoutRoom,
+            BankrollFigures withoutRoom,
             @Schema(description = "Rooms that are active or have games or movements, by name")
             List<RoomBankroll> rooms) {
     }
 
-    public record RoomBankroll(RoomRef room, boolean active, Figures figures) {
+    public record RoomBankroll(RoomRef room, boolean active, BankrollFigures figures) {
     }
 
     /**
      * The poker bankroll: money set aside for poker and what was won or lost with it. It is not
      * the balance of the room account, so it can be negative (losses with no deposit recorded).
      */
-    public record Figures(
+    public record BankrollFigures(
             BigDecimal deposited,
             BigDecimal withdrawn,
             BigDecimal bonuses,

@@ -41,7 +41,8 @@ jobs:
           changed=$(git diff --name-only --no-renames "$BASE_SHA"...HEAD)
           printf 'Changed files:\n%s\n' "$changed"
           touches() { if echo "$changed" | grep -qE "$1"; then echo true; else echo false; fi; }
-          echo "backend=$(touches '^(backend/|\.github/workflows/ci\.yml$)')" >> "$GITHUB_OUTPUT"
+          # frontend/openapi.json is the API contract: a backend test checks it is the one served.
+          echo "backend=$(touches '^(backend/|frontend/openapi\.json$|\.github/workflows/ci\.yml$)')" >> "$GITHUB_OUTPUT"
           echo "frontend=$(touches '^(frontend/|\.github/workflows/ci\.yml$)')" >> "$GITHUB_OUTPUT"
 
   backend:
@@ -87,8 +88,15 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: |
+            frontend/package-lock.json
+            frontend/tools/api-types/package-lock.json
       - run: npm ci --no-audit --no-fund
+      # The generator has its own dependencies (it needs TypeScript 5): frontend/tools/api-types.
+      - name: Check the generated API types are up to date
+        run: |
+          npm ci --prefix tools/api-types --no-audit --no-fund
+          npm run api:check
       - name: Type-check
         run: npm run typecheck
       - name: Lint

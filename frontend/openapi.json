@@ -1,0 +1,1923 @@
+{
+  "components" : {
+    "schemas" : {
+      "BankrollFigures" : {
+        "properties" : {
+          "adjustments" : {
+            "description" : "Sum of the adjustments, positive or negative",
+            "type" : "number"
+          },
+          "bankroll" : {
+            "description" : "deposited - withdrawn + adjustments + result",
+            "type" : "number"
+          },
+          "bonuses" : {
+            "type" : "number"
+          },
+          "deposited" : {
+            "type" : "number"
+          },
+          "gamesInPlay" : {
+            "description" : "Games without a result yet; informative",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "gamesNet" : {
+            "description" : "Net of the games, those in play included (their buy-in is already spent)",
+            "type" : "number"
+          },
+          "investedInPlay" : {
+            "description" : "Money paid for the entries of the games in play; already subtracted in gamesNet",
+            "type" : "number"
+          },
+          "result" : {
+            "description" : "Won or lost playing: gamesNet + bonuses",
+            "type" : "number"
+          },
+          "ticketsWon" : {
+            "description" : "Value of the tickets won; informative, not part of the bankroll",
+            "type" : "number"
+          },
+          "withdrawn" : {
+            "type" : "number"
+          }
+        },
+        "required" : [ "adjustments", "bankroll", "bonuses", "deposited", "gamesInPlay", "gamesNet", "investedInPlay", "result", "ticketsWon", "withdrawn" ],
+        "type" : "object"
+      },
+      "BankrollSummaryResponse" : {
+        "properties" : {
+          "currencies" : {
+            "items" : {
+              "$ref" : "#/components/schemas/CurrencyBankroll"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "currencies" ],
+        "type" : "object"
+      },
+      "Catalog" : {
+        "properties" : {
+          "currencies" : {
+            "items" : {
+              "$ref" : "#/components/schemas/CurrencyResponse"
+            },
+            "type" : "array"
+          },
+          "gameTypes" : {
+            "items" : {
+              "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "modalities" : {
+            "items" : {
+              "enum" : [ "NLHE", "PLO" ],
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "currencies", "gameTypes", "modalities" ],
+        "type" : "object"
+      },
+      "CurrencyBankroll" : {
+        "properties" : {
+          "currencyCode" : {
+            "type" : "string"
+          },
+          "rooms" : {
+            "description" : "Rooms that are active or have games or movements, by name",
+            "items" : {
+              "$ref" : "#/components/schemas/RoomBankroll"
+            },
+            "type" : "array"
+          },
+          "total" : {
+            "$ref" : "#/components/schemas/BankrollFigures",
+            "description" : "The rooms in this currency plus the movements without a room"
+          },
+          "withoutRoom" : {
+            "$ref" : "#/components/schemas/BankrollFigures",
+            "description" : "Movements that belong to no room; they only count in the total"
+          }
+        },
+        "required" : [ "currencyCode", "rooms", "total", "withoutRoom" ],
+        "type" : "object"
+      },
+      "CurrencyGroups" : {
+        "properties" : {
+          "currencyCode" : {
+            "type" : "string"
+          },
+          "groups" : {
+            "description" : "Groups with finished games. Periods from oldest to newest, buy-ins from lowest to highest, anything else from most to fewest games",
+            "items" : {
+              "$ref" : "#/components/schemas/Group"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "currencyCode", "groups" ],
+        "type" : "object"
+      },
+      "CurrencyResponse" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "decimals" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "symbol" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "code", "decimals", "symbol" ],
+        "type" : "object"
+      },
+      "CurrencySummary" : {
+        "properties" : {
+          "byGameType" : {
+            "description" : "The game types with finished games, in catalog order",
+            "items" : {
+              "$ref" : "#/components/schemas/GameTypeSummary"
+            },
+            "type" : "array"
+          },
+          "currencyCode" : {
+            "type" : "string"
+          },
+          "inPlay" : {
+            "$ref" : "#/components/schemas/InPlay"
+          },
+          "total" : {
+            "$ref" : "#/components/schemas/StatsFigures",
+            "description" : "Every finished game in this currency"
+          }
+        },
+        "required" : [ "byGameType", "currencyCode", "inPlay", "total" ],
+        "type" : "object"
+      },
+      "FinishGameRequest" : {
+        "properties" : {
+          "bounty" : {
+            "description" : "Bounties won. Not for cash games. Defaults to 0",
+            "minimum" : 0,
+            "type" : [ "number", "null" ]
+          },
+          "prize" : {
+            "description" : "Cash won, bounties apart. Cash game: amount when leaving the table. Defaults to 0",
+            "minimum" : 0,
+            "type" : [ "number", "null" ]
+          },
+          "ticketDescription" : {
+            "maxLength" : 150,
+            "minLength" : 0,
+            "type" : [ "string", "null" ]
+          },
+          "ticketPrizeValue" : {
+            "description" : "Value of a tournament ticket won. Not for cash games. Defaults to 0",
+            "minimum" : 0,
+            "type" : [ "number", "null" ]
+          }
+        },
+        "type" : "object"
+      },
+      "GameRequest" : {
+        "properties" : {
+          "bounty" : {
+            "description" : "Bounties won. Defaults to 0",
+            "minimum" : 0,
+            "type" : [ "number", "null" ]
+          },
+          "buyIn" : {
+            "description" : "Price of one entry, also when it was paid with a ticket. Cash game: amount brought to the table",
+            "minimum" : 0,
+            "type" : "number"
+          },
+          "entries" : {
+            "description" : "Entries including re-entries. Defaults to 1",
+            "format" : "int32",
+            "minimum" : 1,
+            "type" : [ "integer", "null" ]
+          },
+          "gameType" : {
+            "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
+            "type" : "string"
+          },
+          "modality" : {
+            "description" : "Defaults to NLHE",
+            "enum" : [ "NLHE", "PLO", null ],
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "maxLength" : 150,
+            "minLength" : 0,
+            "type" : [ "string", "null" ]
+          },
+          "notes" : {
+            "maxLength" : 5000,
+            "minLength" : 0,
+            "type" : [ "string", "null" ]
+          },
+          "paidWithTicket" : {
+            "description" : "One entry was paid with a ticket instead of cash. Defaults to false",
+            "type" : [ "boolean", "null" ]
+          },
+          "playedAt" : {
+            "description" : "Optional local start time (HH:mm), to order the games of a day",
+            "example" : "21:30",
+            "type" : [ "string", "null" ]
+          },
+          "playedOn" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "prize" : {
+            "description" : "Cash won, bounties apart. Cash game: amount when leaving the table. Defaults to 0",
+            "minimum" : 0,
+            "type" : [ "number", "null" ]
+          },
+          "roomId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "status" : {
+            "description" : "IN_PLAY (registered when it starts, no result yet) or FINISHED. When omitted: FINISHED if a result is sent (prize, bounty or ticket); otherwise IN_PLAY for a new game and unchanged for an existing one",
+            "enum" : [ "IN_PLAY", "FINISHED", null ],
+            "type" : [ "string", "null" ]
+          },
+          "ticketDescription" : {
+            "maxLength" : 150,
+            "minLength" : 0,
+            "type" : [ "string", "null" ]
+          },
+          "ticketPrizeValue" : {
+            "description" : "Value of a tournament ticket won as a prize; informative, not part of net. Defaults to 0",
+            "minimum" : 0,
+            "type" : [ "number", "null" ]
+          },
+          "variantId" : {
+            "description" : "Optional; must be a variant of the game type",
+            "format" : "int64",
+            "type" : [ "integer", "null" ]
+          }
+        },
+        "required" : [ "buyIn", "gameType", "playedOn", "roomId" ],
+        "type" : "object"
+      },
+      "GameResponse" : {
+        "properties" : {
+          "bounty" : {
+            "type" : "number"
+          },
+          "buyIn" : {
+            "type" : "number"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "currencyCode" : {
+            "description" : "Currency of every amount of this game (the one of its room)",
+            "type" : "string"
+          },
+          "entries" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "gameType" : {
+            "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "invested" : {
+            "description" : "Money paid for the entries (an entry paid with a ticket costs nothing)",
+            "type" : "number"
+          },
+          "modality" : {
+            "enum" : [ "NLHE", "PLO" ],
+            "type" : "string"
+          },
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "net" : {
+            "description" : "Real money won or lost: prize + bounty - invested",
+            "type" : "number"
+          },
+          "notes" : {
+            "type" : [ "string", "null" ]
+          },
+          "paidWithTicket" : {
+            "type" : "boolean"
+          },
+          "playedAt" : {
+            "example" : "21:30:00",
+            "type" : [ "string", "null" ]
+          },
+          "playedOn" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "prize" : {
+            "type" : "number"
+          },
+          "room" : {
+            "$ref" : "#/components/schemas/RoomRef"
+          },
+          "status" : {
+            "description" : "IN_PLAY while the result is not known yet; its buy-in already counts in net",
+            "enum" : [ "IN_PLAY", "FINISHED" ],
+            "type" : "string"
+          },
+          "ticketDescription" : {
+            "type" : [ "string", "null" ]
+          },
+          "ticketPrizeValue" : {
+            "type" : "number"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "variant" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/VariantRef"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "bounty", "buyIn", "createdAt", "currencyCode", "entries", "gameType", "id", "invested", "modality", "net", "paidWithTicket", "playedOn", "prize", "room", "status", "ticketPrizeValue", "updatedAt" ],
+        "type" : "object"
+      },
+      "GameTypeSummary" : {
+        "properties" : {
+          "figures" : {
+            "$ref" : "#/components/schemas/StatsFigures"
+          },
+          "gameType" : {
+            "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "figures", "gameType" ],
+        "type" : "object"
+      },
+      "Group" : {
+        "properties" : {
+          "cumulativeNet" : {
+            "description" : "Net of this period and the earlier ones in the response, so it starts from zero at the beginning of the filtered range; only for groups in time",
+            "type" : [ "number", "null" ]
+          },
+          "figures" : {
+            "$ref" : "#/components/schemas/StatsFigures"
+          },
+          "key" : {
+            "$ref" : "#/components/schemas/GroupKey"
+          }
+        },
+        "required" : [ "figures", "key" ],
+        "type" : "object"
+      },
+      "GroupKey" : {
+        "properties" : {
+          "buyIn" : {
+            "description" : "BUY_IN",
+            "type" : [ "number", "null" ]
+          },
+          "gameType" : {
+            "description" : "GAME_TYPE, and VARIANT (the type the variant belongs to)",
+            "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH", null ],
+            "type" : [ "string", "null" ]
+          },
+          "modality" : {
+            "description" : "MODALITY",
+            "enum" : [ "NLHE", "PLO", null ],
+            "type" : [ "string", "null" ]
+          },
+          "period" : {
+            "description" : "DAY: 2026-01-19; WEEK: its Monday, 2026-01-19; MONTH: 2026-01; YEAR: 2026",
+            "type" : [ "string", "null" ]
+          },
+          "room" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RoomRef"
+            }, {
+              "type" : "null"
+            } ],
+            "description" : "ROOM"
+          },
+          "variant" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/VariantRef"
+            }, {
+              "type" : "null"
+            } ],
+            "description" : "VARIANT; null for the games of the type without a variant"
+          }
+        },
+        "type" : "object"
+      },
+      "InPlay" : {
+        "properties" : {
+          "games" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "invested" : {
+            "description" : "Money paid so far for their entries",
+            "type" : "number"
+          }
+        },
+        "required" : [ "games", "invested" ],
+        "type" : "object"
+      },
+      "MovementRequest" : {
+        "properties" : {
+          "amount" : {
+            "description" : "Greater than zero: the type gives the direction (a withdrawal subtracts). Only an ADJUSTMENT can be negative",
+            "type" : "number"
+          },
+          "currencyCode" : {
+            "description" : "Only for a movement without a room, e.g. EUR",
+            "type" : [ "string", "null" ]
+          },
+          "notes" : {
+            "maxLength" : 5000,
+            "minLength" : 0,
+            "type" : [ "string", "null" ]
+          },
+          "occurredOn" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "roomId" : {
+            "description" : "Room the movement belongs to; the amount is in its currency. Omit it, and give a currency, for a movement of the bankroll as a whole",
+            "format" : "int64",
+            "type" : [ "integer", "null" ]
+          },
+          "type" : {
+            "enum" : [ "DEPOSIT", "WITHDRAWAL", "BONUS", "ADJUSTMENT" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "amount", "occurredOn", "type" ],
+        "type" : "object"
+      },
+      "MovementResponse" : {
+        "properties" : {
+          "amount" : {
+            "type" : "number"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "currencyCode" : {
+            "description" : "Currency of the amount: the one of the room, or its own without a room",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "notes" : {
+            "type" : [ "string", "null" ]
+          },
+          "occurredOn" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "room" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RoomRef"
+            }, {
+              "type" : "null"
+            } ],
+            "description" : "Null for a movement of the bankroll as a whole"
+          },
+          "signedAmount" : {
+            "description" : "Effect on the bankroll: the amount, negative for a withdrawal",
+            "type" : "number"
+          },
+          "type" : {
+            "enum" : [ "DEPOSIT", "WITHDRAWAL", "BONUS", "ADJUSTMENT" ],
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "amount", "createdAt", "currencyCode", "id", "occurredOn", "signedAmount", "type", "updatedAt" ],
+        "type" : "object"
+      },
+      "PageResponseGameResponse" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/GameResponse"
+            },
+            "type" : "array"
+          },
+          "page" : {
+            "description" : "Zero-based page number",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "size" : {
+            "description" : "Requested page size",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "totalItems" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "totalPages" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "items", "page", "size", "totalItems", "totalPages" ],
+        "type" : "object"
+      },
+      "PageResponseMovementResponse" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/MovementResponse"
+            },
+            "type" : "array"
+          },
+          "page" : {
+            "description" : "Zero-based page number",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "size" : {
+            "description" : "Requested page size",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "totalItems" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "totalPages" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "items", "page", "size", "totalItems", "totalPages" ],
+        "type" : "object"
+      },
+      "RebuyRequest" : {
+        "properties" : {
+          "amount" : {
+            "description" : "Amount added to the buy-in of the game",
+            "exclusiveMinimum" : 0,
+            "type" : "number"
+          }
+        },
+        "required" : [ "amount" ],
+        "type" : "object"
+      },
+      "RoomBankroll" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "figures" : {
+            "$ref" : "#/components/schemas/BankrollFigures"
+          },
+          "room" : {
+            "$ref" : "#/components/schemas/RoomRef"
+          }
+        },
+        "required" : [ "active", "figures", "room" ],
+        "type" : "object"
+      },
+      "RoomRef" : {
+        "properties" : {
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "name" ],
+        "type" : "object"
+      },
+      "RoomRequest" : {
+        "properties" : {
+          "active" : {
+            "description" : "Inactive rooms keep their history but are not offered for new games. Defaults to true.",
+            "type" : [ "boolean", "null" ]
+          },
+          "currencyCode" : {
+            "description" : "ISO 4217 code of one of the currencies of the catalog",
+            "example" : "EUR",
+            "pattern" : "[A-Z]{3}",
+            "type" : "string"
+          },
+          "name" : {
+            "maxLength" : 100,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "required" : [ "currencyCode", "name" ],
+        "type" : "object"
+      },
+      "RoomResponse" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "currencyCode" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "inUse" : {
+            "description" : "The room has games or bankroll movements: it cannot be deleted and its currency cannot change",
+            "type" : "boolean"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "active", "createdAt", "currencyCode", "id", "inUse", "name", "updatedAt" ],
+        "type" : "object"
+      },
+      "StatsFigures" : {
+        "properties" : {
+          "averageBuyIn" : {
+            "description" : "Mean buy-in of a game; cash games apart",
+            "type" : [ "number", "null" ]
+          },
+          "bounties" : {
+            "description" : "Bounties, already included in won",
+            "type" : "number"
+          },
+          "entries" : {
+            "description" : "Entries, re-entries included",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "games" : {
+            "description" : "Games played",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "gamesInTheMoney" : {
+            "description" : "Games with a prize or a ticket won (bounties do not count); cash games apart",
+            "format" : "int64",
+            "type" : [ "integer", "null" ]
+          },
+          "gamesWithPrize" : {
+            "description" : "Games with a prize, a bounty or a ticket won; cash games apart",
+            "format" : "int64",
+            "type" : [ "integer", "null" ]
+          },
+          "inTheMoneyRate" : {
+            "description" : "gamesInTheMoney / games, cash games apart",
+            "type" : [ "number", "null" ]
+          },
+          "invested" : {
+            "description" : "Money paid for the entries (an entry paid with a ticket costs nothing)",
+            "type" : "number"
+          },
+          "net" : {
+            "description" : "won - invested",
+            "type" : "number"
+          },
+          "roi" : {
+            "description" : "net / invested; null when nothing was invested",
+            "type" : [ "number", "null" ]
+          },
+          "ticketsWon" : {
+            "description" : "Value of the tickets won; informative, not part of won, net or roi",
+            "type" : "number"
+          },
+          "winningGames" : {
+            "description" : "Games with a positive net",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "winningRate" : {
+            "description" : "winningGames / games",
+            "type" : [ "number", "null" ]
+          },
+          "withPrizeRate" : {
+            "description" : "gamesWithPrize / games, cash games apart",
+            "type" : [ "number", "null" ]
+          },
+          "won" : {
+            "description" : "Money won: prizes + bounties",
+            "type" : "number"
+          }
+        },
+        "required" : [ "bounties", "entries", "games", "invested", "net", "ticketsWon", "winningGames", "won" ],
+        "type" : "object"
+      },
+      "StatsGroupsResponse" : {
+        "properties" : {
+          "currencies" : {
+            "items" : {
+              "$ref" : "#/components/schemas/CurrencyGroups"
+            },
+            "type" : "array"
+          },
+          "groupBy" : {
+            "enum" : [ "DAY", "WEEK", "MONTH", "YEAR", "GAME_TYPE", "VARIANT", "ROOM", "MODALITY", "BUY_IN" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "currencies", "groupBy" ],
+        "type" : "object"
+      },
+      "StatsSummaryResponse" : {
+        "properties" : {
+          "currencies" : {
+            "items" : {
+              "$ref" : "#/components/schemas/CurrencySummary"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "currencies" ],
+        "type" : "object"
+      },
+      "VariantCreateRequest" : {
+        "properties" : {
+          "gameType" : {
+            "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
+            "type" : "string"
+          },
+          "name" : {
+            "maxLength" : 100,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "required" : [ "gameType", "name" ],
+        "type" : "object"
+      },
+      "VariantRef" : {
+        "properties" : {
+          "code" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "name" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "id" ],
+        "type" : "object"
+      },
+      "VariantResponse" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "builtIn" : {
+            "type" : "boolean"
+          },
+          "code" : {
+            "description" : "Code of a built-in variant, translated by the client; null for user-defined ones",
+            "type" : [ "string", "null" ]
+          },
+          "gameType" : {
+            "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "inUse" : {
+            "description" : "The variant is used by games: it cannot be deleted",
+            "type" : "boolean"
+          },
+          "name" : {
+            "description" : "Name of a user-defined variant; null for built-in ones",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "active", "builtIn", "gameType", "id", "inUse" ],
+        "type" : "object"
+      },
+      "VariantUpdateRequest" : {
+        "properties" : {
+          "active" : {
+            "description" : "Inactive variants keep their history but are not offered for new games",
+            "type" : "boolean"
+          },
+          "name" : {
+            "description" : "New name of a user-defined variant. Must be omitted (or null) for built-in variants.",
+            "maxLength" : 100,
+            "minLength" : 0,
+            "pattern" : ".*\\S.*",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "active" ],
+        "type" : "object"
+      }
+    }
+  },
+  "info" : {
+    "description" : "REST API of poker-bankroll, a self-hosted poker bankroll manager.",
+    "license" : {
+      "name" : "MIT",
+      "url" : "https://opensource.org/licenses/MIT"
+    },
+    "title" : "poker-bankroll API"
+  },
+  "openapi" : "3.1.0",
+  "paths" : {
+    "/bankroll/movements" : {
+      "get" : {
+        "description" : "All filters are optional and combined with AND.",
+        "operationId" : "list_3",
+        "parameters" : [ {
+          "description" : "On or after this date",
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "On or before this date",
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "type",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "DEPOSIT", "WITHDRAWAL", "BONUS", "ADJUSTMENT" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "roomId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "description" : "true: only movements that belong to no room; false: only those of a room",
+          "in" : "query",
+          "name" : "withoutRoom",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "description" : "Currency of the amount, e.g. EUR",
+          "in" : "query",
+          "name" : "currency",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "Zero-based page number",
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "default" : 0,
+            "format" : "int32",
+            "minimum" : 0,
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseMovementResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "List bankroll movements, newest first",
+        "tags" : [ "Bankroll" ]
+      },
+      "post" : {
+        "description" : "Of a room (`roomId`), or of the bankroll as a whole (`currencyCode`, no room).",
+        "operationId" : "create_3",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MovementRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MovementResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "summary" : "Record a bankroll movement",
+        "tags" : [ "Bankroll" ]
+      }
+    },
+    "/bankroll/movements/{id}" : {
+      "delete" : {
+        "operationId" : "delete_3",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Delete a bankroll movement",
+        "tags" : [ "Bankroll" ]
+      },
+      "get" : {
+        "operationId" : "get_2",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MovementResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Get a bankroll movement",
+        "tags" : [ "Bankroll" ]
+      },
+      "put" : {
+        "description" : "Replaces every field.",
+        "operationId" : "update_3",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MovementRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MovementResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Update a bankroll movement",
+        "tags" : [ "Bankroll" ]
+      }
+    },
+    "/bankroll/summary" : {
+      "get" : {
+        "description" : "bankroll = deposited - withdrawn + adjustments + result, with result = net of the games + bonuses. It is not the balance of the room account: with no movements recorded it is just the result, negative when losing.",
+        "operationId" : "summary_1",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BankrollSummaryResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Poker bankroll per currency and room",
+        "tags" : [ "Bankroll" ]
+      }
+    },
+    "/catalog" : {
+      "get" : {
+        "operationId" : "catalog",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Catalog"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Currencies, game types and modalities, in display order",
+        "tags" : [ "Catalog" ]
+      }
+    },
+    "/games" : {
+      "get" : {
+        "description" : "All filters are optional and combined with AND.",
+        "operationId" : "list_2",
+        "parameters" : [ {
+          "description" : "Played on or after this date",
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Played on or before this date",
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "gameType",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "modality",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "NLHE", "PLO" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "roomId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "variantId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "IN_PLAY", "FINISHED" ],
+            "type" : "string"
+          }
+        }, {
+          "description" : "Currency of the room, e.g. EUR",
+          "in" : "query",
+          "name" : "currency",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "Text contained in the name or the notes, ignoring case",
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "Zero-based page number",
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "default" : 0,
+            "format" : "int32",
+            "minimum" : 0,
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        }, {
+          "description" : "`<field>,<asc|desc>` with field one of playedOn, net, buyIn, prize, createdAt",
+          "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "default" : "playedOn,desc",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseGameResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "List games",
+        "tags" : [ "Games" ]
+      },
+      "post" : {
+        "description" : "With only the required fields the game is recorded as in play; send a result (or `status: FINISHED`) to record it finished.",
+        "operationId" : "create_2",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/GameRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GameResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "summary" : "Record a game",
+        "tags" : [ "Games" ]
+      }
+    },
+    "/games/{id}" : {
+      "delete" : {
+        "operationId" : "delete_2",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Delete a game",
+        "tags" : [ "Games" ]
+      },
+      "get" : {
+        "operationId" : "get_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GameResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Get a game",
+        "tags" : [ "Games" ]
+      },
+      "put" : {
+        "description" : "Replaces every field; omitted optional fields take their default.",
+        "operationId" : "update_2",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/GameRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GameResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Update a game",
+        "tags" : [ "Games" ]
+      }
+    },
+    "/games/{id}/finish" : {
+      "post" : {
+        "description" : "Sets its result; with no body (or an empty one) nothing was won.",
+        "operationId" : "finish",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FinishGameRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GameResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Finish a game in play",
+        "tags" : [ "Games" ]
+      }
+    },
+    "/games/{id}/re-entries" : {
+      "post" : {
+        "description" : "Adds one entry, paid in cash.",
+        "operationId" : "addReEntry",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GameResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Add a re-entry to a tournament or Sit&Go in play",
+        "tags" : [ "Games" ]
+      }
+    },
+    "/games/{id}/rebuys" : {
+      "post" : {
+        "description" : "Adds the amount to the buy-in.",
+        "operationId" : "addRebuy",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RebuyRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GameResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Add a rebuy to a cash game in play",
+        "tags" : [ "Games" ]
+      }
+    },
+    "/rooms" : {
+      "get" : {
+        "operationId" : "list_1",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "active",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/RoomResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "List rooms, ordered by name",
+        "tags" : [ "Rooms" ]
+      },
+      "post" : {
+        "operationId" : "create_1",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RoomRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RoomResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "summary" : "Create a room",
+        "tags" : [ "Rooms" ]
+      }
+    },
+    "/rooms/{id}" : {
+      "delete" : {
+        "description" : "Only rooms without games; otherwise deactivate it.",
+        "operationId" : "delete_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Delete a room",
+        "tags" : [ "Rooms" ]
+      },
+      "get" : {
+        "operationId" : "get",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RoomResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Get a room",
+        "tags" : [ "Rooms" ]
+      },
+      "put" : {
+        "description" : "The currency can only change while the room has no games. Omit `active` to keep it.",
+        "operationId" : "update_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RoomRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RoomResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Update a room",
+        "tags" : [ "Rooms" ]
+      }
+    },
+    "/stats/groups" : {
+      "get" : {
+        "description" : "Groups by period (day, week, month, year), game type, variant, room, modality or buy-in, with the same figures as the summary. Takes the filters of the games list, so e.g. `groupBy=MONTH&gameType=TOURNAMENT` gives the tournaments per month. Periods without games are not returned.",
+        "operationId" : "groups",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "groupBy",
+          "required" : true,
+          "schema" : {
+            "enum" : [ "DAY", "WEEK", "MONTH", "YEAR", "GAME_TYPE", "VARIANT", "ROOM", "MODALITY", "BUY_IN" ],
+            "type" : "string"
+          }
+        }, {
+          "description" : "Played on or after this date",
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Played on or before this date",
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "gameType",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "modality",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "NLHE", "PLO" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "roomId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "variantId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "description" : "Currency of the room, e.g. EUR",
+          "in" : "query",
+          "name" : "currency",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "Text contained in the name or the notes, ignoring case",
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StatsGroupsResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Results of the finished games per group, for each currency",
+        "tags" : [ "Statistics" ]
+      }
+    },
+    "/stats/summary" : {
+      "get" : {
+        "description" : "Takes the filters of the games list, all optional and combined with AND. Only finished games count in the figures; games in play are reported apart.",
+        "operationId" : "summary",
+        "parameters" : [ {
+          "description" : "Played on or after this date",
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Played on or before this date",
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "gameType",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "modality",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "NLHE", "PLO" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "roomId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "variantId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "description" : "Currency of the room, e.g. EUR",
+          "in" : "query",
+          "name" : "currency",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "Text contained in the name or the notes, ignoring case",
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StatsSummaryResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Results overall and per game type, for each currency",
+        "tags" : [ "Statistics" ]
+      }
+    },
+    "/variants" : {
+      "get" : {
+        "description" : "Ordered by game type, built-in variants first, then user-defined ones by name.",
+        "operationId" : "list",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "gameType",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "active",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/VariantResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "List variants",
+        "tags" : [ "Variants" ]
+      },
+      "post" : {
+        "operationId" : "create",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/VariantCreateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/VariantResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "summary" : "Create a user-defined variant",
+        "tags" : [ "Variants" ]
+      }
+    },
+    "/variants/{id}" : {
+      "delete" : {
+        "description" : "Only when no game uses it; otherwise deactivate it.",
+        "operationId" : "delete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Delete a user-defined variant",
+        "tags" : [ "Variants" ]
+      },
+      "put" : {
+        "description" : "Built-in variants can only be activated or deactivated; user-defined ones can also be renamed.",
+        "operationId" : "update",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/VariantUpdateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/VariantResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Update a variant",
+        "tags" : [ "Variants" ]
+      }
+    }
+  },
+  "tags" : [ {
+    "description" : "Poker site accounts",
+    "name" : "Rooms"
+  }, {
+    "description" : "Money set aside for poker and what was won or lost with it",
+    "name" : "Bankroll"
+  }, {
+    "description" : "Recorded results",
+    "name" : "Games"
+  }, {
+    "description" : "Sub-types within a game type",
+    "name" : "Variants"
+  }, {
+    "description" : "Aggregated results",
+    "name" : "Statistics"
+  }, {
+    "description" : "Reference data used by the forms",
+    "name" : "Catalog"
+  } ]
+}

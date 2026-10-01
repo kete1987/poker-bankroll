@@ -1,0 +1,15 @@
+{
+  "name": "poker-bankroll-api-types",
+  "private": true,
+  "description": "Generates the frontend API types from openapi.json. Kept apart from the web app: openapi-typescript needs TypeScript 5, the app uses TypeScript 7.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "generate": "openapi-typescript ../../openapi.json -o ../../src/api/schema.d.ts",
+    "check": "openapi-typescript ../../openapi.json -o ../../src/api/schema.d.ts --check"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.13.0",
+    "typescript": "^5.9.3"
+  }
+}

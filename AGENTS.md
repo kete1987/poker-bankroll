@@ -44,6 +44,7 @@ Use the Maven wrapper; on Windows use `mvnw.cmd` instead of `./mvnw`.
 |---|---|
 | `./mvnw verify` | Compile and run all tests (starts a PostgreSQL container) |
 | `./mvnw test -Dtest=ClassName` | Run a single test class |
+| `./mvnw test -Dtest=OpenApiContractTests -Dopenapi.update=true` | Rewrite `frontend/openapi.json` from the API (after changing an endpoint, request or response) |
 | `./mvnw spring-boot:test-run` | Run the API on `:8080` against a throwaway PostgreSQL container |
 | `./mvnw spring-boot:run` | Run the API against the development database (`deploy/docker-compose.dev.yml`, `localhost:5433`) or `SPRING_DATASOURCE_*` |
 
@@ -60,6 +61,8 @@ Requires Node 24 LTS. Run `npm ci` once.
 | `npm test` | Run all tests once (Vitest + Testing Library, jsdom) |
 | `npm run test:watch` | Tests in watch mode |
 | `npm run typecheck` | Type-check with `tsc -b` |
+| `npm run api:types` | Regenerate `src/api/schema.d.ts` from `openapi.json` (run `npm ci --prefix tools/api-types` once) |
+| `npm run api:check` | Fail if `src/api/schema.d.ts` is not what `openapi.json` generates |
 | `npm run lint` | Lint with oxlint (warnings fail) |
 | `npm run format` / `npm run format:check` | Format / check formatting with Prettier |
 | `npm run build` | Type-check and build to `dist/` |
@@ -199,7 +202,17 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   none is lost.
 - Recording a game or a bankroll movement in a room loads it with `RoomRepository.findToRecordInById`
   (shared row lock), so a simultaneous change of the room's currency waits and is rejected.
-- The OpenAPI spec is the contract; frontend types are generated from it (API-7).
+- The OpenAPI spec is the contract, and it is committed as `frontend/openapi.json` (sorted keys,
+  without `servers` and the version). The frontend types are generated from that file, so two
+  checks keep everything in sync: `OpenApiContractTests` fails when the file is not what the API
+  serves, and `npm run api:check` (CI) when `src/api/schema.d.ts` is not what the file generates.
+  **After changing the API**: update the contract (`-Dopenapi.update=true`, see Commands), run
+  `npm run api:types`, and commit both files with the change.
+- Request and response records describe themselves: a component is `required` in the contract
+  unless it is `@Nullable` (then it also accepts `null`), done by `common/openapi/RecordSchemaConverter`.
+  So annotate every optional component with `@Nullable`, and give nested records a name that is
+  clear on its own (`BankrollFigures`, not `Figures`): it becomes the schema and type name.
+  Endpoints that create a resource declare `@ApiResponse(responseCode = "201")`.
 
 ### Backend code
 - Base package `io.github.kete1987.pokerbankroll`, organised **by feature**
@@ -240,6 +253,10 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   schema tests are in `backend/src/test/java/.../schema/`.
 
 ### Frontend code
+- Types of requests and responses come from `src/api/types.ts`, aliases over the generated
+  `src/api/schema.d.ts` (never edited by hand; add an alias when a new shape is used). The generator
+  lives in `tools/api-types/` with its own `package.json`: `openapi-typescript` needs TypeScript 5
+  and the app uses TypeScript 7.
 - Talk to the backend only through `src/api/client.ts` (`apiFetch`): it adds `/api`, sends the UI
   language as `Accept-Language` and turns error responses into `ApiError` (`status`, `code`,
   `message`, `errors`). Wrap calls in TanStack Query hooks next to it (see `src/api/health.ts`).
@@ -264,8 +281,9 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 
 ### CI
 - `.github/workflows/ci.yml` runs on every pull request and on pushes to `main`.
-- On pull requests only the touched parts run: `backend/` → `./mvnw verify`; `frontend/` →
-  `npm ci`, typecheck, lint, format check, tests, build. Changing the workflow runs both.
+- On pull requests only the touched parts run: `backend/` (or `frontend/openapi.json`) →
+  `./mvnw verify`; `frontend/` → `npm ci`, generated API types check, typecheck, lint, format
+  check, tests, build. Changing the workflow runs both.
 - The **`CI result`** job is the one to require in the branch ruleset: it passes when every job
   succeeded or was skipped because its part did not change.
 - Actions are pinned to a full commit SHA with the version in a comment; update both together.
@@ -284,7 +302,7 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 
 ### Dependabot
 - `.github/dependabot.yml` opens weekly PRs for GitHub Actions, Maven (`backend/`), npm
-  (`frontend/`), the Dockerfile base images and the PostgreSQL image in `deploy/`. Minor and patch
+  (`frontend/` and `frontend/tools/api-types/`), the Dockerfile base images and the PostgreSQL image in `deploy/`. Minor and patch
   updates come grouped per ecosystem; every major update has its own PR. New versions are only
   proposed 7 days after their release (security updates are not delayed).
 - Merge a Dependabot PR only with CI green and the Codex review addressed. CI does not build the
