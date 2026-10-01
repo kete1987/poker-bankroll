@@ -75,6 +75,7 @@ export function GameForm({ rooms, variants, onSave, onSaved, onCancel }: GameFor
   const { t } = useTranslation();
   const format = useFormat();
   const buyInRef = useRef<HTMLInputElement>(null);
+  const submitting = useRef(false);
   const [saving, setSaving] = useState<'save' | 'another' | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
 
@@ -117,9 +118,11 @@ export function GameForm({ rooms, variants, onSave, onSaved, onCancel }: GameFor
   };
 
   async function submit(addAnother: boolean) {
-    if (form.validate().hasErrors) {
+    // A ref, not the state: a second Enter can arrive before the state of the first is rendered.
+    if (submitting.current || form.validate().hasErrors) {
       return;
     }
+    submitting.current = true;
     setFailure(null);
     setSaving(addAnother ? 'another' : 'save');
     try {
@@ -160,6 +163,7 @@ export function GameForm({ rooms, variants, onSave, onSaved, onCancel }: GameFor
         setFailure(t('gameForm.errors.unexpected'));
       }
     } finally {
+      submitting.current = false;
       setSaving(null);
     }
   }

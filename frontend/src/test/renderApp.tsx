@@ -75,8 +75,10 @@ export function stubApi(handlers: Record<string, ApiHandler>) {
         return problem(404, 'NOT_FOUND', `No stub for ${key}`);
       }
       const handler = all[key];
-      const result =
-        typeof handler === 'function' ? (handler as (c: ApiCall) => unknown)(call) : handler;
+      // A handler may answer later (a promise), to test what happens meanwhile.
+      const result = await (typeof handler === 'function'
+        ? (handler as (c: ApiCall) => unknown)(call)
+        : handler);
       return result instanceof Response
         ? result
         : new Response(JSON.stringify(result), {

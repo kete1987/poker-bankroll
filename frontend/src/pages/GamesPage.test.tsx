@@ -424,6 +424,25 @@ describe('Add game form', () => {
     });
   });
 
+  it('saves once, however many times Enter is pressed while it is being saved', async () => {
+    let finish: (response: unknown) => void = () => {};
+    const pending = new Promise((resolve) => {
+      finish = resolve;
+    });
+    const calls = stubGamesApi({ onCreate: () => pending });
+    renderApp('/games');
+    const form = await openForm();
+    await choose(form, 'Room', 'Winamax (EUR)');
+    await userEvent.type(form.getByRole('textbox', { name: 'Buy-in' }), '5');
+
+    await userEvent.keyboard('{Enter}{Enter}{Control>}{Enter}{/Control}');
+    expect(created(calls)).toHaveLength(1);
+
+    finish(game({}));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(created(calls)).toHaveLength(1);
+  });
+
   it('remembers the room, type and status of the last game for the next time', async () => {
     stubGamesApi();
     const first = renderApp('/games');
