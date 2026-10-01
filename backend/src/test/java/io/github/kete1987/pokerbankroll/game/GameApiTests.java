@@ -41,6 +41,7 @@ class GameApiTests extends ApiIntegrationTest {
         json.extractingPath("$.gameType").isEqualTo("TOURNAMENT");
         json.extractingPath("$.modality").isEqualTo("NLHE");
         json.extractingPath("$.variant").isNull();
+        json.extractingPath("$.status").isEqualTo("IN_PLAY");
         json.extractingPath("$.entries").isEqualTo(1);
         json.extractingPath("$.prize").isEqualTo(0);
         json.extractingPath("$.paidWithTicket").isEqualTo(false);
@@ -406,6 +407,186 @@ class GameApiTests extends ApiIntegrationTest {
                 .hasStatus(HttpStatus.BAD_REQUEST)
                 .bodyJson().extractingPath("$.errors[0].code").isEqualTo("CashGameFields");
         assertThat(putJson("/games/999999", game("2026-01-19", "Game"))).hasStatus(HttpStatus.NOT_FOUND);
+    }
+
+    // ---- status: in play / finished ----
+
+    @Test
+    void aGameSentWithAResultIsRecordedFinished() {
+        assertThat(postJson("/games", game("2026-01-19", "won").replace("}", ", \"prize\": 5}")))
+                .hasStatus(HttpStatus.CREATED).bodyJson().extractingPath("$.status").isEqualTo("FINISHED");
+        assertThat(postJson("/games", game("2026-01-19", "bounty only").replace("}", ", \"bounty\": 1}")))
+                .hasStatus(HttpStatus.CREATED).bodyJson().extractingPath("$.status").isEqualTo("FINISHED");
+        assertThat(postJson("/games", game("2026-01-19", "ticket").replace("}", ", \"ticketPrizeValue\": 10}")))
+                .hasStatus(HttpStatus.CREATED).bodyJson().extractingPath("$.status").isEqualTo("FINISHED");
+    }
+
+    @Test
+    void aLostGameCanBeRecordedFinishedExplicitly() {
+        var json = assertThat(postJson("/games", game("2026-01-19", "lost").replace("}", ", \"status\": \"FINISHED\"}")))
+                .hasStatus(HttpStatus.CREATED).bodyJson();
+
+        json.extractingPath("$.status").isEqualTo("FINISHED");
+        json.extractingPath("$.net").isEqualTo(-1.0);
+    }
+
+    @Test
+    void aGameInPlayCannotCarryAResult() {
+        var json = assertThat(postJson("/games", """
+                {"playedOn": "2026-01-19", "roomId": %d, "gameType": "TOURNAMENT", "buyIn": 1, "status": "IN_PLAY",
+                 "prize": 5, "bounty": 1, "ticketPrizeValue": 10, "ticketDescription": "Main Event"}"""
+                .formatted(winamax))).hasStatus(HttpStatus.BAD_REQUEST).bodyJson();
+
+        json.extractingPath("$.code").isEqualTo("VALIDATION_FAILED");
+        json.extractingPath("$.errors[*].field").asArray()
+                .containsExactlyInAnyOrder("prize", "bounty", "ticketPrizeValue", "ticketDescription");
+        json.extractingPath("$.errors[*].code").asArray().containsOnly("InPlayGameHasNoResult");
+    }
+
+    @Test
+    void finishesAGameWithItsResult() {
+        long id = create(game("2026-01-19", "Kill The Fish"));
+
+        var json = assertThat(postJson("/games/" + id + "/finish", """
+                {"prize": 2.38, "bounty": 1.38, "ticketPrizeValue": 5, "ticketDescription": " Ticket 5 "}"""))
+                .hasStatusOk().bodyJson();
+
+        json.extractingPath("$.status").isEqualTo("FINISHED");
+        json.extractingPath("$.prize").isEqualTo(2.38);
+        json.extractingPath("$.bounty").isEqualTo(1.38);
+        json.extractingPath("$.ticketDescription").isEqualTo("Ticket 5");
+        json.extractingPath("$.net").isEqualTo(2.76);
+        json.extractingPath("$.name").isEqualTo("Kill The Fish");
+    }
+
+    @Test
+    void finishesAGameWithNothingWon() {
+        long noBody = create(game("2026-01-19", "no body"));
+        long emptyBody = create(game("2026-01-19", "empty body"));
+
+        var json = assertThat(mvc.post().uri("/games/{id}/finish", noBody)).hasStatusOk().bodyJson();
+        json.extractingPath("$.status").isEqualTo("FINISHED");
+        json.extractingPath("$.prize").isEqualTo(0);
+        json.extractingPath("$.net").isEqualTo(-1.0);
+
+        assertThat(postJson("/games/" + emptyBody + "/finish", "{}")).hasStatusOk()
+                .bodyJson().extractingPath("$.status").isEqualTo("FINISHED");
+    }
+
+    @Test
+    void onlyAGameInPlayCanBeFinishedReEnteredOrRebought() {
+        long tournament = create(game("2026-01-19", "done").replace("}", ", \"status\": \"FINISHED\"}"));
+        long cash = create("""
+                {"playedOn": "2026-01-19", "roomId": %d, "gameType": "CASH", "buyIn": 2, "prize": 3}"""
+                .formatted(winamax));
+
+        assertThat(postJson("/games/" + tournament + "/finish", "{\"prize\": 5}")).hasStatus(HttpStatus.CONFLICT)
+                .bodyJson().extractingPath("$.code").isEqualTo("GAME_NOT_IN_PLAY");
+        assertThat(mvc.post().uri("/games/{id}/re-entries", tournament)).hasStatus(HttpStatus.CONFLICT)
+                .bodyJson().extractingPath("$.code").isEqualTo("GAME_NOT_IN_PLAY");
+        assertThat(postJson("/games/" + cash + "/rebuys", "{\"amount\": 2}")).hasStatus(HttpStatus.CONFLICT)
+                .bodyJson().extractingPath("$.code").isEqualTo("GAME_NOT_IN_PLAY");
+        assertThat(mvc.post().uri("/games/{id}/finish", 999_999)).hasStatus(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void finishValidatesTheResult() {
+        long id = create(game("2026-01-19", "Game"));
+
+        var json = assertThat(postJson("/games/" + id + "/finish", """
+                {"prize": -1, "bounty": 1.234, "ticketDescription": "Main Event"}"""))
+                .hasStatus(HttpStatus.BAD_REQUEST).bodyJson();
+
+        json.extractingPath("$.code").isEqualTo("VALIDATION_FAILED");
+        json.extractingPath("$.errors[*].field").asArray()
+                .containsExactlyInAnyOrder("prize", "bounty", "ticketDescription");
+        assertThat(jdbc.queryForObject("select status from game where id = ?", String.class, id)).isEqualTo("IN_PLAY");
+    }
+
+    @Test
+    void aCashGameFinishesWithOnlyTheAmountYouLeaveWith() {
+        long id = create("""
+                {"playedOn": "2026-01-19", "roomId": %d, "gameType": "CASH", "buyIn": 2}""".formatted(winamax));
+
+        assertThat(postJson("/games/" + id + "/finish", "{\"prize\": 3, \"bounty\": 1}"))
+                .hasStatus(HttpStatus.BAD_REQUEST)
+                .bodyJson().extractingPath("$.code").isEqualTo("CASH_GAME_RESULT");
+
+        var json = assertThat(postJson("/games/" + id + "/finish", "{\"prize\": 3.10}")).hasStatusOk().bodyJson();
+        json.extractingPath("$.status").isEqualTo("FINISHED");
+        json.extractingPath("$.net").isEqualTo(1.1);
+    }
+
+    @Test
+    void addsReEntriesToAGameInPlay() {
+        long id = create(game("2026-01-19", "Game").replace("\"buyIn\": 1", "\"buyIn\": 2.50"));
+
+        assertThat(mvc.post().uri("/games/{id}/re-entries", id)).hasStatusOk()
+                .bodyJson().extractingPath("$.entries").isEqualTo(2);
+        var json = assertThat(mvc.post().uri("/games/{id}/re-entries", id)).hasStatusOk().bodyJson();
+
+        json.extractingPath("$.entries").isEqualTo(3);
+        json.extractingPath("$.invested").isEqualTo(7.5);
+        json.extractingPath("$.net").isEqualTo(-7.5);
+        json.extractingPath("$.status").isEqualTo("IN_PLAY");
+    }
+
+    @Test
+    void addsRebuysToACashGameInPlay() {
+        long id = create("""
+                {"playedOn": "2026-01-19", "roomId": %d, "gameType": "CASH", "buyIn": 2}""".formatted(winamax));
+
+        var json = assertThat(postJson("/games/" + id + "/rebuys", "{\"amount\": 1.50}")).hasStatusOk().bodyJson();
+
+        json.extractingPath("$.buyIn").isEqualTo(3.5);
+        json.extractingPath("$.entries").isEqualTo(1);
+        json.extractingPath("$.net").isEqualTo(-3.5);
+
+        var invalid = assertThat(postJson("/games/" + id + "/rebuys", "{\"amount\": 0}"))
+                .hasStatus(HttpStatus.BAD_REQUEST).bodyJson();
+        invalid.extractingPath("$.errors[0].field").isEqualTo("amount");
+        invalid.extractingPath("$.errors[0].code").isEqualTo("DecimalMin");
+    }
+
+    @Test
+    void reEntriesAreForTournamentsAndRebuysForCashGames() {
+        long tournament = create(game("2026-01-19", "Game"));
+        long cash = create("""
+                {"playedOn": "2026-01-19", "roomId": %d, "gameType": "CASH", "buyIn": 2}""".formatted(winamax));
+
+        assertThat(mvc.post().uri("/games/{id}/re-entries", cash)).hasStatus(HttpStatus.CONFLICT)
+                .bodyJson().extractingPath("$.code").isEqualTo("RE_ENTRY_NOT_FOR_CASH_GAMES");
+        assertThat(postJson("/games/" + tournament + "/rebuys", "{\"amount\": 2}")).hasStatus(HttpStatus.CONFLICT)
+                .bodyJson().extractingPath("$.code").isEqualTo("REBUY_ONLY_FOR_CASH_GAMES");
+    }
+
+    @Test
+    void updateKeepsTheStatusUnlessAResultOrAStatusIsSent() {
+        long inPlay = create(game("2026-01-19", "in play"));
+        long lost = create(game("2026-01-19", "lost").replace("}", ", \"status\": \"FINISHED\"}"));
+
+        // Editing without status or result keeps each status.
+        assertThat(putJson("/games/" + inPlay, game("2026-01-20", "in play"))).hasStatusOk()
+                .bodyJson().extractingPath("$.status").isEqualTo("IN_PLAY");
+        assertThat(putJson("/games/" + lost, game("2026-01-20", "lost"))).hasStatusOk()
+                .bodyJson().extractingPath("$.status").isEqualTo("FINISHED");
+
+        // Adding a result finishes the game; an explicit status reopens it.
+        assertThat(putJson("/games/" + inPlay, game("2026-01-20", "in play").replace("}", ", \"prize\": 3}")))
+                .hasStatusOk().bodyJson().extractingPath("$.status").isEqualTo("FINISHED");
+        var reopened = assertThat(putJson("/games/" + inPlay,
+                game("2026-01-20", "in play").replace("}", ", \"status\": \"IN_PLAY\"}"))).hasStatusOk().bodyJson();
+        reopened.extractingPath("$.status").isEqualTo("IN_PLAY");
+        reopened.extractingPath("$.prize").isEqualTo(0);
+    }
+
+    @Test
+    void filtersByStatus() {
+        create(game("2026-01-19", "in play"));
+        create(game("2026-01-19", "finished").replace("}", ", \"prize\": 5}"));
+
+        assertThat(names("status", "IN_PLAY")).containsExactly("in play");
+        assertThat(names("status", "FINISHED")).containsExactly("finished");
     }
 
     // ---- delete ----

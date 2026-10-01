@@ -232,6 +232,30 @@ class InitialSchemaTests {
     }
 
     @Test
+    void aGameInPlayHasNoResult() {
+        long room = insertRoom("Winamax", "EUR");
+        long inPlay = insertGame(room, "TOURNAMENT", "status", "'IN_PLAY'");
+        assertThat(net(inPlay)).isEqualByComparingTo("-1.00");
+
+        for (String assignment : List.of("prize = 1", "bounty = 1", "ticket_prize_value = 1")) {
+            assertThatThrownBy(() -> jdbc.update("update game set " + assignment + " where id = ?", inPlay))
+                    .as(assignment)
+                    .isInstanceOf(DataIntegrityViolationException.class);
+        }
+
+        // Finishing it lifts the restriction.
+        jdbc.update("update game set status = 'FINISHED', prize = 5 where id = ?", inPlay);
+        assertThat(net(inPlay)).isEqualByComparingTo("4.00");
+    }
+
+    @Test
+    void statusIsOneOfTheKnownValues() {
+        long room = insertRoom("Winamax", "EUR");
+        assertThatThrownBy(() -> insertGame(room, "TOURNAMENT", "status", "'PAUSED'"))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
     void ticketDescriptionNeedsATicketValue() {
         long room = insertRoom("Winamax", "EUR");
         assertThatThrownBy(() -> insertGame(room, "TOURNAMENT", "ticket_description", "'Ticket 5 EUR'"))

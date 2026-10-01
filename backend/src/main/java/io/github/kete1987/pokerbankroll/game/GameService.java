@@ -1,5 +1,6 @@
 package io.github.kete1987.pokerbankroll.game;
 
+import io.github.kete1987.pokerbankroll.catalog.GameType;
 import io.github.kete1987.pokerbankroll.common.api.PageResponse;
 import io.github.kete1987.pokerbankroll.common.error.ApiException;
 import io.github.kete1987.pokerbankroll.common.error.ErrorCode;
@@ -41,12 +42,14 @@ public class GameService {
 
     public GameResponse create(GameRequest request) {
         Game game = new Game();
+        game.setStatus(statusOf(request, GameStatus.IN_PLAY));
         apply(request, game);
         return GameResponse.of(games.saveAndFlush(game));
     }
 
     public GameResponse update(long id, GameRequest request) {
         Game game = find(id);
+        game.setStatus(statusOf(request, game.getStatus()));
         apply(request, game);
         return GameResponse.of(games.saveAndFlush(game));
     }
@@ -55,8 +58,61 @@ public class GameService {
         games.delete(find(id));
     }
 
+    /** Sets the result of a game in play and finishes it. */
+    public GameResponse finish(long id, FinishGameRequest result) {
+        Game game = findInPlay(id);
+        if (game.getGameType() == GameType.CASH && result.hasTicketOrBounty()) {
+            throw new ApiException(ErrorCode.CASH_GAME_RESULT);
+        }
+        game.setPrize(result.prizeOrZero());
+        game.setBounty(result.bountyOrZero());
+        game.setTicketPrizeValue(result.ticketPrizeValueOrZero());
+        game.setTicketDescription(blankToNull(result.ticketDescription()));
+        game.setStatus(GameStatus.FINISHED);
+        return GameResponse.of(games.saveAndFlush(game));
+    }
+
+    /** Adds one entry, paid in cash, to a tournament or Sit&Go in play. */
+    public GameResponse addReEntry(long id) {
+        Game game = findInPlay(id);
+        if (game.getGameType() == GameType.CASH) {
+            throw new ApiException(ErrorCode.RE_ENTRY_NOT_FOR_CASH_GAMES);
+        }
+        game.setEntries(game.getEntries() + 1);
+        return GameResponse.of(games.saveAndFlush(game));
+    }
+
+    /** Adds money brought to the table of a cash game in play. */
+    public GameResponse addRebuy(long id, RebuyRequest rebuy) {
+        Game game = findInPlay(id);
+        if (game.getGameType() != GameType.CASH) {
+            throw new ApiException(ErrorCode.REBUY_ONLY_FOR_CASH_GAMES);
+        }
+        game.setBuyIn(game.getBuyIn().add(rebuy.amount()));
+        return GameResponse.of(games.saveAndFlush(game));
+    }
+
+    private Game findInPlay(long id) {
+        Game game = find(id);
+        if (!game.isInPlay()) {
+            throw new ApiException(ErrorCode.GAME_NOT_IN_PLAY);
+        }
+        return game;
+    }
+
     private Game find(long id) {
         return games.findWithRoomAndVariantById(id).orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
+    }
+
+    /**
+     * The status asked for; when it is omitted, a request carrying a result is a finished game and
+     * otherwise the given status applies (in play for a new game, the current one for an existing game).
+     */
+    private static GameStatus statusOf(GameRequest request, GameStatus whenNoResult) {
+        if (request.status() != null) {
+            return request.status();
+        }
+        return request.hasResult() ? GameStatus.FINISHED : whenNoResult;
     }
 
     /** Copies the request into the game; rules within the request itself are already validated. */

@@ -90,6 +90,9 @@ CREATE TABLE game (
     game_type_code     VARCHAR(20)   NOT NULL REFERENCES game_type (code),
     modality_code      VARCHAR(20)   NOT NULL DEFAULT 'NLHE' REFERENCES modality (code),
     variant_id         BIGINT,
+    -- IN_PLAY: registered when it starts, no result yet. FINISHED: the result is known (possibly
+    -- nothing won). The application always sets it; the default suits a row inserted with its result.
+    status             VARCHAR(20)   NOT NULL DEFAULT 'FINISHED' CHECK (status IN ('IN_PLAY', 'FINISHED')),
     name               VARCHAR(150)  CHECK (btrim(name) <> ''),
     -- Price of one entry, also when it was paid with a ticket. Cash game: amount brought to the table.
     buy_in             NUMERIC(12,2) NOT NULL CHECK (buy_in >= 0),
@@ -124,10 +127,17 @@ CREATE TABLE game (
     CONSTRAINT game_cash_fields CHECK (
         game_type_code <> 'CASH'
         OR (entries = 1 AND bounty = 0 AND ticket_prize_value = 0 AND NOT paid_with_ticket)
+    ),
+    -- A game in play has no result yet.
+    CONSTRAINT game_in_play_has_no_result CHECK (
+        status <> 'IN_PLAY'
+        OR (prize = 0 AND bounty = 0 AND ticket_prize_value = 0 AND ticket_description IS NULL)
     )
 );
 
 CREATE INDEX game_played_on_idx ON game (played_on);
+-- The games in play are few and listed often.
+CREATE INDEX game_in_play_idx ON game (played_on) WHERE status = 'IN_PLAY';
 CREATE INDEX game_room_played_on_idx ON game (room_id, played_on);
 CREATE INDEX game_type_played_on_idx ON game (game_type_code, played_on);
 

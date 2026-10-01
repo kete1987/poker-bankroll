@@ -61,6 +61,10 @@ public class Game {
     @JoinColumn(name = "variant_id")
     private @Nullable Variant variant;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private GameStatus status = GameStatus.IN_PLAY;
+
     @Column(name = "name", length = 150)
     private @Nullable String name;
 
@@ -159,6 +163,18 @@ public class Game {
 
     public void setVariant(@Nullable Variant variant) {
         this.variant = variant;
+    }
+
+    public GameStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(GameStatus status) {
+        this.status = status;
+    }
+
+    public boolean isInPlay() {
+        return status == GameStatus.IN_PLAY;
     }
 
     public @Nullable String getName() {

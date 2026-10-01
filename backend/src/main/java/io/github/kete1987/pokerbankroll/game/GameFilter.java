@@ -20,6 +20,7 @@ public record GameFilter(
         @Nullable Modality modality,
         @Nullable Long roomId,
         @Nullable Long variantId,
+        @Nullable GameStatus status,
         @Nullable String currencyCode,
         @Nullable String text) {
 
@@ -45,6 +46,9 @@ public record GameFilter(
             }
             if (variantId != null) {
                 predicates.add(cb.equal(game.get("variant").get("id"), variantId));
+            }
+            if (status != null) {
+                predicates.add(cb.equal(game.get("status"), status));
             }
             if (currencyCode != null && !currencyCode.isBlank()) {
                 predicates.add(cb.equal(game.get("room").get("currencyCode"), currencyCode.strip()));

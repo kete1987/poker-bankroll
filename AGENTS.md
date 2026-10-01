@@ -111,6 +111,12 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   variants of its own type.
 - **Game**: one recorded result. `played_on` (date) is required, `played_at` (local start time) is
   optional and only used to order the games of a day.
+  - `status`: `IN_PLAY` (registered when it starts, usually with just type and buy-in; no prize,
+    bounty or ticket yet) or `FINISHED` (the result is known, possibly nothing won). A game in play
+    already counts in net and in the room balance (its buy-in has left the account) but **not in
+    result statistics** (games played, ITM, ROI), which only count finished games.
+  - Actions on a game in play: **finish** (set the result), **re-entry** (one more entry; tournaments
+    and Sit&Go) and **rebuy** (more money brought to the table, added to `buy_in`; cash games).
   - `buy_in`: price of one entry, also when it was paid with a ticket (cash game: amount brought
     to the table).
   - `entries`: number of entries including re-entries (default 1).
@@ -159,6 +165,9 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   `PageResponse` (`items`, `page`, `size`, `totalItems`, `totalPages`). Sorting uses
   `sort=<field>,<asc|desc>` with a whitelist of fields and always a total order (see `game/GameSort`).
 - Optional fields omitted in a request take their documented default; `PUT` replaces the whole resource.
+- State changes that are a single user gesture are their own `POST` sub-resource instead of a
+  full `PUT` (e.g. `/games/{id}/finish`, `/games/{id}/re-entries`, `/games/{id}/rebuys`); they return
+  the updated resource and fail with a specific `409` code when the resource is not in the right state.
 - The OpenAPI spec is the contract; frontend types are generated from it (API-7).
 
 ### Backend code
@@ -190,7 +199,10 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 
 ### Database
 - Schema changes only through Flyway migrations in `backend/src/main/resources/db/migration/`.
-- A migration merged to `main` is **immutable**: fix or change things with a new migration.
+- Migrations are **immutable from the first release (0.1.0)**: after it, fix or change things with a
+  new migration. Until then the schema is still being shaped and is consolidated in place
+  (`V2__initial_schema.sql`); a database created by an earlier build (development, `edge`) fails
+  Flyway's checksum validation and must be recreated (`docker compose down -v`).
 - Lookup tables (`currency`, `game_type`, `modality`) use a stable upper-case code as primary key.
   Integrity rules live in the database too (CHECK constraints, foreign keys), not only in the API;
   schema tests are in `backend/src/test/java/.../schema/`.

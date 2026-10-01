@@ -19,6 +19,7 @@ import org.jspecify.annotations.Nullable;
 /** Data to create or update a game. Amounts are in the currency of the room. */
 @CashGameFields
 @TicketDescriptionNeedsValue
+@InPlayGameHasNoResult
 public record GameRequest(
         @NotNull LocalDate playedOn,
 
@@ -35,6 +36,11 @@ public record GameRequest(
 
         @Schema(description = "Optional; must be a variant of the game type")
         @Nullable Long variantId,
+
+        @Schema(description = "IN_PLAY (registered when it starts, no result yet) or FINISHED. When omitted: "
+                + "FINISHED if a result is sent (prize, bounty or ticket); otherwise IN_PLAY for a new game "
+                + "and unchanged for an existing one")
+        @Nullable GameStatus status,
 
         @Nullable @Size(max = 150) String name,
 
@@ -59,7 +65,21 @@ public record GameRequest(
         @Schema(description = "One entry was paid with a ticket instead of cash. Defaults to false")
         @Nullable Boolean paidWithTicket,
 
-        @Nullable @Size(max = 5000) String notes) {
+        @Nullable @Size(max = 5000) String notes) implements TicketPrize {
+
+    /** Something was won: a prize, a bounty or a ticket. */
+    boolean hasResult() {
+        return prizeOrZero().signum() > 0 || bountyOrZero().signum() > 0 || hasTicketPrize();
+    }
+
+    boolean hasTicketPrize() {
+        return ticketPrizeValueOrZero().signum() > 0 || (ticketDescription != null && !ticketDescription.isBlank());
+    }
+
+    @Override
+    public boolean isCashGame() {
+        return gameType == GameType.CASH;
+    }
 
     int entriesOrDefault() {
         return entries == null ? 1 : entries;
@@ -73,7 +93,8 @@ public record GameRequest(
         return orZero(bounty);
     }
 
-    BigDecimal ticketPrizeValueOrZero() {
+    @Override
+    public BigDecimal ticketPrizeValueOrZero() {
         return orZero(ticketPrizeValue);
     }
 
