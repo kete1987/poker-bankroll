@@ -909,12 +909,16 @@
             "type" : "string"
           }
         }, {
+          "description" : "One or more rooms: movements of any of them",
           "in" : "query",
           "name" : "roomId",
           "required" : false,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
           }
         }, {
           "description" : "true: only movements that belong to no room; false: only those of a room",
