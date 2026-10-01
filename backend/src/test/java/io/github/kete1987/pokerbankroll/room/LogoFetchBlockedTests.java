@@ -45,7 +45,7 @@ class LogoFetchBlockedTests extends ApiIntegrationTest {
     @ParameterizedTest
     @ValueSource(strings = {"8.8.8.8", "1.1.1.1", "151.101.1.69", "2606:4700:4700::1111", "100.63.255.255",
         "100.128.0.1", "172.32.0.1", "192.169.0.1", "192.0.1.1", "198.51.99.1", "203.0.112.1", "2a00:1450:4003::1",
-        "2001:200::1", "2001:4860:4860::8888"})
+        "2001:200::1", "2001:4860:4860::8888", "3fff:1000::1"})
     void publicAddressesAreAllowed(String address) throws UnknownHostException {
         assertThat(PublicAddress.isPublic(InetAddress.getByName(address))).as(address).isTrue();
     }
@@ -57,7 +57,7 @@ class LogoFetchBlockedTests extends ApiIntegrationTest {
         "fd12:3456:789a::1", "ff02::1",
         // Special-purpose blocks that are not globally reachable.
         "192.0.2.1", "198.51.100.1", "203.0.113.1", "192.88.99.1", "2001:db8::1", "2001::1", "2002:7f00:1::1",
-        "64:ff9b::7f00:1", "100::1", "4000::1"})
+        "64:ff9b::7f00:1", "100::1", "4000::1", "3fff::1", "3fff:fff:ffff::1"})
     void addressesOfThisMachineOrOfPrivateNetworksAreNot(String address) throws UnknownHostException {
         assertThat(PublicAddress.isPublic(InetAddress.getByName(address))).as(address).isFalse();
     }

@@ -45,12 +45,13 @@ final class PublicAddress {
             int fourth = bytes[3] & 0xFF;
             // Only global unicast (2000::/3): that leaves out unique local addresses (fc00::/7) and
             // every other special block. Within it, protocol assignments (2001::/23, Teredo among
-            // them), documentation (2001:db8::/32) and 6to4 (2002::/16), which carries an IPv4
-            // address inside, are not public either.
+            // them), documentation (2001:db8::/32 and 3fff::/20) and 6to4 (2002::/16), which carries
+            // an IPv4 address inside, are not public either.
             return (first & 0xE0) == 0x20
                     && !(first == 0x20 && second == 0x01 && third <= 0x01)
                     && !(first == 0x20 && second == 0x01 && third == 0x0D && fourth == 0xB8)
-                    && !(first == 0x20 && second == 0x02);
+                    && !(first == 0x20 && second == 0x02)
+                    && !(first == 0x3F && second == 0xFF && (third & 0xF0) == 0);
         }
         return false;
     }
