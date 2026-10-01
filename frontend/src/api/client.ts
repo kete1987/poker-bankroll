@@ -38,8 +38,25 @@ export class ApiError extends Error {
  * Sends the UI language so error messages come back translated; throws {@link ApiError} on failure.
  */
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const response = await request(path, init, 'application/json, application/problem+json');
+  if (response.status === 204) {
+    return undefined as T;
+  }
+  return (await response.json()) as T;
+}
+
+/**
+ * Calls the backend for something that is not JSON (an image) and returns it as it comes.
+ * Errors are the same as with {@link apiFetch}.
+ */
+export async function apiFetchBlob(path: string, init: RequestInit = {}): Promise<Blob> {
+  const response = await request(path, init, 'image/*, application/problem+json');
+  return response.blob();
+}
+
+async function request(path: string, init: RequestInit, accept: string): Promise<Response> {
   const headers = new Headers(init.headers);
-  headers.set('Accept', 'application/json, application/problem+json');
+  headers.set('Accept', accept);
   headers.set('Accept-Language', currentLanguage());
   if (init.body !== undefined && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
@@ -49,10 +66,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   if (!response.ok) {
     throw await toApiError(response);
   }
-  if (response.status === 204) {
-    return undefined as T;
-  }
-  return (await response.json()) as T;
+  return response;
 }
 
 async function toApiError(response: Response): Promise<ApiError> {

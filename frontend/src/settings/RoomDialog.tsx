@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 
 import { ApiError } from '../api/client';
 import {
+  fetchRemoteImage,
   roomLogoUrl,
   useCreateRoom,
   useDeleteRoomLogo,
@@ -176,17 +177,28 @@ interface LogoSectionProps {
   src: string | null;
   busy: boolean;
   failure: string | null;
-  onFile: (file: File) => void;
+  /** Takes an image from wherever `load` gets it: a file chosen, or a URL. */
+  onImage: (load: () => Promise<Blob>) => void;
   onRemove: () => void;
   /** Says when the logo takes effect. */
   help: ReactNode;
 }
 
 /** The logo with its buttons: upload or change, and remove when there is one. */
-function LogoSection({ name, src, busy, failure, onFile, onRemove, help }: LogoSectionProps) {
+function LogoSection({ name, src, busy, failure, onImage, onRemove, help }: LogoSectionProps) {
   const { t } = useTranslation();
   const initial = name.trim().charAt(0).toUpperCase();
   const resetFile = useRef<() => void>(null);
+  const [url, setUrl] = useState('');
+
+  function loadFromUrl() {
+    const address = url.trim();
+    if (address === '' || busy) {
+      return;
+    }
+    onImage(() => fetchRemoteImage(address));
+    setUrl('');
+  }
 
   return (
     <Stack gap="xs" component="section" aria-label={t('settings.logo.title')}>
@@ -201,6 +213,7 @@ function LogoSection({ name, src, busy, failure, onFile, onRemove, help }: LogoS
           name={name || undefined}
           color="initials"
           src={src}
+          styles={{ image: { objectFit: 'contain' } }}
           alt={src ? t('settings.logo.current', { room: name }) : ''}
         >
           {initial}
@@ -210,7 +223,7 @@ function LogoSection({ name, src, busy, failure, onFile, onRemove, help }: LogoS
           accept="image/*"
           onChange={(file) => {
             if (file) {
-              onFile(file);
+              onImage(() => Promise.resolve(file));
             }
             // Otherwise choosing the same file again (after removing it) would do nothing.
             resetFile.current?.();
@@ -227,6 +240,27 @@ function LogoSection({ name, src, busy, failure, onFile, onRemove, help }: LogoS
             {t('settings.logo.remove')}
           </Button>
         )}
+      </Group>
+      <Group gap="xs" align="flex-end">
+        <TextInput
+          label={t('settings.logo.url')}
+          placeholder="https://"
+          type="url"
+          style={{ flex: 1 }}
+          value={url}
+          disabled={busy}
+          onChange={(event) => setUrl(event.currentTarget.value)}
+          onKeyDown={(event) => {
+            // Enter here loads the image; it must not save the room.
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              loadFromUrl();
+            }
+          }}
+        />
+        <Button variant="default" disabled={busy || url.trim() === ''} onClick={loadFromUrl}>
+          {t('settings.logo.load')}
+        </Button>
       </Group>
       <Text size="xs" c="dimmed">
         {help}
@@ -261,14 +295,14 @@ function NewLogo({
     };
   }, [preview]);
 
-  async function choose(file: File) {
+  async function choose(load: () => Promise<Blob>) {
     setBusy(true);
     onBusy(true);
     setFailure(null);
     try {
-      onChange(await resizeImage(file));
-    } catch {
-      setFailure(t('settings.logo.unreadable'));
+      onChange(await resizeImage(await load()));
+    } catch (error) {
+      setFailure(error instanceof ApiError ? error.message : t('settings.logo.unreadable'));
     } finally {
       setBusy(false);
       onBusy(false);
@@ -281,7 +315,7 @@ function NewLogo({
       src={preview}
       busy={busy}
       failure={failure}
-      onFile={(file) => void choose(file)}
+      onImage={(load) => void choose(load)}
       onRemove={() => onChange(null)}
       help={t('settings.logo.helpNew')}
     />
@@ -316,10 +350,10 @@ function StoredLogo({ room }: { room: Room }) {
       src={logoVersion ? roomLogoUrl(room.id, logoVersion) : null}
       busy={busy}
       failure={failure}
-      onFile={(file) =>
+      onImage={(load) =>
         void run(async () => {
           // Shrunk here, so any image can be chosen whatever its size.
-          const image = await resizeImage(file);
+          const image = await resizeImage(await load());
           const updated = await setLogo.mutateAsync({ id: room.id, image });
           return updated.logoVersion ?? null;
         })

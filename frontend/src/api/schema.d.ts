@@ -211,6 +211,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rooms/logo-fetch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Download the image of a URL, to use it as the logo of a room
+         * @description Returns the image itself (PNG, JPEG or WebP, up to 5 MB). A browser cannot read images of other sites, so it asks for them here, resizes the result and uploads it with `PUT /rooms/{id}/logo`; nothing is stored by this request. Only `http` and `https` URLs of public addresses. Fails with `LOGO_URL_INVALID` (400), `LOGO_URL_NOT_PUBLIC` (400), `LOGO_URL_UNREACHABLE` (502), `LOGO_TOO_LARGE` (413) or `LOGO_UNSUPPORTED_TYPE` (415).
+         */
+        post: operations["fetchLogo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rooms/{id}": {
         parameters: {
             query?: never;
@@ -542,6 +562,9 @@ export interface components {
             games: number;
             /** @description Money paid so far for their entries */
             invested: number;
+        };
+        LogoFetchRequest: {
+            url: string;
         };
         MovementRequest: {
             /** @description Greater than zero: the type gives the direction (a withdrawal subtracts). Only an ADJUSTMENT can be negative */
@@ -1171,6 +1194,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RoomResponse"];
+                };
+            };
+        };
+    };
+    fetchLogo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LogoFetchRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
+                    "image/png": string;
+                    "image/webp": string;
                 };
             };
         };

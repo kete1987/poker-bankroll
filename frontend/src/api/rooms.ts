@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { API_BASE, apiFetch } from './client';
+import { API_BASE, apiFetch, apiFetchBlob } from './client';
 import type { Room, RoomRequest } from './types';
 
 /** Every room, ordered by name; inactive ones included (they are not offered for new games). */
@@ -14,6 +14,14 @@ export function useRooms() {
 /** Address of the logo of a room. The version is part of it, so browsers can keep it for good. */
 export function roomLogoUrl(roomId: number, logoVersion: string): string {
   return `${API_BASE}/rooms/${roomId}/logo?v=${encodeURIComponent(logoVersion)}`;
+}
+
+/**
+ * Downloads the image of a URL through the backend: a browser cannot read images of other sites.
+ * Nothing is stored; the image is then resized and uploaded like a file chosen by hand.
+ */
+export function fetchRemoteImage(url: string): Promise<Blob> {
+  return apiFetchBlob('/rooms/logo-fetch', { method: 'POST', body: JSON.stringify({ url }) });
 }
 
 /**

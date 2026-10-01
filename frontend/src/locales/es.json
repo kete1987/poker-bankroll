@@ -206,10 +206,12 @@
       "change": "Cambiar logo",
       "remove": "Quitar logo",
       "current": "Logo de {{room}}",
-      "help": "Cualquier imagen: se reduce a 128 px antes de guardarla.",
+      "help": "Cualquier imagen, desde un fichero o una URL: se reduce a 128 px antes de guardarla.",
       "unreadable": "No se ha podido leer el fichero como imagen.",
-      "helpNew": "Opcional. Cualquier imagen: se reduce a 128 px y se guarda al guardar la sala.",
-      "notStored": "El logo no se ha guardado"
+      "helpNew": "Opcional. Cualquier imagen, desde un fichero o una URL: se reduce a 128 px y se guarda al guardar la sala.",
+      "notStored": "El logo no se ha guardado",
+      "url": "O cárgalo desde una URL",
+      "load": "Cargar"
     },
     "variants": {
       "add": "Añadir variante",
