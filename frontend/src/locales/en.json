@@ -76,8 +76,7 @@
       "itm": "ITM in tournaments",
       "itmDetail_one": "{{inTheMoney}} of {{formatted}} tournament",
       "itmDetail_other": "{{inTheMoney}} of {{formatted}} tournaments",
-      "bankroll": "Bankroll",
-      "bankrollDetail": "{{deposited}} deposited · {{withdrawn}} withdrawn"
+      "bankroll": "Bankroll"
     },
     "columns": {
       "games": "Played",

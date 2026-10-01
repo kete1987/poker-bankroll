@@ -76,8 +76,7 @@
       "itm": "ITM en torneos",
       "itmDetail_one": "{{inTheMoney}} de {{formatted}} torneo",
       "itmDetail_other": "{{inTheMoney}} de {{formatted}} torneos",
-      "bankroll": "Bankroll",
-      "bankrollDetail": "{{deposited}} aportados · {{withdrawn}} retirados"
+      "bankroll": "Bankroll"
     },
     "columns": {
       "games": "Jugadas",

@@ -237,7 +237,8 @@ describe('Dashboard', () => {
     await screen.findByRole('region', { name: 'Bankroll' });
 
     expect(card('Bankroll').getByText('€320.50')).toBeInTheDocument();
-    expect(card('Bankroll').getByText('€200.00 deposited · €50.00 withdrawn')).toBeInTheDocument();
+    // Just the total: the detail belongs to the bankroll screen.
+    expect(card('Bankroll').queryByText(/deposited|withdrawn/)).not.toBeInTheDocument();
     // The bankroll is never asked for with the dates of the period.
     expect(queriesTo(calls, '/bankroll/summary')).toEqual([{}]);
   });

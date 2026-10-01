@@ -28,9 +28,11 @@ export function StatCard({ label, value, tone, children }: StatCardProps) {
         >
           {value}
         </Text>
-        <Text size="xs" c="dimmed" component="div">
-          {children}
-        </Text>
+        {children && (
+          <Text size="xs" c="dimmed" component="div">
+            {children}
+          </Text>
+        )}
       </Stack>
     </Card>
   );

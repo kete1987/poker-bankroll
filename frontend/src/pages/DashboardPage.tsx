@@ -205,12 +205,7 @@ export function DashboardPage() {
             formatted: format.number(tournaments.games),
           })}
         </StatCard>
-        <StatCard label={t('dashboard.cards.bankroll')} value={money(now?.total.bankroll ?? 0)}>
-          {t('dashboard.cards.bankrollDetail', {
-            deposited: money(now?.total.deposited ?? 0),
-            withdrawn: money(now?.total.withdrawn ?? 0),
-          })}
-        </StatCard>
+        <StatCard label={t('dashboard.cards.bankroll')} value={money(now?.total.bankroll ?? 0)} />
       </SimpleGrid>
 
       {now && now.total.gamesInPlay > 0 && (
