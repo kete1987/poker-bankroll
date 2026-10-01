@@ -86,26 +86,43 @@ public class StatsService {
     }
 
     /** Results of the finished games selected by the filter, per currency and group. */
-    public StatsGroupsResponse groups(GameFilter filter, GroupBy groupBy) {
+    public StatsGroupsResponse groups(GameFilter filter, GroupBy groupBy, boolean byGameType) {
         Grouping grouping = Grouping.of(groupBy);
         Map<String, Map<GroupKey, GameTotals>> currencies = new TreeMap<>();
+        // The same sums again, kept apart per game type within each group.
+        Map<String, Map<GroupKey, Map<GameType, GameTotals>>> perGameType = new HashMap<>();
         for (Tuple row : sums(filter, true, grouping.keys)) {
             if (groupBy == GroupBy.BUY_IN && row.get(GAME_TYPE, GameType.class) == GameType.CASH) {
                 continue;
             }
+            String currency = row.get(CURRENCY, String.class);
+            GroupKey groupKey = grouping.toKey.apply(row);
             add(row, grouping.keyCount, currencies
-                    .computeIfAbsent(row.get(CURRENCY, String.class), code -> new HashMap<>())
-                    .computeIfAbsent(grouping.toKey.apply(row), key -> new GameTotals()));
+                    .computeIfAbsent(currency, code -> new HashMap<>())
+                    .computeIfAbsent(groupKey, key -> new GameTotals()));
+            if (byGameType) {
+                add(row, grouping.keyCount, perGameType
+                        .computeIfAbsent(currency, code -> new HashMap<>())
+                        .computeIfAbsent(groupKey, key -> new EnumMap<>(GameType.class))
+                        .computeIfAbsent(row.get(GAME_TYPE, GameType.class), type -> new GameTotals()));
+            }
         }
         List<CurrencyGroups> result = new ArrayList<>();
         currencies.forEach((currencyCode, totalsByKey) -> {
             List<Group> groups = totalsByKey.entrySet().stream()
-                    .map(entry -> new Group(entry.getKey(), entry.getValue().toFigures(), null))
+                    .map(entry -> new Group(entry.getKey(), entry.getValue().toFigures(), null,
+                            byGameType ? gameTypesOf(perGameType.get(currencyCode).get(entry.getKey())) : null))
                     .sorted(order(groupBy))
                     .toList();
             result.add(new CurrencyGroups(currencyCode, groupBy.isPeriod() ? withCumulativeNet(groups) : groups));
         });
         return new StatsGroupsResponse(groupBy, result);
+    }
+
+    private static List<GameTypeSummary> gameTypesOf(Map<GameType, GameTotals> totals) {
+        return totals.entrySet().stream()
+                .map(entry -> new GameTypeSummary(entry.getKey(), entry.getValue().toFigures()))
+                .toList();
     }
 
     private static Comparator<Group> order(GroupBy groupBy) {
@@ -127,7 +144,7 @@ public class StatsService {
         BigDecimal cumulativeNet = BigDecimal.ZERO;
         for (Group group : groups) {
             cumulativeNet = cumulativeNet.add(group.figures().net());
-            result.add(new Group(group.key(), group.figures(), cumulativeNet));
+            result.add(new Group(group.key(), group.figures(), cumulativeNet, group.byGameType()));
         }
         return result;
     }

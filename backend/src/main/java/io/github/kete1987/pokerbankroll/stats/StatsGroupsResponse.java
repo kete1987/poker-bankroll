@@ -9,6 +9,7 @@ import io.github.kete1987.pokerbankroll.catalog.GameType;
 import io.github.kete1987.pokerbankroll.catalog.Modality;
 import io.github.kete1987.pokerbankroll.game.GameResponse.RoomRef;
 import io.github.kete1987.pokerbankroll.game.GameResponse.VariantRef;
+import io.github.kete1987.pokerbankroll.stats.StatsSummaryResponse.GameTypeSummary;
 import org.jspecify.annotations.Nullable;
 
 /** Amounts in different currencies are never added up: the groups are per currency. */
@@ -26,7 +27,10 @@ public record StatsGroupsResponse(GroupBy groupBy, List<CurrencyGroups> currenci
             StatsFigures figures,
             @Schema(description = "Net of this period and the earlier ones in the response, so it starts "
                     + "from zero at the beginning of the filtered range; only for groups in time")
-            @Nullable BigDecimal cumulativeNet) {
+            @Nullable BigDecimal cumulativeNet,
+            @Schema(description = "The group broken down by game type (those with games, in catalog "
+                    + "order); only when asked for with `byGameType=true`")
+            @Nullable List<GameTypeSummary> byGameType) {
     }
 
     /** What the games of a group have in common: only the fields of the requested grouping are set. */

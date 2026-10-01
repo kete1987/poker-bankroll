@@ -510,6 +510,8 @@ export interface components {
             gameType: "TOURNAMENT" | "SIT_AND_GO" | "CASH";
         };
         Group: {
+            /** @description The group broken down by game type (those with games, in catalog order); only when asked for with `byGameType=true` */
+            byGameType?: components["schemas"]["GameTypeSummary"][] | null;
             /** @description Net of this period and the earlier ones in the response, so it starts from zero at the beginning of the filtered range; only for groups in time */
             cumulativeNet?: number | null;
             figures: components["schemas"]["StatsFigures"];
@@ -1326,6 +1328,8 @@ export interface operations {
         parameters: {
             query: {
                 groupBy: "DAY" | "WEEK" | "MONTH" | "YEAR" | "GAME_TYPE" | "VARIANT" | "ROOM" | "MODALITY" | "BUY_IN";
+                /** @description Also break each group down by game type */
+                byGameType?: boolean;
                 /** @description Played on or after this date */
                 from?: string;
                 /** @description Played on or before this date */

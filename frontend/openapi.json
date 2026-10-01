@@ -378,6 +378,13 @@
       },
       "Group" : {
         "properties" : {
+          "byGameType" : {
+            "description" : "The group broken down by game type (those with games, in catalog order); only when asked for with `byGameType=true`",
+            "items" : {
+              "$ref" : "#/components/schemas/GameTypeSummary"
+            },
+            "type" : [ "array", "null" ]
+          },
           "cumulativeNet" : {
             "description" : "Net of this period and the earlier ones in the response, so it starts from zero at the beginning of the filtered range; only for groups in time",
             "type" : [ "number", "null" ]
@@ -1777,6 +1784,15 @@
           "schema" : {
             "enum" : [ "DAY", "WEEK", "MONTH", "YEAR", "GAME_TYPE", "VARIANT", "ROOM", "MODALITY", "BUY_IN" ],
             "type" : "string"
+          }
+        }, {
+          "description" : "Also break each group down by game type",
+          "in" : "query",
+          "name" : "byGameType",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
           }
         }, {
           "description" : "Played on or after this date",

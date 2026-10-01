@@ -126,6 +126,18 @@
           "MONTH": "Worst month"
         }
       }
+    },
+    "chart": {
+      "label": "What the chart shows",
+      "cumulative": "Cumulative",
+      "period": "Per period"
+    },
+    "table": {
+      "title": {
+        "DAY": "Results per day",
+        "WEEK": "Results per week",
+        "MONTH": "Results per month"
+      }
     }
   },
   "games": {
