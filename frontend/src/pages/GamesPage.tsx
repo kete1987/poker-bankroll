@@ -1,144 +1,241 @@
-import { Alert, Badge, Button, Group, Loader, Modal, Table, Text, Title } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+import { Alert, Button, Group, Loader, Modal, Pagination, Stack, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconPlus } from '@tabler/icons-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { useCreateGame, useRecentGames } from '../api/games';
+import {
+  useAddRebuy,
+  useAddReEntry,
+  useCreateGame,
+  useDeleteGame,
+  useFinishGame,
+  useGames,
+  useGamesInPlay,
+  useUpdateGame,
+} from '../api/games';
 import { useRooms } from '../api/rooms';
 import type { Game } from '../api/types';
 import { useVariants } from '../api/variants';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Page } from '../components/Page';
 import { useFormat } from '../format/useFormat';
+import { FinishGameDialog } from '../games/FinishGameDialog';
+import { describeGame } from '../games/labels';
+import { GameFilters } from '../games/GameFilters';
 import { GameForm } from '../games/GameForm';
-import { variantLabel } from '../games/labels';
+import { GamesInPlay } from '../games/GamesInPlay';
+import { GamesTable } from '../games/GamesTable';
+import { RebuyDialog } from '../games/RebuyDialog';
+import { toGameQuery, useGameFilters } from '../games/useGameFilters';
 
-const RECENT_GAMES = 10;
+/** What is open on top of the page, and for which game. */
+type Dialog =
+  { kind: 'add' } | { kind: 'edit' | 'delete' | 'finish' | 'reEntry' | 'rebuy'; game: Game };
 
-/** Games: for now, recording one and the last ones added (the full list comes with UI-3). */
+/** Games: the ones in play on top, then every finished one with filters, order and pages. */
 export function GamesPage() {
   const { t } = useTranslation();
   const format = useFormat();
-  const [formOpened, form] = useDisclosure(false);
+  const [dialog, setDialog] = useState<Dialog | null>(null);
+  const close = () => setDialog(null);
+
+  const { filters, update, clear, hasFilters } = useGameFilters();
   const rooms = useRooms();
   const variants = useVariants();
-  const recent = useRecentGames(RECENT_GAMES);
+  const inPlay = useGamesInPlay();
+  const games = useGames(toGameQuery(filters));
+
   const createGame = useCreateGame();
+  const updateGame = useUpdateGame();
+  const deleteGame = useDeleteGame();
+  const finishGame = useFinishGame();
+  const addReEntry = useAddReEntry();
+  const addRebuy = useAddRebuy();
+
+  function notify(title: string, message?: string) {
+    notifications.show({ color: 'teal', title, message });
+  }
+
+  function netOf(game: Game): string {
+    return t('games.saved.finished', { net: format.signedMoney(game.net, game.currencyCode) });
+  }
 
   function onSaved(game: Game, addAnother: boolean) {
-    notifications.show({
-      color: 'teal',
-      title: t('games.saved.title'),
-      message:
-        game.status === 'IN_PLAY'
-          ? t('games.saved.inPlay')
-          : t('games.saved.finished', { net: format.signedMoney(game.net, game.currencyCode) }),
-    });
+    notify(
+      t('games.saved.title'),
+      game.status === 'IN_PLAY' ? t('games.saved.inPlay') : netOf(game),
+    );
     if (!addAnother) {
-      form.close();
+      close();
     }
   }
+
+  const formReady = rooms.data && variants.data;
+  const loadFailed = rooms.isError || variants.isError;
+  const pageCount = games.data?.totalPages ?? 0;
 
   return (
     <Page title={t('nav.games')}>
       <Group>
-        <Button leftSection={<IconPlus size={16} />} onClick={form.open}>
+        <Button leftSection={<IconPlus size={16} />} onClick={() => setDialog({ kind: 'add' })}>
           {t('games.add')}
         </Button>
       </Group>
 
-      <Modal
-        opened={formOpened}
-        onClose={form.close}
-        title={t('games.add')}
-        size="lg"
-        closeButtonProps={{ 'aria-label': t('gameForm.cancel') }}
-      >
-        {rooms.isError || variants.isError ? (
-          <Alert color="red">{t('games.loadError')}</Alert>
-        ) : rooms.data && variants.data ? (
-          <GameForm
-            rooms={rooms.data}
-            variants={variants.data}
-            onSave={(game) => createGame.mutateAsync(game)}
-            onSaved={onSaved}
-            onCancel={form.close}
-          />
-        ) : (
-          <Group justify="center" py="xl">
-            <Loader />
-          </Group>
-        )}
-      </Modal>
+      {inPlay.data && inPlay.data.items.length > 0 && (
+        <GamesInPlay
+          games={inPlay.data.items}
+          onFinish={(game) => setDialog({ kind: 'finish', game })}
+          onReEntry={(game) => setDialog({ kind: 'reEntry', game })}
+          onRebuy={(game) => setDialog({ kind: 'rebuy', game })}
+          onEdit={(game) => setDialog({ kind: 'edit', game })}
+          onDelete={(game) => setDialog({ kind: 'delete', game })}
+        />
+      )}
 
-      <Title order={3} size="h4">
-        {t('games.recent.title')}
-      </Title>
-      {recent.isError ? (
+      <GameFilters
+        filters={filters}
+        rooms={rooms.data ?? []}
+        variants={variants.data ?? []}
+        hasFilters={hasFilters}
+        onChange={update}
+        onClear={clear}
+      />
+
+      {games.isError ? (
         <Alert color="red">{t('games.loadError')}</Alert>
-      ) : recent.isPending ? (
+      ) : games.isPending ? (
         <Loader />
-      ) : recent.data.items.length === 0 ? (
-        <Text c="dimmed">{t('games.recent.empty')}</Text>
+      ) : games.data.items.length === 0 ? (
+        <Text c="dimmed">{hasFilters ? t('games.list.noMatches') : t('games.list.empty')}</Text>
       ) : (
-        <Table.ScrollContainer minWidth={560}>
-          <Table verticalSpacing="xs" highlightOnHover>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>{t('games.columns.date')}</Table.Th>
-                <Table.Th>{t('games.columns.game')}</Table.Th>
-                <Table.Th>{t('games.columns.room')}</Table.Th>
-                <Table.Th ta="right">{t('games.columns.buyIn')}</Table.Th>
-                <Table.Th ta="right">{t('games.columns.net')}</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {recent.data.items.map((game) => (
-                <Table.Tr key={game.id}>
-                  <Table.Td style={{ whiteSpace: 'nowrap' }}>{format.date(game.playedOn)}</Table.Td>
-                  <Table.Td>
-                    <Text size="sm">{game.name ?? t(`gameTypes.${game.gameType}`)}</Text>
-                    <Text size="xs" c="dimmed">
-                      {[
-                        game.name ? t(`gameTypes.${game.gameType}`) : null,
-                        game.variant ? variantLabel(t, game.variant) : null,
-                        game.modality === 'NLHE' ? null : t(`modalities.${game.modality}`),
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </Text>
-                  </Table.Td>
-                  <Table.Td>{game.room.name}</Table.Td>
-                  <Table.Td ta="right" style={{ whiteSpace: 'nowrap' }}>
-                    {format.money(game.buyIn, game.currencyCode)}
-                    {game.entries > 1 && (
-                      <Text span size="xs" c="dimmed">
-                        {' '}
-                        ×{game.entries}
-                      </Text>
-                    )}
-                  </Table.Td>
-                  <Table.Td ta="right" style={{ whiteSpace: 'nowrap' }}>
-                    {game.status === 'IN_PLAY' ? (
-                      <Badge variant="light" color="blue">
-                        {t('gameStatus.IN_PLAY')}
-                      </Badge>
-                    ) : (
-                      <Text
-                        span
-                        size="sm"
-                        fw={500}
-                        c={game.net > 0 ? 'teal' : game.net < 0 ? 'red' : undefined}
-                      >
-                        {format.signedMoney(game.net, game.currencyCode)}
-                      </Text>
-                    )}
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
+        <Stack gap="sm" style={{ opacity: games.isPlaceholderData ? 0.6 : 1 }}>
+          <GamesTable
+            games={games.data.items}
+            sortField={filters.sortField}
+            sortDescending={filters.sortDescending}
+            onSort={(sortField, sortDescending) => update({ sortField, sortDescending })}
+            onEdit={(game) => setDialog({ kind: 'edit', game })}
+            onDelete={(game) => setDialog({ kind: 'delete', game })}
+          />
+          <Group justify="space-between">
+            <Text size="sm" c="dimmed">
+              {t('games.list.total', {
+                count: games.data.totalItems,
+                formatted: format.number(games.data.totalItems),
+              })}
+            </Text>
+            {pageCount > 1 && (
+              <Pagination
+                total={pageCount}
+                value={filters.page + 1}
+                onChange={(page) => update({ page: page - 1 })}
+                getControlProps={(control) => ({ 'aria-label': t(`games.list.pages.${control}`) })}
+                getItemProps={(page) => ({ 'aria-label': t('games.list.pages.page', { page }) })}
+              />
+            )}
+          </Group>
+        </Stack>
+      )}
+
+      {(dialog?.kind === 'add' || dialog?.kind === 'edit') && (
+        <Modal
+          opened
+          onClose={close}
+          title={dialog.kind === 'add' ? t('games.add') : t('games.edit')}
+          size="lg"
+          closeButtonProps={{ 'aria-label': t('actions.close') }}
+        >
+          {loadFailed ? (
+            <Alert color="red">{t('games.loadError')}</Alert>
+          ) : formReady ? (
+            dialog.kind === 'add' ? (
+              <GameForm
+                rooms={rooms.data}
+                variants={variants.data}
+                onSave={(game) => createGame.mutateAsync(game)}
+                onSaved={onSaved}
+                onCancel={close}
+              />
+            ) : (
+              <GameForm
+                key={dialog.game.id}
+                rooms={rooms.data}
+                variants={variants.data}
+                game={dialog.game}
+                onSave={(game) => updateGame.mutateAsync({ id: dialog.game.id, game })}
+                onSaved={onSaved}
+                onCancel={close}
+              />
+            )
+          ) : (
+            <Group justify="center" py="xl">
+              <Loader />
+            </Group>
+          )}
+        </Modal>
+      )}
+
+      {dialog?.kind === 'finish' && (
+        <FinishGameDialog
+          game={dialog.game}
+          onClose={close}
+          onFinish={async (result) => {
+            const finished = await finishGame.mutateAsync({ id: dialog.game.id, result });
+            notify(t('games.finish.done'), netOf(finished));
+          }}
+        />
+      )}
+
+      {dialog?.kind === 'rebuy' && (
+        <RebuyDialog
+          game={dialog.game}
+          onClose={close}
+          onRebuy={async (rebuy) => {
+            const updated = await addRebuy.mutateAsync({ id: dialog.game.id, rebuy });
+            notify(
+              t('games.rebuy.done'),
+              t('games.rebuy.total', { amount: format.money(updated.buyIn, updated.currencyCode) }),
+            );
+          }}
+        />
+      )}
+
+      {dialog?.kind === 'reEntry' && (
+        <ConfirmDialog
+          title={t('games.reEntry.title')}
+          confirmLabel={t('games.actions.reEntry')}
+          onClose={close}
+          onConfirm={async () => {
+            const updated = await addReEntry.mutateAsync(dialog.game.id);
+            notify(t('games.reEntry.done'), t('games.reEntry.total', { count: updated.entries }));
+          }}
+        >
+          {t('games.reEntry.confirm', {
+            game: describeGame(t, dialog.game),
+            amount: format.money(dialog.game.buyIn, dialog.game.currencyCode),
+          })}
+        </ConfirmDialog>
+      )}
+
+      {dialog?.kind === 'delete' && (
+        <ConfirmDialog
+          title={t('games.delete.title')}
+          confirmLabel={t('games.delete.confirmLabel')}
+          destructive
+          onClose={close}
+          onConfirm={async () => {
+            await deleteGame.mutateAsync(dialog.game.id);
+            notify(t('games.delete.done'));
+          }}
+        >
+          {t('games.delete.confirm', {
+            game: describeGame(t, dialog.game),
+            date: format.date(dialog.game.playedOn),
+            room: dialog.game.room.name,
+          })}
+        </ConfirmDialog>
       )}
     </Page>
   );

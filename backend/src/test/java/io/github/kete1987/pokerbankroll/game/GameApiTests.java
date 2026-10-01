@@ -72,6 +72,7 @@ class GameApiTests extends ApiIntegrationTest {
         json.extractingPath("$.name").isEqualTo("Kill The Fish");
         json.extractingPath("$.entries").isEqualTo(3);
         json.extractingPath("$.invested").isEqualTo(7.5);
+        json.extractingPath("$.won").isEqualTo(11.25);
         json.extractingPath("$.net").isEqualTo(3.75);
         json.extractingPath("$.notes").isEqualTo("final table");
     }

@@ -456,7 +456,7 @@ export interface components {
             /** @enum {string} */
             modality: "NLHE" | "PLO";
             name?: string | null;
-            /** @description Real money won or lost: prize + bounty - invested */
+            /** @description Real money won or lost: won - invested */
             net: number;
             notes?: string | null;
             paidWithTicket: boolean;
@@ -476,6 +476,8 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
             variant?: components["schemas"]["VariantRef"] | null;
+            /** @description Money won: prize + bounty */
+            won: number;
         };
         GameTypeSummary: {
             figures: components["schemas"]["StatsFigures"];
