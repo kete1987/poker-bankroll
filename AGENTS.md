@@ -46,6 +46,7 @@ Use the Maven wrapper; on Windows use `mvnw.cmd` instead of `./mvnw`.
 | `./mvnw test -Dtest=ClassName` | Run a single test class |
 | `./mvnw test -Dtest=OpenApiContractTests -Dopenapi.update=true` | Rewrite `frontend/openapi.json` from the API (after changing an endpoint, request or response) |
 | `./mvnw spring-boot:test-run` | Run the API on `:8080` against a throwaway PostgreSQL container |
+| `./mvnw spring-boot:test-run -Dspring-boot.run.profiles=demo` | Same, with a year of made-up data (see "Demo data") |
 | `./mvnw spring-boot:run` | Run the API against the development database (`deploy/docker-compose.dev.yml`, `localhost:5433`) or `SPRING_DATASOURCE_*` |
 
 With the API running: health at `http://localhost:8080/api/actuator/health`, Swagger UI at
@@ -241,6 +242,16 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - API tests extend `ApiIntegrationTest` (whole application on PostgreSQL through `MockMvcTester`,
   paths relative to `/api`, test rows deleted after each test): one `XxxApiTests` per feature.
   The PostgreSQL image in `TestcontainersConfiguration` must match the one in `deploy/docker-compose.yml`.
+
+### Demo data
+- The Spring profile `demo` (`demo/DemoDataSeeder`) fills an **empty** database on startup with a
+  year of made-up results ending today: four rooms (EUR and USD, one inactive), a user-defined
+  variant, about 400 games of every type, three games in play and bankroll movements. It does
+  nothing when the database already has a room, a game or a movement, and is never active by default.
+- It creates everything through the services, so it also exercises the rules of the API. When a
+  feature adds data worth seeing in the UI, add it to the seeder.
+- To look at the frontend with data: run the API with the command above and `npm run dev` in
+  `frontend/`, then open `http://localhost:5173`.
 
 ### Database
 - Schema changes only through Flyway migrations in `backend/src/main/resources/db/migration/`.

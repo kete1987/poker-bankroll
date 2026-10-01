@@ -69,6 +69,18 @@ Versions, updates and rollbacks are explained in [docs/releasing.md](docs/releas
 > The app has no login. Run it on your local network and do not expose it to the internet
 > without putting authentication in front of it.
 
+### Try it with demo data
+
+To look at the app without recording anything, run it from the source with a throwaway database
+filled with a year of made-up results (requires JDK 25, Node 24 and Docker):
+
+```bash
+cd backend && ./mvnw spring-boot:test-run -Dspring-boot.run.profiles=demo   # API on :8080
+cd frontend && npm ci && npm run dev                                         # web on :5173
+```
+
+The demo data is only loaded into an empty database, and never unless the `demo` profile is active.
+
 ## Backups
 
 The stack backs up the database every day to `deploy/backups/` (keeping 7 daily, 4 weekly and
