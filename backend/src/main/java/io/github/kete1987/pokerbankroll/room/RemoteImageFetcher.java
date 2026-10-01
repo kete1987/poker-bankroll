@@ -7,10 +7,12 @@ import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.Locale;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import jakarta.annotation.PreDestroy;
 
@@ -26,6 +28,7 @@ import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuil
 import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.util.Timeout;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -37,7 +40,8 @@ import org.springframework.stereotype.Component;
  * for the addresses of every host it connects to, redirects included, and connects to what it is
  * given: the addresses that are checked are the ones that are used, so a host name cannot answer
  * one thing for the check and another for the connection. There is a size limit, and a deadline
- * for the whole download, whatever the pace of the other server.
+ * for the whole download, from resolving the name to the last byte, whatever the pace of the name
+ * server and of the other server.
  */
 @Component
 class RemoteImageFetcher {
@@ -53,17 +57,22 @@ class RemoteImageFetcher {
     private final boolean allowPrivateAddresses;
     private final Duration deadline;
     private final CloseableHttpClient client;
-    private final ScheduledExecutorService watchdog = Executors.newSingleThreadScheduledExecutor(runnable -> {
-        Thread thread = new Thread(runnable, "logo-fetch-deadline");
-        thread.setDaemon(true);
-        return thread;
-    });
+    private final HostLookup lookup;
+    /** Downloads run here, so the request that asked for one waits no longer than the deadline. */
+    private final ExecutorService downloads = Executors.newThreadPerTaskExecutor(
+            Thread.ofVirtual().name("logo-fetch-", 0).factory());
 
+    @Autowired
     RemoteImageFetcher(
             @Value("${poker-bankroll.logo-fetch.allow-private-addresses:false}") boolean allowPrivateAddresses,
             @Value("${poker-bankroll.logo-fetch.timeout:20s}") Duration deadline) {
+        this(allowPrivateAddresses, deadline, InetAddress::getAllByName);
+    }
+
+    RemoteImageFetcher(boolean allowPrivateAddresses, Duration deadline, HostLookup lookup) {
         this.allowPrivateAddresses = allowPrivateAddresses;
         this.deadline = deadline;
+        this.lookup = lookup;
         this.client = HttpClients.custom()
                 .setConnectionManager(PoolingHttpClientConnectionManagerBuilder.create()
                         .setDnsResolver(new CheckedResolver())
@@ -86,7 +95,7 @@ class RemoteImageFetcher {
 
     @PreDestroy
     void close() throws IOException {
-        watchdog.shutdownNow();
+        downloads.shutdownNow();
         client.close();
     }
 
@@ -95,16 +104,26 @@ class RemoteImageFetcher {
         HttpGet request = new HttpGet(parse(url));
         request.setHeader("Accept", "image/png, image/jpeg, image/webp");
         // The timeouts of the client only limit each wait: a server that keeps sending a byte now
-        // and then would never trip them. This ends the download, however far it got.
-        ScheduledFuture<?> tooLong = watchdog.schedule(request::cancel, deadline.toMillis(), TimeUnit.MILLISECONDS);
+        // and then would never trip them, and resolving the name has no timeout at all. Waiting
+        // here for the download ends it at the deadline, wherever it got.
+        Future<FetchedImage> download = downloads.submit(() -> client.execute(request, RemoteImageFetcher::read));
         try {
-            return client.execute(request, RemoteImageFetcher::read);
-        } catch (IOException ex) {
+            return download.get(deadline.toMillis(), TimeUnit.MILLISECONDS);
+        } catch (ExecutionException ex) {
+            if (ex.getCause() instanceof ApiException failure) {
+                throw failure;
+            }
             throw new ApiException(isRefusedAddress(ex)
                     ? ErrorCode.LOGO_URL_NOT_PUBLIC
                     : ErrorCode.LOGO_URL_UNREACHABLE);
+        } catch (TimeoutException ex) {
+            throw new ApiException(ErrorCode.LOGO_URL_UNREACHABLE);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new ApiException(ErrorCode.LOGO_URL_UNREACHABLE);
         } finally {
-            tooLong.cancel(false);
+            request.cancel();
+            download.cancel(true);
         }
     }
 
@@ -156,7 +175,7 @@ class RemoteImageFetcher {
 
         @Override
         public InetAddress[] resolve(String host) throws UnknownHostException {
-            InetAddress[] addresses = InetAddress.getAllByName(host);
+            InetAddress[] addresses = lookup.addressesOf(host);
             if (!allowPrivateAddresses) {
                 for (InetAddress address : addresses) {
                     if (!PublicAddress.isPublic(address)) {
@@ -171,6 +190,13 @@ class RemoteImageFetcher {
         public String resolveCanonicalHostname(String host) throws UnknownHostException {
             return InetAddress.getByName(host).getCanonicalHostName();
         }
+    }
+
+    /** Finds the addresses of a host name: the name service of the system, except in tests. */
+    @FunctionalInterface
+    interface HostLookup {
+
+        InetAddress[] addressesOf(String host) throws UnknownHostException;
     }
 
     /** The host resolves to this machine or to a private network. */
