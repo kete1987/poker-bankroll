@@ -6,20 +6,29 @@
     "language": "Language",
     "toggleColorScheme": "Switch between light and dark mode"
   },
-  "home": {
-    "title": "Welcome to poker-bankroll",
-    "subtitle": "Track your poker results and the balance of every room.",
-    "apiStatus": {
-      "label": "API",
-      "checking": "Checking…",
-      "up": "Online",
-      "down": "Unavailable"
-    }
+  "nav": {
+    "label": "Sections",
+    "toggleMenu": "Open or close the menu",
+    "dashboard": "Dashboard",
+    "games": "Games",
+    "bankroll": "Bankroll",
+    "stats": "Statistics",
+    "import": "Import",
+    "settings": "Settings"
+  },
+  "apiStatus": {
+    "label": "API",
+    "checking": "Checking…",
+    "up": "Online",
+    "down": "Unavailable"
+  },
+  "page": {
+    "comingSoon": "This section is not available yet."
   },
   "notFound": {
     "title": "Page not found",
     "description": "The page you are looking for does not exist.",
-    "backHome": "Back to home"
+    "backHome": "Back to the dashboard"
   },
   "error": {
     "title": "Something went wrong",

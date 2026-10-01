@@ -6,20 +6,29 @@
     "language": "Idioma",
     "toggleColorScheme": "Cambiar entre modo claro y oscuro"
   },
-  "home": {
-    "title": "Bienvenido a poker-bankroll",
-    "subtitle": "Controla tus resultados de póker y el saldo de cada sala.",
-    "apiStatus": {
-      "label": "API",
-      "checking": "Comprobando…",
-      "up": "Disponible",
-      "down": "No disponible"
-    }
+  "nav": {
+    "label": "Secciones",
+    "toggleMenu": "Abrir o cerrar el menú",
+    "dashboard": "Panel",
+    "games": "Partidas",
+    "bankroll": "Bankroll",
+    "stats": "Estadísticas",
+    "import": "Importar",
+    "settings": "Ajustes"
+  },
+  "apiStatus": {
+    "label": "API",
+    "checking": "Comprobando…",
+    "up": "Disponible",
+    "down": "No disponible"
+  },
+  "page": {
+    "comingSoon": "Esta sección todavía no está disponible."
   },
   "notFound": {
     "title": "Página no encontrada",
     "description": "La página que buscas no existe.",
-    "backHome": "Volver al inicio"
+    "backHome": "Volver al panel"
   },
   "error": {
     "title": "Algo ha ido mal",
