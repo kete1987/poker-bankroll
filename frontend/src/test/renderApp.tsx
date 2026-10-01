@@ -69,6 +69,15 @@ export function stubApi(handlers: Record<string, ApiHandler>) {
       currencies: [],
     }),
     'GET /bankroll/summary': { currencies: [] },
+    'GET /bankroll/movements': { items: [], page: 0, size: 25, totalItems: 0, totalPages: 0 },
+    'GET /catalog': {
+      currencies: [
+        { code: 'EUR', symbol: '€', decimals: 2 },
+        { code: 'USD', symbol: '$', decimals: 2 },
+      ],
+      gameTypes: ['TOURNAMENT', 'SIT_AND_GO', 'CASH'],
+      modalities: ['NLHE', 'PLO'],
+    },
     ...handlers,
   };
   vi.stubGlobal(

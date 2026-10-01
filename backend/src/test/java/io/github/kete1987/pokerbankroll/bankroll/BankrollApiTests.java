@@ -184,6 +184,9 @@ class BankrollApiTests extends ApiIntegrationTest {
 
         assertThat(ids("")).isEqualTo("[%d,%d,%d,%d]".formatted(third, second, first, global));
         assertThat(ids("?roomId=" + winamax)).isEqualTo("[%d,%d]".formatted(second, first));
+        // Several rooms: the movements of any of them. A blank value is no filter.
+        assertThat(ids("?roomId=" + winamax + "," + pokerStars)).isEqualTo("[%d,%d,%d]".formatted(third, second, first));
+        assertThat(ids("?roomId=")).isEqualTo("[%d,%d,%d,%d]".formatted(third, second, first, global));
         assertThat(ids("?type=DEPOSIT")).isEqualTo("[%d,%d]".formatted(first, global));
         assertThat(ids("?from=2026-01-10&to=2026-01-19")).isEqualTo("[%d]".formatted(first));
         // The currency of the room, or the own one of a movement without a room.

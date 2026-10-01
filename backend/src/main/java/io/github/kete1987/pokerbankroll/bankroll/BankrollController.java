@@ -68,7 +68,8 @@ class BankrollController {
             @Parameter(description = "On or before this date")
             @RequestParam(required = false) @Nullable LocalDate to,
             @RequestParam(required = false) @Nullable MovementType type,
-            @RequestParam(required = false) @Nullable Long roomId,
+            @Parameter(description = "One or more rooms: movements of any of them")
+            @RequestParam(required = false) @Nullable List<Long> roomId,
             @Parameter(description = "true: only movements that belong to no room; false: only those of a room")
             @RequestParam(required = false) @Nullable Boolean withoutRoom,
             @Parameter(description = "Currency of the amount, e.g. EUR")

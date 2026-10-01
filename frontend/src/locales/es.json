@@ -98,6 +98,81 @@
       "periodNet": "Neto del periodo"
     }
   },
+  "movementTypes": {
+    "DEPOSIT": "Ingreso",
+    "WITHDRAWAL": "Retirada",
+    "BONUS": "Rakeback / bono",
+    "ADJUSTMENT": "Ajuste"
+  },
+  "bankroll": {
+    "add": "Añadir movimiento",
+    "edit": "Editar movimiento",
+    "saved": "Movimiento guardado",
+    "rooms": "Por sala",
+    "movements": "Movimientos",
+    "noMovements": "No hay movimientos para estos filtros.",
+    "total_one": "{{formatted}} movimiento",
+    "total_other": "{{formatted}} movimientos",
+    "withoutRoom": "Sin sala",
+    "inactive": "Inactiva",
+    "movementName": "{{type}} del {{date}}",
+    "cards": {
+      "bankroll": "Bankroll",
+      "change": "Variación en el periodo",
+      "adjustments": "Ajustes: {{amount}}",
+      "deposited": "Aportado",
+      "withdrawn": "{{amount}} retirados",
+      "result": "Resultado",
+      "resultDetail": "Partidas {{games}} · Rakeback / bonos {{bonuses}}"
+    },
+    "columns": {
+      "room": "Sala",
+      "deposited": "Aportado",
+      "withdrawn": "Retirado",
+      "bonuses": "Rakeback / bonos",
+      "adjustments": "Ajustes",
+      "gamesNet": "Neto de partidas",
+      "result": "Resultado",
+      "bankroll": "Bankroll",
+      "change": "Variación",
+      "date": "Fecha",
+      "type": "Tipo",
+      "amount": "Importe",
+      "notes": "Notas"
+    },
+    "filters": {
+      "type": "Tipo de movimiento",
+      "anyType": "Todos los tipos"
+    },
+    "actions": {
+      "editMovement": "Editar {{movement}}",
+      "deleteMovement": "Borrar {{movement}}"
+    },
+    "delete": {
+      "title": "Borrar movimiento",
+      "confirm": "¿Borrar el movimiento ({{type}}) de {{amount}} del {{date}}? No se puede deshacer.",
+      "done": "Movimiento borrado"
+    },
+    "form": {
+      "type": "Tipo de movimiento",
+      "typeHelp": {
+        "DEPOSIT": "Dinero que destinas al póker. Suma al bankroll.",
+        "WITHDRAWAL": "Dinero que sacas del bankroll. Resta.",
+        "BONUS": "Dinero de póker que no viene de una partida: rakeback, promociones. Cuenta como resultado.",
+        "ADJUSTMENT": "Una corrección manual, hacia arriba o hacia abajo."
+      },
+      "room": "Sala",
+      "inactiveRoom": "{{name}} ({{currency}}, inactiva)",
+      "currency": "Moneda",
+      "amount": "Importe",
+      "adjustmentHelp": "En negativo para restar.",
+      "date": "Fecha",
+      "errors": {
+        "amount": "Indica un importe mayor que cero",
+        "notSaved": "El movimiento no se ha guardado"
+      }
+    }
+  },
   "stats": {
     "groupBy": "Agrupar por",
     "weekOf": "Semana del {{date}}",

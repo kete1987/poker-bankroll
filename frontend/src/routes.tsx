@@ -3,6 +3,7 @@ import type { RouteObject } from 'react-router';
 
 import { NAVIGATION, type NavigationItem } from './layout/navigation';
 import { RootLayout } from './layout/RootLayout';
+import { BankrollPage } from './pages/BankrollPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ErrorPage } from './pages/ErrorPage';
@@ -13,6 +14,7 @@ import { StatsPage } from './pages/StatsPage';
 /** Sections that already have their page; the others show a placeholder. */
 const PAGES: Partial<Record<NavigationItem['path'], ReactElement>> = {
   '/': <DashboardPage />,
+  '/bankroll': <BankrollPage />,
   '/games': <GamesPage />,
   '/stats': <StatsPage />,
 };

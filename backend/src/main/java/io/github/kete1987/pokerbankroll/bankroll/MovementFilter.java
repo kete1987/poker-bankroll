@@ -3,6 +3,7 @@ package io.github.kete1987.pokerbankroll.bankroll;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
@@ -10,14 +11,22 @@ import jakarta.persistence.criteria.Predicate;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.jpa.domain.Specification;
 
-/** Criteria to select movements; every field is optional and they are combined with AND. */
+/**
+ * Criteria to select movements; every field is optional and they are combined with AND. Several
+ * rooms select the movements of any of them; an empty list is no filter.
+ */
 public record MovementFilter(
         @Nullable LocalDate from,
         @Nullable LocalDate to,
         @Nullable MovementType type,
-        @Nullable Long roomId,
+        @Nullable List<Long> roomIds,
         @Nullable Boolean withoutRoom,
         @Nullable String currencyCode) {
+
+    /** A blank parameter ({@code roomId=}) arrives as a list holding a null: it is no value. */
+    public MovementFilter {
+        roomIds = roomIds == null ? null : roomIds.stream().filter(Objects::nonNull).toList();
+    }
 
     Specification<BankrollMovement> toSpecification() {
         return (movement, query, cb) -> {
@@ -31,8 +40,8 @@ public record MovementFilter(
             if (type != null) {
                 predicates.add(cb.equal(movement.get("type"), type));
             }
-            if (roomId != null) {
-                predicates.add(cb.equal(movement.get("room").get("id"), roomId));
+            if (roomIds != null && !roomIds.isEmpty()) {
+                predicates.add(movement.get("room").get("id").in(roomIds));
             }
             if (withoutRoom != null) {
                 predicates.add(withoutRoom ? cb.isNull(movement.get("room")) : cb.isNotNull(movement.get("room")));

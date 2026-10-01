@@ -755,7 +755,8 @@ export interface operations {
                 /** @description On or before this date */
                 to?: string;
                 type?: "DEPOSIT" | "WITHDRAWAL" | "BONUS" | "ADJUSTMENT";
-                roomId?: number;
+                /** @description One or more rooms: movements of any of them */
+                roomId?: number[];
                 /** @description true: only movements that belong to no room; false: only those of a room */
                 withoutRoom?: boolean;
                 /** @description Currency of the amount, e.g. EUR */

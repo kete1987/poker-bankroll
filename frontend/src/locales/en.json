@@ -98,6 +98,81 @@
       "periodNet": "Net of the period"
     }
   },
+  "movementTypes": {
+    "DEPOSIT": "Deposit",
+    "WITHDRAWAL": "Withdrawal",
+    "BONUS": "Rakeback / bonus",
+    "ADJUSTMENT": "Adjustment"
+  },
+  "bankroll": {
+    "add": "Add movement",
+    "edit": "Edit movement",
+    "saved": "Movement saved",
+    "rooms": "Per room",
+    "movements": "Movements",
+    "noMovements": "There are no movements for these filters.",
+    "total_one": "{{formatted}} movement",
+    "total_other": "{{formatted}} movements",
+    "withoutRoom": "No room",
+    "inactive": "Inactive",
+    "movementName": "{{type}} of {{date}}",
+    "cards": {
+      "bankroll": "Bankroll",
+      "change": "Change in the period",
+      "adjustments": "Adjustments: {{amount}}",
+      "deposited": "Deposited",
+      "withdrawn": "{{amount}} withdrawn",
+      "result": "Result",
+      "resultDetail": "Games {{games}} · Rakeback / bonuses {{bonuses}}"
+    },
+    "columns": {
+      "room": "Room",
+      "deposited": "Deposited",
+      "withdrawn": "Withdrawn",
+      "bonuses": "Rakeback / bonuses",
+      "adjustments": "Adjustments",
+      "gamesNet": "Net of games",
+      "result": "Result",
+      "bankroll": "Bankroll",
+      "change": "Change",
+      "date": "Date",
+      "type": "Type",
+      "amount": "Amount",
+      "notes": "Notes"
+    },
+    "filters": {
+      "type": "Type of movement",
+      "anyType": "Every type"
+    },
+    "actions": {
+      "editMovement": "Edit {{movement}}",
+      "deleteMovement": "Delete {{movement}}"
+    },
+    "delete": {
+      "title": "Delete movement",
+      "confirm": "Delete the {{type}} of {{amount}} of {{date}}? This cannot be undone.",
+      "done": "Movement deleted"
+    },
+    "form": {
+      "type": "Type of movement",
+      "typeHelp": {
+        "DEPOSIT": "Money you set aside for poker. It adds to the bankroll.",
+        "WITHDRAWAL": "Money you take out of the bankroll. It subtracts.",
+        "BONUS": "Poker money that does not come from a game: rakeback, promotions. It counts as result.",
+        "ADJUSTMENT": "A manual correction, up or down."
+      },
+      "room": "Room",
+      "inactiveRoom": "{{name}} ({{currency}}, inactive)",
+      "currency": "Currency",
+      "amount": "Amount",
+      "adjustmentHelp": "Negative to subtract.",
+      "date": "Date",
+      "errors": {
+        "amount": "Enter an amount greater than zero",
+        "notSaved": "The movement was not saved"
+      }
+    }
+  },
   "stats": {
     "groupBy": "Group by",
     "weekOf": "Week of {{date}}",
