@@ -213,6 +213,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/imports/games": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import games from a CSV file
+         * @description The body is the file itself, in the format of `docs/import.md`: UTF-8, comma separated, a header row and one game per row, up to 5 MB and 50,000 rows. Every game is imported as finished; rooms and variants that do not exist are created.
+         *
+         *     It is all or nothing: with an error in any row nothing is stored, and the response (still 200) lists the errors with `imported: false`. With `dryRun=true` the file is checked in the same way and nothing is stored either. Importing the same file twice records its games twice.
+         *
+         *     A file that cannot be read as a whole fails with `IMPORT_FILE_EMPTY`, `IMPORT_FILE_NOT_UTF8`, `IMPORT_FILE_MALFORMED`, `IMPORT_UNKNOWN_COLUMN`, `IMPORT_DUPLICATE_COLUMN`, `IMPORT_MISSING_COLUMN`, `IMPORT_TOO_MANY_ROWS` (400) or `IMPORT_FILE_TOO_LARGE` (413).
+         */
+        post: operations["importGames"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rooms": {
         parameters: {
             query?: never;
@@ -457,6 +481,45 @@ export interface components {
             /** @description Value of a tournament ticket won. Not for cash games. Defaults to 0 */
             ticketPrizeValue?: number | null;
         };
+        GameImportResponse: {
+            /** @description The file was only checked: nothing was stored */
+            dryRun: boolean;
+            /**
+             * Format: int32
+             * @description Errors found in the rows; `errors` lists only the first ones
+             */
+            errorCount: number;
+            errors: components["schemas"]["ImportRowError"][];
+            /**
+             * Format: date
+             * @description Date of the first game
+             */
+            from?: string | null;
+            /**
+             * Format: int32
+             * @description Rows without errors
+             */
+            games: number;
+            gamesByType: components["schemas"]["ImportGameTypeCount"][];
+            /** @description The games were stored: not a dry run, and no row had errors */
+            imported: boolean;
+            /** @description Rooms that did not exist and are created by the import */
+            newRooms: components["schemas"]["ImportedRoom"][];
+            /** @description Variants that did not exist and are created by the import */
+            newVariants: components["schemas"]["ImportedVariant"][];
+            /**
+             * Format: int32
+             * @description Rows of the file with something in them, the header apart
+             */
+            rows: number;
+            /**
+             * Format: date
+             * @description Date of the last game
+             */
+            to?: string | null;
+            /** @description Games and their net per currency, to compare with the source of the file */
+            totals: components["schemas"]["ImportCurrencyTotal"][];
+        };
         GameNameResponse: {
             buyIn: number;
             /** @description Currency of the buy-in: the one of the room of that game */
@@ -593,6 +656,34 @@ export interface components {
             room?: components["schemas"]["RoomRef"] | null;
             /** @description VARIANT; null for the games of the type without a variant */
             variant?: components["schemas"]["VariantRef"] | null;
+        };
+        ImportCurrencyTotal: {
+            currencyCode: string;
+            /** Format: int32 */
+            games: number;
+            net: number;
+        };
+        ImportGameTypeCount: {
+            /** @enum {string} */
+            gameType: "TOURNAMENT" | "SIT_AND_GO" | "CASH";
+            /** Format: int32 */
+            games: number;
+        };
+        ImportRowError: {
+            code: string;
+            field?: string | null;
+            message: string;
+            /** Format: int32 */
+            row: number;
+        };
+        ImportedRoom: {
+            currencyCode: string;
+            name: string;
+        };
+        ImportedVariant: {
+            /** @enum {string} */
+            gameType: "TOURNAMENT" | "SIT_AND_GO" | "CASH";
+            name: string;
         };
         InPlay: {
             /** Format: int64 */
@@ -1211,6 +1302,33 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GameResponse"];
+                };
+            };
+        };
+    };
+    importGames: {
+        parameters: {
+            query?: {
+                /** @description Only check the file and report what it would import */
+                dryRun?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "text/csv": string;
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GameImportResponse"];
                 };
             };
         };
