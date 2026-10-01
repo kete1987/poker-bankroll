@@ -173,6 +173,63 @@
       }
     }
   },
+  "settings": {
+    "active": "Active",
+    "tabs": {
+      "rooms": "Rooms",
+      "variants": "Variants"
+    },
+    "rooms": {
+      "add": "Add room",
+      "edit": "Edit room",
+      "room": "Room",
+      "name": "Name",
+      "currency": "Currency",
+      "currencyLocked": "It cannot change: the room already has games or movements.",
+      "activeHelp": "An inactive room keeps its history but is not offered for new games.",
+      "activeRoom": "{{room}} is active",
+      "editRoom": "Edit {{room}}",
+      "deleteRoom": "Delete {{room}}",
+      "inUse": "It has games or movements: deactivate it instead.",
+      "empty": "There are no rooms yet. Add the first one to start recording games.",
+      "created": "Room created",
+      "saved": "Room saved",
+      "delete": {
+        "title": "Delete room",
+        "confirm": "Delete the room {{room}}? This cannot be undone.",
+        "done": "Room deleted"
+      }
+    },
+    "logo": {
+      "title": "Logo",
+      "upload": "Upload logo",
+      "change": "Change logo",
+      "remove": "Remove logo",
+      "current": "Logo of {{room}}",
+      "help": "Any image: it is reduced to 128 px before it is stored.",
+      "unreadable": "The file could not be read as an image."
+    },
+    "variants": {
+      "add": "Add variant",
+      "edit": "Edit variant",
+      "name": "Name",
+      "gameType": "Game type",
+      "gameTypeLocked": "The game type of a variant cannot change.",
+      "own": "Yours",
+      "activeVariant": "{{variant}} is active",
+      "editVariant": "Edit {{variant}}",
+      "deleteVariant": "Delete {{variant}}",
+      "inUse": "It is used by games: deactivate it instead.",
+      "empty": "No variants.",
+      "created": "Variant created",
+      "saved": "Variant saved",
+      "delete": {
+        "title": "Delete variant",
+        "confirm": "Delete the variant {{variant}}? This cannot be undone.",
+        "done": "Variant deleted"
+      }
+    }
+  },
   "stats": {
     "groupBy": "Group by",
     "weekOf": "Week of {{date}}",

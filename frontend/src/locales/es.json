@@ -173,6 +173,63 @@
       }
     }
   },
+  "settings": {
+    "active": "Activa",
+    "tabs": {
+      "rooms": "Salas",
+      "variants": "Variantes"
+    },
+    "rooms": {
+      "add": "Añadir sala",
+      "edit": "Editar sala",
+      "room": "Sala",
+      "name": "Nombre",
+      "currency": "Moneda",
+      "currencyLocked": "No se puede cambiar: la sala ya tiene partidas o movimientos.",
+      "activeHelp": "Una sala inactiva conserva su historial pero no se ofrece para partidas nuevas.",
+      "activeRoom": "{{room}} está activa",
+      "editRoom": "Editar {{room}}",
+      "deleteRoom": "Borrar {{room}}",
+      "inUse": "Tiene partidas o movimientos: desactívala en su lugar.",
+      "empty": "Todavía no hay salas. Añade la primera para empezar a registrar partidas.",
+      "created": "Sala creada",
+      "saved": "Sala guardada",
+      "delete": {
+        "title": "Borrar sala",
+        "confirm": "¿Borrar la sala {{room}}? No se puede deshacer.",
+        "done": "Sala borrada"
+      }
+    },
+    "logo": {
+      "title": "Logo",
+      "upload": "Subir logo",
+      "change": "Cambiar logo",
+      "remove": "Quitar logo",
+      "current": "Logo de {{room}}",
+      "help": "Cualquier imagen: se reduce a 128 px antes de guardarla.",
+      "unreadable": "No se ha podido leer el fichero como imagen."
+    },
+    "variants": {
+      "add": "Añadir variante",
+      "edit": "Editar variante",
+      "name": "Nombre",
+      "gameType": "Tipo de partida",
+      "gameTypeLocked": "El tipo de una variante no se puede cambiar.",
+      "own": "Propia",
+      "activeVariant": "{{variant}} está activa",
+      "editVariant": "Editar {{variant}}",
+      "deleteVariant": "Borrar {{variant}}",
+      "inUse": "La usan partidas: desactívala en su lugar.",
+      "empty": "Sin variantes.",
+      "created": "Variante creada",
+      "saved": "Variante guardada",
+      "delete": {
+        "title": "Borrar variante",
+        "confirm": "¿Borrar la variante {{variant}}? No se puede deshacer.",
+        "done": "Variante borrada"
+      }
+    }
+  },
   "stats": {
     "groupBy": "Agrupar por",
     "weekOf": "Semana del {{date}}",
