@@ -24,7 +24,7 @@ Issue titles carry an ID (`[INF-1]`, `[API-3]`, `[UI-2]`...) used across discuss
 |---|---|
 | `backend/` | REST API — Java 25, Spring Boot 4.1, Flyway, springdoc-openapi |
 | `frontend/` | Web app — React 19, TypeScript 7, Vite 8, React Router 8, TanStack Query 5, Mantine 9, react-i18next, ECharts 6 |
-| `deploy/` | `docker-compose.yml` (db + api + web + backup), `nginx.conf`, `.env.example` |
+| `deploy/` | `docker-compose.yml` (db + api + web + backup, released images), `docker-compose.build.yml` (builds them from the checkout), `.env.example` |
 | `docs/` | User and developer documentation |
 | `.github/workflows/` | CI (tests per PR) and release (multi-arch images to GHCR on tag) |
 
@@ -76,7 +76,8 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 |---|---|
 | `docker compose -f deploy/docker-compose.dev.yml up -d` | PostgreSQL for development on `localhost:5433` (5433 avoids clashing with a local PostgreSQL) |
 | `cd deploy && cp .env.example .env` | Create the stack configuration (set `POSTGRES_PASSWORD`) |
-| `docker compose up -d --build` (in `deploy/`) | Build both images from the checkout and run db + api + web on `http://localhost:${WEB_PORT:-8080}` |
+| `docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build` (in `deploy/`) | Build both images from the checkout and run db + api + web on `http://localhost:${WEB_PORT:-8080}` |
+| `docker compose up -d` (in `deploy/`) | Run the released images from GHCR (`POKER_BANKROLL_VERSION`, default `latest`) |
 | `docker compose down` / `down -v` | Stop the stack / also delete the database volume |
 | `docker compose exec backup /backup.sh` (in `deploy/`) | Take a database backup now (Git Bash: prefix `MSYS_NO_PATHCONV=1`) |
 
@@ -90,6 +91,8 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - The nginx config is part of the web image: `frontend/nginx/default.conf.template` (SPA fallback,
   long cache for `/assets/`, `/api/` proxied to `${API_UPSTREAM}`, default `api:8080`, `/healthz`).
 - Only `web` publishes a port; `api` and `db` are reachable only inside the Compose network.
+- `docker-compose.yml` has no `build` sections on purpose: it is also pasted as a Portainer stack,
+  where there is no source code to build from. Building lives in `docker-compose.build.yml`.
 - `backup` (`prodrigestivill/postgres-backup-local`, pinned tag) dumps the database daily to
   `BACKUP_DIR` (default `deploy/backups/`, git-ignored) with daily/weekly/monthly retention.
   Keep its PostgreSQL major in sync with the `db` image. Restore procedure: `docs/backups.md`.
@@ -409,7 +412,8 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   updates come grouped per ecosystem; every major update has its own PR. New versions are only
   proposed 7 days after their release (security updates are not delayed).
 - Merge a Dependabot PR only with CI green and the Codex review addressed. CI does not build the
-  Docker images: for base image or `deploy/` updates, run `docker compose up -d --build` in `deploy/`.
+  Docker images: for base image or `deploy/` updates, build and run the stack from the checkout
+  (see Commands).
 - For a major update, read the release notes / migration guide and fix the code in the same PR.
 - Kept in sync by hand (Dependabot does not update all the places):
   - PostgreSQL image: Dependabot updates `deploy/docker-compose.yml` and

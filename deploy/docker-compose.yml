@@ -2,10 +2,10 @@
 # Only `web` is published on the host.
 #
 #   cp .env.example .env        # then set POSTGRES_PASSWORD
-#   docker compose up -d --build   # build the images from this checkout
-#   docker compose pull && docker compose up -d   # or run released images from GHCR
+#   docker compose up -d        # runs the released images from GHCR
 #
-# Works as a Portainer stack too (paste this file and set the variables of .env.example).
+# Works as a Portainer stack too: paste this file and set the variables of .env.example. For that
+# it must not build anything; building the images from the checkout is docker-compose.build.yml.
 name: poker-bankroll
 
 services:
@@ -27,7 +27,6 @@ services:
 
   api:
     image: ghcr.io/kete1987/poker-bankroll-api:${POKER_BANKROLL_VERSION:-latest}
-    build: ../backend
     restart: unless-stopped
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-pokerbankroll}
@@ -39,7 +38,6 @@ services:
 
   web:
     image: ghcr.io/kete1987/poker-bankroll-web:${POKER_BANKROLL_VERSION:-latest}
-    build: ../frontend
     restart: unless-stopped
     ports:
       - '${WEB_PORT:-8080}:8080'

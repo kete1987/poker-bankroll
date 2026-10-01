@@ -3,11 +3,11 @@
 [English](README.md) | **Español**
 
 Gestor de banca de póker autoalojado. Registra los resultados de tus torneos, Sit&Go,
-spins y partidas de cash, lleva el saldo real de cada sala y consulta cómo evolucionan
+spins y partidas de cash, lleva tu bankroll de póker en cada sala y consulta cómo evolucionan
 tus resultados.
 
-> **Estado: en desarrollo.** Todavía no hay nada ejecutable. Puedes seguir el
-> [milestone v0.1 MVP](https://github.com/kete1987/poker-bankroll/milestone/1) y el
+> **Estado: primera versión (0.1).** Se puede usar y es joven. Lo que viene después está en las
+> [issues](https://github.com/kete1987/poker-bankroll/issues) y en el
 > [tablero del proyecto](https://github.com/users/kete1987/projects/3).
 
 ## Por qué
@@ -20,19 +20,20 @@ en tu propia máquina.
 **No** es un analizador de manos: para eso ya existen herramientas como PokerTracker 4.
 Aquí el foco son los resultados y la gestión de la banca.
 
-## Funcionalidades previstas (v0.1)
+## Funcionalidades
 
 - Alta rápida de partidas: torneos (re-entries, primas, premios en ticket), Sit&Go y spins
   (Expresso...) y cash, en No-Limit Hold'em o PLO
 - Dashboard con resultado neto, ROI e ITM por modalidad
 - Resultados por día y por mes, gráfica de evolución
-- Banca por sala: depósitos, retiradas, bonos y conciliación con el saldo real
+- Bankroll de póker por sala y moneda: depósitos, retiradas, bonos y el resultado de tus partidas
 - Varias monedas (EUR y USD de serie, ampliable)
 - Interfaz en español e inglés
-- Importación desde una hoja de cálculo existente (CSV)
+- Importación de partidas desde un fichero CSV ([formato](docs/import.md), en inglés), para traer tu
+  historial de una hoja de cálculo
 - Copias de seguridad diarias de la base de datos
 
-El roadmap completo está en las [issues](https://github.com/kete1987/poker-bankroll/issues).
+Lo que está previsto está en las [issues](https://github.com/kete1987/poker-bankroll/issues).
 
 ## Stack
 
@@ -49,23 +50,30 @@ navegador ──► web (nginx + SPA) ──/api──► api (Spring Boot) ─�
 
 ## Puesta en marcha
 
-Necesitas Docker con Compose. La aplicación todavía es un esqueleto, pero el stack ya funciona:
+Necesitas Docker con Compose:
 
 ```bash
 git clone https://github.com/kete1987/poker-bankroll.git
 cd poker-bankroll/deploy
-cp .env.example .env          # pon un POSTGRES_PASSWORD
-docker compose up -d --build  # construye las imágenes desde el código
+cp .env.example .env   # pon un POSTGRES_PASSWORD
+docker compose up -d   # usa las imágenes publicadas
 ```
 
 Abre `http://<tu-host>:8080` (el puerto se cambia con `WEB_PORT` en `.env`). Los datos se guardan
-en el volumen de Docker `poker-bankroll_db-data`.
+en el volumen de Docker `poker-bankroll_db-data`, que se conserva al actualizar el stack.
 
-En lugar de construirlas, `docker compose pull && docker compose up -d` usa las imágenes ya
-publicadas en GHCR (`linux/amd64` y `linux/arm64`). Se eligen con `POKER_BANKROLL_VERSION`: `latest`
-(última versión estable), una versión concreta como `0.1.0`, o `edge` (último merge a `main`).
-En Portainer, crea un stack a partir de `deploy/docker-compose.yml` y define las variables de
-`.env.example`. Las versiones, actualizaciones y vueltas atrás se explican en
+Las imágenes vienen de GHCR (`linux/amd64` y `linux/arm64`). Se eligen con
+`POKER_BANKROLL_VERSION`: `latest` (última versión estable), una serie como `0.1` (solo
+correcciones), una versión concreta como `0.1.0`, o `edge` (último merge a `main`).
+
+**Portainer:** crea un stack, pega [`deploy/docker-compose.yml`](deploy/docker-compose.yml) y define
+las variables de [`deploy/.env.example`](deploy/.env.example) (al menos `POSTGRES_PASSWORD`, y
+`BACKUP_DIR` como ruta absoluta del host).
+
+Para construir las imágenes desde el código:
+`docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build`.
+
+Las versiones, actualizaciones y vueltas atrás se explican en
 [docs/releasing.md](docs/releasing.md) (en inglés).
 
 > La aplicación no tiene login. Úsala en tu red local y no la expongas a internet sin
