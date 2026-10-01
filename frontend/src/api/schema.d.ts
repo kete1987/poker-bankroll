@@ -873,7 +873,14 @@ export interface operations {
     };
     summary_1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Only movements and games on or after this date: with dates, the figures are those of the period (what the bankroll changed, what was won or lost) */
+                from?: string;
+                /** @description Only movements and games on or before this date */
+                to?: string;
+                /** @description One or more rooms: only they are listed and added up, without the movements that belong to no room */
+                roomId?: number[];
+            };
             header?: never;
             path?: never;
             cookie?: never;
