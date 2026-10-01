@@ -2,14 +2,16 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
 import { apiFetch } from './client';
 import { toQueryString } from './query';
-import type { GroupBy, StatsGroups, StatsSummary } from './types';
+import type { GameType, GroupBy, StatsGroups, StatsSummary } from './types';
 
 /** Which games the statistics are about; everything is optional. */
 export interface StatsQuery {
   from?: string;
   to?: string;
-  /** Games in any of these rooms; empty is every room. */
+  /** Games of any of these types, rooms or variants; an empty list is every one. */
+  gameType?: GameType[];
   roomId?: number[];
+  variantId?: number[];
   currency?: string;
 }
 

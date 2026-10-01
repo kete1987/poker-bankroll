@@ -98,6 +98,34 @@
       "periodNet": "Net of the period"
     }
   },
+  "stats": {
+    "groupBy": "Group by",
+    "weekOf": "Week of {{date}}",
+    "granularity": {
+      "DAY": "Day",
+      "WEEK": "Week",
+      "MONTH": "Month"
+    },
+    "net": {
+      "title": "Net over time",
+      "tooltipNet": "Net",
+      "tooltipGames_one": "{{count}} game",
+      "tooltipGames_other": "{{count}} games",
+      "tooltipCumulative": "Cumulative",
+      "summary_one": "{{net}} in {{formatted}} game",
+      "summary_other": "{{net}} in {{formatted}} games",
+      "best": {
+        "DAY": "Best day: {{label}} ({{net}})",
+        "WEEK": "Best week: {{label}} ({{net}})",
+        "MONTH": "Best month: {{label}} ({{net}})"
+      },
+      "worst": {
+        "DAY": "Worst day: {{label}} ({{net}})",
+        "WEEK": "Worst week: {{label}} ({{net}})",
+        "MONTH": "Worst month: {{label}} ({{net}})"
+      }
+    }
+  },
   "games": {
     "add": "Add game",
     "loadError": "The data could not be loaded. Check that the API is available and reload the page.",

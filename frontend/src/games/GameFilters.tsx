@@ -1,15 +1,13 @@
-import { Button, Group, MultiSelect, TextInput } from '@mantine/core';
+import { Button, Group, TextInput } from '@mantine/core';
 import { useDebouncedCallback } from '@mantine/hooks';
 import { IconSearch, IconX } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { GameType, Room, Variant } from '../api/types';
-import { variantLabel } from './labels';
+import type { Room, Variant } from '../api/types';
 import { PeriodFilter } from '../components/PeriodFilter';
+import { ScopeFilters } from './ScopeFilters';
 import type { GameFilters as Filters } from './useGameFilters';
-
-const GAME_TYPES: readonly GameType[] = ['TOURNAMENT', 'SIT_AND_GO', 'CASH'];
 
 interface GameFiltersProps {
   filters: Filters;
@@ -44,20 +42,6 @@ export function GameFilters({
     }
   }
 
-  // Variants of the chosen types; of every type when none is chosen. The type goes in front
-  // unless a single one is chosen, since variants of different types share names (Regular).
-  const singleType = filters.gameTypes.length === 1;
-  const variantOptions = variants
-    .filter(
-      (variant) => filters.gameTypes.length === 0 || filters.gameTypes.includes(variant.gameType),
-    )
-    .map((variant) => ({
-      value: String(variant.id),
-      label: singleType
-        ? variantLabel(t, variant)
-        : `${t(`gameTypes.${variant.gameType}`)} · ${variantLabel(t, variant)}`,
-    }));
-
   return (
     <Group gap="sm" align="flex-end">
       {/* The key resets "Custom" when the filters are cleared. */}
@@ -66,47 +50,13 @@ export function GameFilters({
         range={{ from: filters.from, to: filters.to }}
         onChange={(range) => onChange({ from: range.from, to: range.to })}
       />
-      <MultiSelect
-        label={t('filters.gameType')}
-        miw={180}
-        maw={360}
-        clearable
-        placeholder={filters.gameTypes.length === 0 ? t('filters.any') : undefined}
-        data={GAME_TYPES.map((type) => ({ value: type, label: t(`gameTypes.${type}`) }))}
-        value={filters.gameTypes}
-        onChange={(values) => {
-          const gameTypes = values as GameType[];
-          // A variant belongs to a type: those of types no longer chosen are dropped.
-          const variantIds =
-            gameTypes.length === 0
-              ? filters.variantIds
-              : filters.variantIds.filter((id) => {
-                  const variant = variants.find((candidate) => candidate.id === id);
-                  return variant !== undefined && gameTypes.includes(variant.gameType);
-                });
-          onChange({ gameTypes, variantIds });
-        }}
-      />
-      <MultiSelect
-        label={t('filters.room')}
-        miw={180}
-        maw={360}
-        clearable
-        placeholder={filters.roomIds.length === 0 ? t('filters.any') : undefined}
-        data={rooms.map((room) => ({ value: String(room.id), label: room.name }))}
-        value={filters.roomIds.map(String)}
-        onChange={(values) => onChange({ roomIds: values.map(Number) })}
-      />
-      <MultiSelect
-        label={t('filters.variant')}
-        miw={220}
-        maw={420}
-        clearable
-        searchable
-        placeholder={filters.variantIds.length === 0 ? t('filters.any') : undefined}
-        data={variantOptions}
-        value={filters.variantIds.map(String)}
-        onChange={(values) => onChange({ variantIds: values.map(Number) })}
+      <ScopeFilters
+        gameTypes={filters.gameTypes}
+        roomIds={filters.roomIds}
+        variantIds={filters.variantIds}
+        rooms={rooms}
+        variants={variants}
+        onChange={onChange}
       />
       <TextInput
         label={t('filters.text')}
