@@ -124,13 +124,15 @@ class GameApiTests extends ApiIntegrationTest {
     void cashGamesHaveOneEntryAndNoBountiesOrTickets() {
         var json = assertThat(postJson("/games", """
                 {"playedOn": "2026-01-19", "roomId": %d, "gameType": "CASH", "buyIn": 2, "entries": 2,
-                 "bounty": 1, "ticketPrizeValue": 5, "paidWithTicket": true}""".formatted(winamax))
+                 "bounty": 1, "ticketPrizeValue": 5, "ticketDescription": "Main Event", "paidWithTicket": true}"""
+                .formatted(winamax))
                 .header("Accept-Language", "es"))
                 .hasStatus(HttpStatus.BAD_REQUEST).bodyJson();
 
         json.extractingPath("$.code").isEqualTo("VALIDATION_FAILED");
-        json.extractingPath("$.errors[*].field").asArray()
-                .containsExactlyInAnyOrder("entries", "bounty", "ticketPrizeValue", "paidWithTicket");
+        // Every offending field at once, each reported a single time.
+        json.extractingPath("$.errors[*].field").asArray().containsExactlyInAnyOrder(
+                "entries", "bounty", "ticketPrizeValue", "ticketDescription", "paidWithTicket");
         json.extractingPath("$.errors[*].code").asArray().containsOnly("CashGameFields");
         json.extractingPath("$.errors[0].message").asString().startsWith("No permitido en una partida de cash");
         assertThat(jdbc.queryForObject("select count(*) from game", Integer.class)).isZero();
@@ -313,8 +315,16 @@ class GameApiTests extends ApiIntegrationTest {
     void rejectsInvalidSortAndPaging() {
         assertThat(mvc.get().uri("/games").param("sort", "notes,desc")).hasStatus(HttpStatus.BAD_REQUEST)
                 .bodyJson().extractingPath("$.code").isEqualTo("INVALID_SORT");
-        assertThat(mvc.get().uri("/games").param("sort", "net,sideways")).hasStatus(HttpStatus.BAD_REQUEST)
-                .bodyJson().extractingPath("$.code").isEqualTo("INVALID_SORT");
+        for (String sort : new String[] {"net,sideways", ",", ",,", "net,", ",desc", "net,desc,extra"}) {
+            assertThat(mvc.get().uri("/games").param("sort", sort)).as(sort).hasStatus(HttpStatus.BAD_REQUEST)
+                    .bodyJson().extractingPath("$.code").isEqualTo("INVALID_SORT");
+        }
+        // A cash game with only a ticket description is reported once, by the cash rule.
+        assertThat(postJson("/games", """
+                {"playedOn": "2026-01-19", "roomId": %d, "gameType": "CASH", "buyIn": 2,
+                 "ticketDescription": "Main Event"}""".formatted(winamax)))
+                .hasStatus(HttpStatus.BAD_REQUEST)
+                .bodyJson().extractingPath("$.errors[*].code").asArray().containsExactly("CashGameFields");
 
         var json = assertThat(mvc.get().uri("/games").param("size", "500").param("page", "-1"))
                 .hasStatus(HttpStatus.BAD_REQUEST).bodyJson();

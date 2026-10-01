@@ -25,7 +25,8 @@ final class GameSort {
     }
 
     static Sort parse(@Nullable String value) {
-        String[] parts = (value == null || value.isBlank() ? DEFAULT : value).split(",");
+        // limit -1 keeps empty components, so "," or "net," are rejected instead of half-parsed.
+        String[] parts = (value == null || value.isBlank() ? DEFAULT : value).split(",", -1);
         String field = parts[0].strip();
         String directionText = parts.length > 1 ? parts[1].strip().toLowerCase(Locale.ROOT) : "asc";
         if (parts.length > 2 || !FIELDS.contains(field) || !Set.of("asc", "desc").contains(directionText)) {

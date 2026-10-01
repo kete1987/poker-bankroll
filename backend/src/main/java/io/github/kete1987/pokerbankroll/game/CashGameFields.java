@@ -41,6 +41,8 @@ public @interface CashGameFields {
             valid &= allowed(game.entriesOrDefault() == 1, "entries", context);
             valid &= allowed(game.bountyOrZero().signum() == 0, "bounty", context);
             valid &= allowed(game.ticketPrizeValueOrZero().signum() == 0, "ticketPrizeValue", context);
+            valid &= allowed(game.ticketDescription() == null || game.ticketDescription().isBlank(),
+                    "ticketDescription", context);
             valid &= allowed(!game.paidWithTicketOrDefault(), "paidWithTicket", context);
             return valid;
         }
