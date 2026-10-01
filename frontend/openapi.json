@@ -187,6 +187,78 @@
         },
         "type" : "object"
       },
+      "GameImportResponse" : {
+        "properties" : {
+          "dryRun" : {
+            "description" : "The file was only checked: nothing was stored",
+            "type" : "boolean"
+          },
+          "errorCount" : {
+            "description" : "Errors found in the rows; `errors` lists only the first ones",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "errors" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ImportRowError"
+            },
+            "type" : "array"
+          },
+          "from" : {
+            "description" : "Date of the first game",
+            "format" : "date",
+            "type" : [ "string", "null" ]
+          },
+          "games" : {
+            "description" : "Rows without errors",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "gamesByType" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ImportGameTypeCount"
+            },
+            "type" : "array"
+          },
+          "imported" : {
+            "description" : "The games were stored: not a dry run, and no row had errors",
+            "type" : "boolean"
+          },
+          "newRooms" : {
+            "description" : "Rooms that did not exist and are created by the import",
+            "items" : {
+              "$ref" : "#/components/schemas/ImportedRoom"
+            },
+            "type" : "array"
+          },
+          "newVariants" : {
+            "description" : "Variants that did not exist and are created by the import",
+            "items" : {
+              "$ref" : "#/components/schemas/ImportedVariant"
+            },
+            "type" : "array"
+          },
+          "rows" : {
+            "description" : "Rows of the file with something in them, the header apart",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "to" : {
+            "description" : "Date of the last game",
+            "format" : "date",
+            "type" : [ "string", "null" ]
+          },
+          "totals" : {
+            "description" : "Games and their net per currency, to compare with the source of the file",
+            "items" : {
+              "$ref" : "#/components/schemas/ImportCurrencyTotal"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "dryRun", "errorCount", "errors", "games", "gamesByType", "imported", "newRooms", "newVariants", "rows", "totals" ],
+        "type" : "object"
+      },
       "GameNameResponse" : {
         "properties" : {
           "buyIn" : {
@@ -473,6 +545,80 @@
             "description" : "VARIANT; null for the games of the type without a variant"
           }
         },
+        "type" : "object"
+      },
+      "ImportCurrencyTotal" : {
+        "properties" : {
+          "currencyCode" : {
+            "type" : "string"
+          },
+          "games" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "net" : {
+            "type" : "number"
+          }
+        },
+        "required" : [ "currencyCode", "games", "net" ],
+        "type" : "object"
+      },
+      "ImportGameTypeCount" : {
+        "properties" : {
+          "gameType" : {
+            "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
+            "type" : "string"
+          },
+          "games" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "gameType", "games" ],
+        "type" : "object"
+      },
+      "ImportRowError" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "field" : {
+            "type" : [ "string", "null" ]
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "row" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "code", "message", "row" ],
+        "type" : "object"
+      },
+      "ImportedRoom" : {
+        "properties" : {
+          "currencyCode" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "currencyCode", "name" ],
+        "type" : "object"
+      },
+      "ImportedVariant" : {
+        "properties" : {
+          "gameType" : {
+            "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "gameType", "name" ],
         "type" : "object"
       },
       "InPlay" : {
@@ -1612,6 +1758,46 @@
         },
         "summary" : "Add a rebuy to a cash game in play",
         "tags" : [ "Games" ]
+      }
+    },
+    "/imports/games" : {
+      "post" : {
+        "description" : "The body is the file itself, in the format of `docs/import.md`: UTF-8, comma separated, a header row and one game per row, up to 5 MB and 50,000 rows. Every game is imported as finished; rooms and variants that do not exist are created.\n\nIt is all or nothing: with an error in any row nothing is stored, and the response (still 200) lists the errors with `imported: false`. With `dryRun=true` the file is checked in the same way and nothing is stored either. Importing the same file twice records its games twice.\n\nA file that cannot be read as a whole fails with `IMPORT_FILE_EMPTY`, `IMPORT_FILE_NOT_UTF8`, `IMPORT_FILE_MALFORMED`, `IMPORT_UNKNOWN_COLUMN`, `IMPORT_DUPLICATE_COLUMN`, `IMPORT_MISSING_COLUMN`, `IMPORT_TOO_MANY_ROWS` (400) or `IMPORT_FILE_TOO_LARGE` (413).",
+        "operationId" : "importGames",
+        "parameters" : [ {
+          "description" : "Only check the file and report what it would import",
+          "in" : "query",
+          "name" : "dryRun",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "text/csv" : {
+              "schema" : {
+                "type" : "string"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GameImportResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Import games from a CSV file",
+        "tags" : [ "Import" ]
       }
     },
     "/rooms" : {

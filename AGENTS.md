@@ -223,6 +223,14 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - A body that is not JSON (the logo of a room) is read from the `InputStream` up to its limit plus
   one byte, never as `@RequestBody byte[]`, which would load whatever is sent; its content is
   described by hand in `@Operation(requestBody = ...)`.
+- `POST /imports/games` (`gameimport` package) imports games from a CSV file sent as the body
+  (`text/csv`), in the one format of the application, described for users in `docs/import.md`: keep
+  that document and `docs/import-example.csv` (imported by a test) in step with `GameCsv`. A file
+  that cannot be read as a whole is an error (`IMPORT_*` codes); errors of rows come in the `200`
+  response (`errors`, with `imported: false`), each with its row, column, `code` and message.
+  It is all or nothing, and `dryRun=true` only checks. Rows are recorded through `GameService`,
+  `RoomService` and `VariantService`, so the rules are those of the API, and the transaction is
+  rolled back on a dry run or when a row failed: do not add a second validation path for imports.
 - Controller method names are the `operationId`s of the contract: keep them unique across
   controllers (`getLogo`, not a second `get`), or springdoc renumbers the ones of other endpoints.
 - The OpenAPI spec is the contract, and it is committed as `frontend/openapi.json` (sorted keys,

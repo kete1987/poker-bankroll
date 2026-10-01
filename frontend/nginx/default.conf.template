@@ -49,8 +49,9 @@ server {
         proxy_set_header X-Forwarded-Proto $client_proto;
         proxy_set_header X-Forwarded-Host $client_host;
         proxy_set_header X-Forwarded-Port $client_port;
-        # Room for CSV imports.
+        # Room for CSV imports, and time: a large file takes longer than the default minute.
         client_max_body_size 20m;
+        proxy_read_timeout 300s;
     }
 
     # Hashed build assets never change: cache them for a year.

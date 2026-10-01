@@ -1,0 +1,7 @@
+playedOn,playedAt,room,currency,gameType,variant,modality,name,buyIn,entries,prize,bounty,ticketPrizeValue,ticketDescription,paidWithTicket,notes
+2026-01-19,21:30,Winamax,EUR,TOURNAMENT,KO,NLHE,Kill The Fish,5,2,18.40,6.25,,,,Final table
+2026-01-19,,Winamax,EUR,TOURNAMENT,,,Satellite to the Sunday,2,,,,10,Sunday ticket,,
+2026-01-25,,Winamax,EUR,TOURNAMENT,,,Sunday,10,,0,,,,true,Played with the ticket won on the 19th
+2026-01-20,,Winamax,EUR,SIT_AND_GO,EXPRESSO,,,2,,4,,,,,"Pot of 4, three players"
+2026-01-20,,Winamax,EUR,SIT_AND_GO,EXPRESSO,,,2,,,,,,,
+2026-01-22,22:15,PokerStars,USD,CASH,,PLO,,50,,73.50,,,,,Table Altair
