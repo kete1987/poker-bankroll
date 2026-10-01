@@ -151,6 +151,36 @@ describe('Name of a game', () => {
     expect(saved(calls, 'POST')).toHaveLength(0);
   });
 
+  it('drops a suggested buy-in when the room changes to another currency', async () => {
+    stubNamesApi([KILL_THE_FISH]);
+    renderApp('/games');
+    const form = await openForm();
+    await choose(form, 'Room', 'Winamax (EUR)');
+    await userEvent.type(form.getByRole('combobox', { name: 'Name' }), 'kill');
+    await userEvent.click(await suggested(/Kill The Fish/));
+    expect(form.getByRole('textbox', { name: 'Buy-in' })).toHaveValue('5');
+
+    await choose(form, 'Room', 'PokerStars (USD)');
+
+    expect(form.getByRole('textbox', { name: 'Buy-in' })).toHaveValue('');
+    expect(form.getByRole('combobox', { name: 'Name' })).toHaveValue('Kill The Fish');
+  });
+
+  it('keeps a buy-in typed by hand when the room changes', async () => {
+    stubNamesApi([KILL_THE_FISH]);
+    renderApp('/games');
+    const form = await openForm();
+    await choose(form, 'Room', 'Winamax (EUR)');
+    await userEvent.type(form.getByRole('combobox', { name: 'Name' }), 'kill');
+    await userEvent.click(await suggested(/Kill The Fish/));
+    await userEvent.clear(form.getByRole('textbox', { name: 'Buy-in' }));
+    await userEvent.type(form.getByRole('textbox', { name: 'Buy-in' }), '7');
+
+    await choose(form, 'Room', 'PokerStars (USD)');
+
+    expect(form.getByRole('textbox', { name: 'Buy-in' })).toHaveValue('7');
+  });
+
   it('leaves alone what was typed or chosen before picking a name', async () => {
     stubNamesApi([KILL_THE_FISH]);
     renderApp('/games');

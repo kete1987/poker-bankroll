@@ -325,7 +325,8 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   the type of the form). Picking a name fills the buy-in, variant and modality of a **new** game,
   except the ones the user has set by hand in that form (`setByHand` in `games/GameForm.tsx`: give
   such a field its props with `filledByName`); a game being edited only takes the name. The buy-in
-  is only filled when it is in the currency of the chosen room.
+  is only filled when it is in the currency of the chosen room, and is emptied again if the room
+  then changes to another currency.
 - Charts are built as an ECharts option passed to `components/Chart` (register there the ECharts
   components a new chart needs). Colouring a line by value needs closed ranges in `visualMap`.
   Tests replace `Chart` with a stub and assert on the option (see `pages/StatsPage.test.tsx`).

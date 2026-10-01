@@ -88,6 +88,8 @@ export function GameForm({ rooms, variants, game, onSave, onSaved, onCancel }: G
   const submitting = useRef(false);
   // What the user has set by hand in this form: a suggested name never replaces it.
   const setByHand = useRef(new Set<FilledByName>());
+  // Currency of the buy-in a suggested name filled in, while it is still that one.
+  const suggestedBuyInCurrency = useRef<string | null>(null);
   const [saving, setSaving] = useState<'save' | 'another' | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
 
@@ -136,6 +138,9 @@ export function GameForm({ rooms, variants, game, onSave, onSaved, onCancel }: G
       ...props,
       onChange: (value: unknown) => {
         setByHand.current.add(field);
+        if (field === 'buyIn') {
+          suggestedBuyInCurrency.current = null;
+        }
         props.onChange(value);
       },
     };
@@ -155,6 +160,7 @@ export function GameForm({ rooms, variants, game, onSave, onSaved, onCancel }: G
     const filled: Partial<GameFormValues> = {};
     if (!setByHand.current.has('buyIn') && suggestion.currencyCode === currency) {
       filled.buyIn = suggestion.buyIn;
+      suggestedBuyInCurrency.current = suggestion.currencyCode;
       form.clearFieldError('buyIn');
     }
     if (!setByHand.current.has('modality')) {
@@ -230,6 +236,7 @@ export function GameForm({ rooms, variants, game, onSave, onSaved, onCancel }: G
         form.clearErrors();
         // What is kept comes from the game just saved: a suggested name may replace it.
         setByHand.current.clear();
+        suggestedBuyInCurrency.current = null;
         buyInRef.current?.focus();
         buyInRef.current?.select();
       }
@@ -329,6 +336,16 @@ export function GameForm({ rooms, variants, game, onSave, onSaved, onCancel }: G
               label: `${candidate.name} (${candidate.currencyCode})`,
             }))}
             {...form.getInputProps('roomId')}
+            onChange={(value) => {
+              // A buy-in taken from a suggestion is an amount of another currency in this room.
+              const chosen = activeRooms.find((candidate) => String(candidate.id) === value);
+              const suggested = suggestedBuyInCurrency.current;
+              if (suggested !== null && chosen && chosen.currencyCode !== suggested) {
+                suggestedBuyInCurrency.current = null;
+                form.setFieldValue('buyIn', '');
+              }
+              form.setFieldValue('roomId', value);
+            }}
           />
           <NumberInput
             ref={buyInRef}
