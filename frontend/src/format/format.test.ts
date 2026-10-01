@@ -66,5 +66,7 @@ describe('formatters', () => {
     expect(es.month('2026-01')).toBe('enero de 2026');
     expect(en.month('2026-01')).toBe('January 2026');
     expect(es.time('21:30:00')).toBe('21:30');
+    expect(es.decimalSeparator).toBe(',');
+    expect(en.decimalSeparator).toBe('.');
   });
 });

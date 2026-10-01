@@ -25,6 +25,15 @@ Object.defineProperty(window, 'matchMedia', {
   }),
 });
 
+// The regional format follows the browser (see format.ts): fix it, whatever jsdom reports.
+Object.defineProperty(navigator, 'languages', { configurable: true, value: ['en-GB', 'es-ES'] });
+
+// The autosizing textarea re-measures itself when fonts finish loading.
+Object.defineProperty(document, 'fonts', {
+  configurable: true,
+  value: { addEventListener: () => {}, removeEventListener: () => {} },
+});
+
 class ResizeObserverStub {
   observe() {}
   unobserve() {}
