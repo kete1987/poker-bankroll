@@ -84,7 +84,7 @@ public class BankrollService {
      */
     private void apply(MovementRequest request, BankrollMovement movement) {
         if (request.roomId() != null) {
-            Room room = rooms.findById(request.roomId())
+            Room room = rooms.findToRecordInById(request.roomId())
                     .orElseThrow(() -> new ApiException(ErrorCode.UNKNOWN_ROOM, String.valueOf(request.roomId())));
             movement.setOwner(room, null);
         } else {

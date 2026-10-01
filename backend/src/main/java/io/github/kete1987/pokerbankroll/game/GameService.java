@@ -144,7 +144,7 @@ public class GameService {
      * the room was deactivated, but cannot be created in, or moved to, an inactive one.
      */
     private Room roomOf(GameRequest request, @Nullable Room current) {
-        Room room = rooms.findById(request.roomId())
+        Room room = rooms.findToRecordInById(request.roomId())
                 .orElseThrow(() -> new ApiException(ErrorCode.UNKNOWN_ROOM, String.valueOf(request.roomId())));
         boolean unchanged = current != null && current.getId().equals(room.getId());
         if (!room.isActive() && !unchanged) {

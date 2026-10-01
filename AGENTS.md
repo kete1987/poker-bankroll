@@ -197,6 +197,8 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - Every change to a game loads it with `GameRepository.findForUpdateById` (row lock), so simultaneous
   requests on the same game (a double click, a re-entry racing a finish) run one after another and
   none is lost.
+- Recording a game or a bankroll movement in a room loads it with `RoomRepository.findToRecordInById`
+  (shared row lock), so a simultaneous change of the room's currency waits and is rejected.
 - The OpenAPI spec is the contract; frontend types are generated from it (API-7).
 
 ### Backend code
