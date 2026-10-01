@@ -86,6 +86,13 @@ class RecordSchemaConverter implements ModelConverter {
         if (!types.isEmpty() && types.add(NULL)) {
             property.setTypes(types);
         }
+        // A value must satisfy both keywords: null has to be one of the enum values too.
+        List<Object> values = property.getEnum();
+        if (values != null && !values.contains(null)) {
+            List<Object> withNull = new ArrayList<>(values);
+            withNull.add(null);
+            property.setEnum(withNull);
+        }
         return property;
     }
 }

@@ -211,7 +211,7 @@
           },
           "modality" : {
             "description" : "Defaults to NLHE",
-            "enum" : [ "NLHE", "PLO" ],
+            "enum" : [ "NLHE", "PLO", null ],
             "type" : [ "string", "null" ]
           },
           "name" : {
@@ -248,7 +248,7 @@
           },
           "status" : {
             "description" : "IN_PLAY (registered when it starts, no result yet) or FINISHED. When omitted: FINISHED if a result is sent (prize, bounty or ticket); otherwise IN_PLAY for a new game and unchanged for an existing one",
-            "enum" : [ "IN_PLAY", "FINISHED" ],
+            "enum" : [ "IN_PLAY", "FINISHED", null ],
             "type" : [ "string", "null" ]
           },
           "ticketDescription" : {
@@ -396,12 +396,12 @@
           },
           "gameType" : {
             "description" : "GAME_TYPE, and VARIANT (the type the variant belongs to)",
-            "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
+            "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH", null ],
             "type" : [ "string", "null" ]
           },
           "modality" : {
             "description" : "MODALITY",
-            "enum" : [ "NLHE", "PLO" ],
+            "enum" : [ "NLHE", "PLO", null ],
             "type" : [ "string", "null" ]
           },
           "period" : {
