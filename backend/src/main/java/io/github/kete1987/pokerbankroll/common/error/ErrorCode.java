@@ -17,7 +17,26 @@ public enum ErrorCode {
     NOT_ACCEPTABLE(HttpStatus.NOT_ACCEPTABLE),
     UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE),
     REQUEST_FAILED(HttpStatus.BAD_REQUEST),
-    INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR);
+    /** Generic conflict with the stored data (e.g. a database constraint), when no specific code applies. */
+    CONFLICT(HttpStatus.CONFLICT),
+    INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR),
+
+    // Catalog
+    UNKNOWN_CURRENCY(HttpStatus.BAD_REQUEST),
+
+    // Rooms
+    ROOM_NAME_TAKEN(HttpStatus.CONFLICT),
+    /** The room has games: it cannot be deleted, only deactivated. */
+    ROOM_IN_USE(HttpStatus.CONFLICT),
+    /** The room has games: its currency cannot change. */
+    ROOM_CURRENCY_LOCKED(HttpStatus.CONFLICT),
+
+    // Variants
+    VARIANT_NAME_TAKEN(HttpStatus.CONFLICT),
+    /** The variant is used by games: it cannot be deleted, only deactivated. */
+    VARIANT_IN_USE(HttpStatus.CONFLICT),
+    /** Built-in variants can only be activated or deactivated. */
+    VARIANT_BUILT_IN(HttpStatus.CONFLICT);
 
     private final HttpStatus status;
 
@@ -40,6 +59,7 @@ public enum ErrorCode {
             case 404 -> NOT_FOUND;
             case 405 -> METHOD_NOT_ALLOWED;
             case 406 -> NOT_ACCEPTABLE;
+            case 409 -> CONFLICT;
             case 415 -> UNSUPPORTED_MEDIA_TYPE;
             default -> status.is4xxClientError() ? REQUEST_FAILED : INTERNAL_ERROR;
         };
