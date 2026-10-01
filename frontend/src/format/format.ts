@@ -46,6 +46,9 @@ export interface Formatters {
   time(isoTime: string): string;
 }
 
+/** Amounts are `NUMERIC(12,2)` in the backend, whatever the currency. */
+const MAX_AMOUNT_DECIMALS = 2;
+
 /** What is shown instead of a value that does not exist (e.g. ROI with nothing invested). */
 export const NO_VALUE = '—';
 
@@ -55,9 +58,20 @@ export function createFormatters(locale: string): Formatters {
     const key = `${currencyCode}/${signed}`;
     let format = moneyFormats.get(key);
     if (!format) {
+      // Decimals of the currency (none for JPY), but never more than the two that amounts are
+      // stored with: a three-decimal currency such as KWD is shown with two.
+      const decimals = Math.min(
+        MAX_AMOUNT_DECIMALS,
+        new Intl.NumberFormat(locale, {
+          style: 'currency',
+          currency: currencyCode,
+        }).resolvedOptions().maximumFractionDigits ?? MAX_AMOUNT_DECIMALS,
+      );
       format = new Intl.NumberFormat(locale, {
         style: 'currency',
         currency: currencyCode,
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
         // Zero is neither a gain nor a loss.
         signDisplay: signed ? 'exceptZero' : 'auto',
         useGrouping: 'always',

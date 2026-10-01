@@ -32,6 +32,11 @@ describe('formatters', () => {
     expect(en.money(1234.5, 'USD')).toBe('US$1,234.50');
   });
 
+  it('uses the decimals of the currency, two at most', () => {
+    expect(en.money(1234, 'JPY')).toBe('JP¥1,234');
+    expect(plain(en.money(1234.5, 'KWD'))).toBe('KWD 1,234.50');
+  });
+
   it('shows the sign of gains, but not of zero', () => {
     expect(plain(es.signedMoney(12, 'EUR'))).toBe('+12,00 €');
     expect(plain(es.signedMoney(-12, 'EUR'))).toBe('-12,00 €');
