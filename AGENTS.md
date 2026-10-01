@@ -96,6 +96,9 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - **Room**: poker site account (Winamax, 888poker...) holding money in **one currency**; its games
   and movements are in that currency. Two currencies on the same site are two rooms. The currency
   of a room cannot change once it has games (database trigger).
+- **Inactive** rooms and variants keep their history and stay in statistics, but take no new games:
+  the UI does not offer them and the API rejects creating a game in them, or moving one to them
+  (`ROOM_INACTIVE`, `VARIANT_INACTIVE`). A game already there can still be edited.
 - **Game type**: the format — `TOURNAMENT`, `SIT_AND_GO` (shown as "Sit & Go / Spins"; includes
   lottery Sit&Go such as Expresso) or `CASH`. Fixed list (table `game_type`, seeded by migrations):
   the application behaves differently per type.
@@ -152,6 +155,10 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   Business errors throw `ApiException(ErrorCode, args...)`.
   The `detail` is resolved from `messages.properties` (English, default) /
   `messages_es.properties` using `Accept-Language`; add every new key to both files.
+- Lists that can grow are paginated with `page` (zero-based) and `size`, and return a
+  `PageResponse` (`items`, `page`, `size`, `totalItems`, `totalPages`). Sorting uses
+  `sort=<field>,<asc|desc>` with a whitelist of fields and always a total order (see `game/GameSort`).
+- Optional fields omitted in a request take their documented default; `PUT` replaces the whole resource.
 - The OpenAPI spec is the contract; frontend types are generated from it (API-7).
 
 ### Backend code
@@ -171,7 +178,10 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   variables (`SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`...).
 - Hibernate never changes the schema (`ddl-auto: validate`); Flyway owns it.
 - Validate input with Bean Validation on request DTOs (`@Valid @RequestBody`) and on simple
-  parameters. Rules spanning several fields go in a **class-level constraint on the DTO**.
+  parameters. Rules spanning several fields go in a **class-level constraint on the DTO** that
+  reports each offending field (see `game/CashGameFields`): the annotation name is the `code`
+  clients receive, and its message goes in both `messages*.properties` under that same name.
+  Rules that need the database (does the room exist?) are checked in the service.
   Do not use cross-parameter constraints on controller methods: Spring MVC 7.0 does not enforce
   them on their own (pinned by `GlobalExceptionHandlerTests#crossParameterOnlyViolationIsNotEnforcedBySpring`).
 - API tests extend `ApiIntegrationTest` (whole application on PostgreSQL through `MockMvcTester`,

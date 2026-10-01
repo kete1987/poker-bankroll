@@ -36,7 +36,18 @@ public enum ErrorCode {
     /** The variant is used by games: it cannot be deleted, only deactivated. */
     VARIANT_IN_USE(HttpStatus.CONFLICT),
     /** Built-in variants can only be activated or deactivated. */
-    VARIANT_BUILT_IN(HttpStatus.CONFLICT);
+    VARIANT_BUILT_IN(HttpStatus.CONFLICT),
+
+    // Games
+    UNKNOWN_ROOM(HttpStatus.BAD_REQUEST),
+    UNKNOWN_VARIANT(HttpStatus.BAD_REQUEST),
+    /** New games cannot be recorded in an inactive room (existing ones can still be edited). */
+    ROOM_INACTIVE(HttpStatus.CONFLICT),
+    /** New games cannot use an inactive variant (existing ones can keep it). */
+    VARIANT_INACTIVE(HttpStatus.CONFLICT),
+    /** The variant belongs to another game type. */
+    VARIANT_GAME_TYPE_MISMATCH(HttpStatus.BAD_REQUEST),
+    INVALID_SORT(HttpStatus.BAD_REQUEST);
 
     private final HttpStatus status;
 
