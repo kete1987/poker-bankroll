@@ -279,7 +279,15 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - Format every date, number, percentage and amount with `useFormat()` (`src/format/`), never by
   hand: it follows the UI language. Rates come from the API as fractions; `null` is shown as `—`.
 - Routes are declared in `src/routes.tsx`; tests render the real app with `renderApp(url)` from
-  `src/test/renderApp.tsx` and stub `fetch` (`stubFetchJson`).
+  `src/test/renderApp.tsx` and stub the backend with `stubApi({ 'GET /rooms': [...], 'POST /games':
+  (call) => ... })`, which returns the calls made (`stubFetchJson` for a single response). Find
+  elements by role and name; options of a `Select` and content of dialogs are not "visible" for
+  jsdom (`hidden: true`, `toBeInTheDocument`).
+- Forms use `@mantine/form`: required fields are checked before sending, validation errors of the
+  backend (`ApiError.errors`) are set on their fields and any other error is shown in an alert
+  (see `games/GameForm.tsx`). Success is confirmed with a notification (`@mantine/notifications`).
+- A mutation invalidates every query its data affects (a game changes `games`, `stats` and
+  `bankroll`): see `api/games.ts`.
 - The light/dark and language choices are stored in `localStorage` under `poker-bankroll.*` keys.
 
 ### Internationalisation

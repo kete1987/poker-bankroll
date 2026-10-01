@@ -1,4 +1,5 @@
 import { MantineProvider } from '@mantine/core';
+import { Notifications } from '@mantine/notifications';
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 
@@ -17,6 +18,7 @@ export function AppProviders({ queryClient, children }: AppProvidersProps) {
       colorSchemeManager={colorSchemeManager}
       defaultColorScheme="auto"
     >
+      <Notifications position="top-right" />
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     </MantineProvider>
   );

@@ -25,6 +25,91 @@
   "page": {
     "comingSoon": "Esta sección todavía no está disponible."
   },
+  "gameTypes": {
+    "TOURNAMENT": "Torneo",
+    "SIT_AND_GO": "Sit & Go / Spin",
+    "CASH": "Cash"
+  },
+  "modalities": {
+    "NLHE": "Hold'em",
+    "PLO": "Omaha"
+  },
+  "gameStatus": {
+    "IN_PLAY": "En juego",
+    "FINISHED": "Finalizada"
+  },
+  "variants": {
+    "REGULAR": "Normal",
+    "KO": "KO",
+    "SPACE_KO": "Space KO",
+    "MYSTERY_KO": "Mystery KO",
+    "EXPRESSO": "Expresso",
+    "EXPRESSO_NITRO": "Expresso Nitro",
+    "DOUBLE_OR_NOTHING": "Double or Nothing",
+    "DOUBLE_OR_NOTHING_DEMENTE": "Double or Nothing Demente",
+    "TRIPLE_OR_NOTHING": "Triple or Nothing",
+    "TRIPLE_OR_NOTHING_DEMENTE": "Triple or Nothing Demente",
+    "HEADS_UP": "Heads-up"
+  },
+  "games": {
+    "add": "Añadir partida",
+    "loadError": "No se han podido cargar los datos. Comprueba que la API está disponible y recarga la página.",
+    "saved": {
+      "title": "Partida guardada",
+      "inPlay": "Está en juego: finalízala cuando sepas el resultado.",
+      "finished": "Neto: {{net}}"
+    },
+    "recent": {
+      "title": "Últimas partidas añadidas",
+      "empty": "Todavía no hay partidas. Añade la primera."
+    },
+    "columns": {
+      "date": "Fecha",
+      "game": "Partida",
+      "room": "Sala",
+      "buyIn": "Buy-in",
+      "net": "Neto"
+    }
+  },
+  "gameForm": {
+    "gameType": "Tipo de partida",
+    "room": "Sala",
+    "buyIn": "Buy-in",
+    "buyInCash": "Llevado a la mesa",
+    "playedOn": "Fecha",
+    "playedAt": "Hora de inicio",
+    "variant": "Variante",
+    "name": "Nombre",
+    "entries": "Entradas (con reentradas)",
+    "modality": "Juego",
+    "paidWithTicket": "Pagué la entrada con un ticket",
+    "paidWithTicketHelp": "Esa entrada no cuesta dinero; las reentradas se pagan en efectivo.",
+    "status": "Estado",
+    "inPlayHelp": "El buy-in ya cuenta. Pondrás el resultado cuando termine.",
+    "finishedHelp": "Deja el resultado vacío si no ganaste nada.",
+    "prize": "Premio",
+    "prizeCash": "Retirado de la mesa",
+    "bounty": "Bounties",
+    "wonTicket": "Gané un ticket",
+    "wonTicketHelp": "Solo informativo: un ticket no es dinero hasta que se juega.",
+    "ticketPrizeValue": "Valor del ticket",
+    "ticketDescription": "Descripción del ticket",
+    "notes": "Notas",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "saveAndAddAnother": "Guardar y añadir otra",
+    "saveAndAddAnotherHint": "Ctrl + Intro",
+    "noRooms": {
+      "title": "No hay salas activas",
+      "description": "Una partida pertenece a una sala. Crea primero una sala o activa alguna."
+    },
+    "errors": {
+      "required": "Obligatorio",
+      "ticketValue": "Indica el valor del ticket",
+      "notSaved": "La partida no se ha guardado",
+      "unexpected": "Se ha producido un error inesperado. Inténtalo de nuevo."
+    }
+  },
   "notFound": {
     "title": "Página no encontrada",
     "description": "La página que buscas no existe.",

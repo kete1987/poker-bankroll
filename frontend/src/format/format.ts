@@ -44,6 +44,8 @@ export interface Formatters {
   month(isoMonth: string): string;
   /** ISO time (`21:30:00`) as `21:30`. */
   time(isoTime: string): string;
+  /** Character between the integer and decimal parts (`,` or `.`), for number inputs. */
+  decimalSeparator: string;
 }
 
 /** Amounts are `NUMERIC(12,2)` in the backend, whatever the currency. */
@@ -110,6 +112,9 @@ export function createFormatters(locale: string): Formatters {
     longDate: (isoDate) => longDateFormat.format(parseIsoDate(isoDate)),
     month: (isoMonth) => monthFormat.format(parseIsoDate(isoMonth)),
     time: (isoTime) => isoTime.slice(0, 5),
+    decimalSeparator:
+      new Intl.NumberFormat(locale).formatToParts(1.5).find((part) => part.type === 'decimal')
+        ?.value ?? '.',
   };
 }
 

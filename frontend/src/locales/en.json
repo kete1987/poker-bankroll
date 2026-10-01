@@ -25,6 +25,91 @@
   "page": {
     "comingSoon": "This section is not available yet."
   },
+  "gameTypes": {
+    "TOURNAMENT": "Tournament",
+    "SIT_AND_GO": "Sit & Go / Spin",
+    "CASH": "Cash"
+  },
+  "modalities": {
+    "NLHE": "Hold'em",
+    "PLO": "Omaha"
+  },
+  "gameStatus": {
+    "IN_PLAY": "In play",
+    "FINISHED": "Finished"
+  },
+  "variants": {
+    "REGULAR": "Regular",
+    "KO": "KO",
+    "SPACE_KO": "Space KO",
+    "MYSTERY_KO": "Mystery KO",
+    "EXPRESSO": "Expresso",
+    "EXPRESSO_NITRO": "Expresso Nitro",
+    "DOUBLE_OR_NOTHING": "Double or Nothing",
+    "DOUBLE_OR_NOTHING_DEMENTE": "Double or Nothing Demente",
+    "TRIPLE_OR_NOTHING": "Triple or Nothing",
+    "TRIPLE_OR_NOTHING_DEMENTE": "Triple or Nothing Demente",
+    "HEADS_UP": "Heads-up"
+  },
+  "games": {
+    "add": "Add game",
+    "loadError": "The data could not be loaded. Check that the API is available and reload the page.",
+    "saved": {
+      "title": "Game saved",
+      "inPlay": "It is in play: finish it when you know the result.",
+      "finished": "Net: {{net}}"
+    },
+    "recent": {
+      "title": "Last games added",
+      "empty": "There are no games yet. Add the first one."
+    },
+    "columns": {
+      "date": "Date",
+      "game": "Game",
+      "room": "Room",
+      "buyIn": "Buy-in",
+      "net": "Net"
+    }
+  },
+  "gameForm": {
+    "gameType": "Game type",
+    "room": "Room",
+    "buyIn": "Buy-in",
+    "buyInCash": "Brought to the table",
+    "playedOn": "Date",
+    "playedAt": "Start time",
+    "variant": "Variant",
+    "name": "Name",
+    "entries": "Entries (with re-entries)",
+    "modality": "Game",
+    "paidWithTicket": "I paid the entry with a ticket",
+    "paidWithTicketHelp": "That entry costs no money; re-entries are paid in cash.",
+    "status": "Status",
+    "inPlayHelp": "The buy-in already counts. You will set the result when it finishes.",
+    "finishedHelp": "Leave the result empty if you won nothing.",
+    "prize": "Prize",
+    "prizeCash": "Taken from the table",
+    "bounty": "Bounties",
+    "wonTicket": "I won a ticket",
+    "wonTicketHelp": "For information only: a ticket is not money until it is played.",
+    "ticketPrizeValue": "Ticket value",
+    "ticketDescription": "Ticket description",
+    "notes": "Notes",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saveAndAddAnother": "Save and add another",
+    "saveAndAddAnotherHint": "Ctrl + Enter",
+    "noRooms": {
+      "title": "There are no active rooms",
+      "description": "A game belongs to a room. Create a room first, or activate one."
+    },
+    "errors": {
+      "required": "Required",
+      "ticketValue": "Enter the value of the ticket",
+      "notSaved": "The game was not saved",
+      "unexpected": "An unexpected error occurred. Try again."
+    }
+  },
   "notFound": {
     "title": "Page not found",
     "description": "The page you are looking for does not exist.",
