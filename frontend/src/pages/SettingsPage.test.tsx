@@ -161,6 +161,38 @@ describe('Settings: rooms', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
+  it('waits for the logo to be resized before the room can be saved', async () => {
+    let finish: (image: Blob) => void = () => {};
+    vi.mocked(resizeImage).mockReturnValueOnce(
+      new Promise<Blob>((resolve) => {
+        finish = resolve;
+      }),
+    );
+    const created = room({ id: 9, name: '888poker', inUse: false, logoVersion: null });
+    const calls = stubSettings({
+      'POST /rooms': created,
+      'PUT /rooms/9/logo': { ...created, logoVersion: 'v1' },
+    });
+    renderApp('/settings');
+    await userEvent.click(await screen.findByRole('button', { name: 'Add room' }));
+    const dialog = within(await screen.findByRole('dialog', { name: 'Add room' }));
+    await userEvent.type(dialog.getByRole('textbox', { name: 'Name' }), '888poker');
+    await userEvent.upload(
+      document.querySelector<HTMLInputElement>('input[type="file"]')!,
+      new File(['image'], 'logo.png', { type: 'image/png' }),
+    );
+
+    // Saving now would create the room without the logo just chosen.
+    await waitFor(() => expect(dialog.getByRole('button', { name: 'Save' })).toBeDisabled());
+    await userEvent.type(dialog.getByRole('textbox', { name: 'Name' }), '{Enter}');
+    expect(sent(calls, 'POST')).toHaveLength(0);
+
+    finish(RESIZED);
+    await waitFor(() => expect(dialog.getByRole('button', { name: 'Save' })).toBeEnabled());
+    await userEvent.click(dialog.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(sent(calls, 'PUT')).toHaveLength(1));
+  });
+
   it('keeps the new room when its logo cannot be stored, and says so', async () => {
     const created = room({ id: 9, name: '888poker', inUse: false, logoVersion: null });
     stubSettings({

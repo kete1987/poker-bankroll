@@ -57,8 +57,13 @@ export function RoomDialog({ room, currencies, onSaved, onClose }: RoomDialogPro
   const [currencyError, setCurrencyError] = useState<string | null>(null);
   // The logo chosen for a room that does not exist yet, already resized.
   const [newLogo, setNewLogo] = useState<Blob | null>(null);
+  // While the logo chosen is being resized the room cannot be saved: it would go without it.
+  const [resizing, setResizing] = useState(false);
 
   function submit() {
+    if (resizing) {
+      return;
+    }
     if (name.trim() === '') {
       setNameError(t('gameForm.errors.required'));
       return;
@@ -148,13 +153,13 @@ export function RoomDialog({ room, currencies, onSaved, onClose }: RoomDialogPro
           {room ? (
             <StoredLogo room={room} />
           ) : (
-            <NewLogo name={name} logo={newLogo} onChange={setNewLogo} />
+            <NewLogo name={name} logo={newLogo} onChange={setNewLogo} onBusy={setResizing} />
           )}
           <Group justify="flex-end" gap="sm">
             <Button variant="subtle" color="gray" onClick={onClose} disabled={save.busy}>
               {t('actions.cancel')}
             </Button>
-            <Button type="submit" loading={save.busy}>
+            <Button type="submit" loading={save.busy} disabled={resizing}>
               {t('gameForm.save')}
             </Button>
           </Group>
@@ -235,10 +240,13 @@ function NewLogo({
   name,
   logo,
   onChange,
+  onBusy,
 }: {
   name: string;
   logo: Blob | null;
   onChange: (logo: Blob | null) => void;
+  /** Told while the image chosen is being resized. */
+  onBusy: (busy: boolean) => void;
 }) {
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
@@ -255,6 +263,7 @@ function NewLogo({
 
   async function choose(file: File) {
     setBusy(true);
+    onBusy(true);
     setFailure(null);
     try {
       onChange(await resizeImage(file));
@@ -262,6 +271,7 @@ function NewLogo({
       setFailure(t('settings.logo.unreadable'));
     } finally {
       setBusy(false);
+      onBusy(false);
     }
   }
 
