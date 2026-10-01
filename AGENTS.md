@@ -254,6 +254,10 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - Configuration comes from `application.yaml`; override it with standard Spring environment
   variables (`SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`...).
 - Hibernate never changes the schema (`ddl-auto: validate`); Flyway owns it.
+- A `LocalTime` attribute is mapped with `@JdbcTypeCode(SqlTypes.LOCAL_TIME)` (see `Game.playedAt`):
+  by default Hibernate sends it as `java.sql.Time` and shifts it from the time zone of the JVM to
+  `hibernate.jdbc.time_zone` (UTC), so the stored time would depend on where the API runs
+  (pinned by `GameTimeZoneApiTests`).
 - Validate input with Bean Validation on request DTOs (`@Valid @RequestBody`) and on simple
   parameters. Rules spanning several fields go in a **class-level constraint on the DTO** that
   reports each offending field (see `game/CashGameFields`): the annotation name is the `code`
