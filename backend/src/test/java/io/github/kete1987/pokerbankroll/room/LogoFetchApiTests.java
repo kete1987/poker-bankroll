@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.time.Duration;
 import java.util.Arrays;
+import java.util.concurrent.Executors;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
@@ -26,7 +28,10 @@ import org.springframework.test.web.servlet.assertj.MvcTestResult;
  * machine, which the application refuses to fetch from, so these tests run with private
  * addresses allowed; {@link LogoFetchBlockedTests} covers the refusal.
  */
-@SpringBootTest(properties = "poker-bankroll.logo-fetch.allow-private-addresses=true")
+@SpringBootTest(properties = {
+    "poker-bankroll.logo-fetch.allow-private-addresses=true",
+    // Short, so the test of a server that never finishes does not take long.
+    "poker-bankroll.logo-fetch.timeout=2s"})
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
 class LogoFetchApiTests {
@@ -58,6 +63,9 @@ class LogoFetchApiTests {
         server.createContext("/moved-twice", exchange -> redirect(exchange, "/moved"));
         server.createContext("/loop", exchange -> redirect(exchange, "/loop"));
         server.createContext("/to-file", exchange -> redirect(exchange, "file:///etc/passwd"));
+        server.createContext("/drip", LogoFetchApiTests::drip);
+        // Each request gets its own thread: the one that drips must not hold the others.
+        server.setExecutor(Executors.newCachedThreadPool());
         server.start();
         site = "http://127.0.0.1:" + server.getAddress().getPort();
     }
@@ -113,7 +121,18 @@ class LogoFetchApiTests {
                 "http:///logo.png", "http://user:secret@example.com/logo.png", "http://exa mple.com/"}) {
             assertFails(url, HttpStatus.BAD_REQUEST, "LOGO_URL_INVALID");
         }
-        assertFails(site + "/to-file", HttpStatus.BAD_REQUEST, "LOGO_URL_INVALID");
+        // A redirect to anything else is not followed.
+        assertFails(site + "/to-file", HttpStatus.BAD_GATEWAY, "LOGO_URL_UNREACHABLE");
+    }
+
+    @Test
+    void givesUpOnAServerThatNeverFinishes() {
+        long start = System.nanoTime();
+
+        assertFails(site + "/drip", HttpStatus.BAD_GATEWAY, "LOGO_URL_UNREACHABLE");
+
+        // The deadline is for the whole download: a byte now and then does not extend it.
+        assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofSeconds(6));
     }
 
     @Test
@@ -140,6 +159,24 @@ class LogoFetchApiTests {
             exchange.getResponseBody().write(body);
         }
         exchange.close();
+    }
+
+    /** Starts like an image and then sends a byte every now and then, for much longer than the deadline. */
+    private static void drip(HttpExchange exchange) throws IOException {
+        exchange.getResponseHeaders().add("Content-Type", "image/png");
+        exchange.sendResponseHeaders(200, 0);
+        try (var body = exchange.getResponseBody()) {
+            body.write(PNG);
+            for (int i = 0; i < 40; i++) {
+                body.write(0);
+                body.flush();
+                Thread.sleep(250);
+            }
+        } catch (IOException | InterruptedException ex) {
+            // The client gave up, which is the point.
+        } finally {
+            exchange.close();
+        }
     }
 
     private static void redirect(HttpExchange exchange, String location) throws IOException {

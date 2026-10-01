@@ -325,8 +325,10 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   `POST /rooms/logo-fetch` downloads it (`room/RemoteImageFetcher`) and hands it back; it then
   follows the same path as a file. That endpoint only fetches `http`/`https` URLs of **public**
   addresses, also after redirects (`room/PublicAddress`): the app has no login and must not be a
-  way into the local network. `poker-bankroll.logo-fetch.allow-private-addresses=true` lifts that
-  (the tests need it to reach their own web server).
+  way into the local network. The HTTP client (Apache HttpClient 5) gets its addresses from the
+  application, so the ones checked are the ones connected to; the whole download has a deadline
+  (`poker-bankroll.logo-fetch.timeout`, 20 s). `poker-bankroll.logo-fetch.allow-private-addresses=true`
+  lifts the address check (the tests need it to reach their own web server).
 - A logo is resized in the browser before it is uploaded (`settings/resizeImage.ts`, 128 px at
   most, PNG), so the backend only stores small images. Tests replace that module: canvas does not
   exist in jsdom.
