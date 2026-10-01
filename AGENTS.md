@@ -143,6 +143,11 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - **Average buy-in**: mean of `buy_in` over the games, not a mean of per-type means.
 - Statistics (`stats` package) share one set of figures (`StatsFigures`) built from sums by
   `GameTotals`; rates and ROI are fractions with 4 decimals (`0.3496`), formatted by the frontend.
+  `/stats/summary` gives them overall and per game type, `/stats/groups?groupBy=` per period (`DAY`,
+  `WEEK` from Monday, `MONTH`, `YEAR`), `GAME_TYPE`, `VARIANT`, `ROOM`, `MODALITY` or `BUY_IN`; both
+  take the filters of the games list. Periods carry the **cumulative net**, which starts from zero
+  at the beginning of the filtered range. A new grouping is a `GroupBy` constant plus its `Grouping`
+  in `StatsService`.
 - **Bankroll movement**: `DEPOSIT`, `WITHDRAWAL`, `BONUS`, `ADJUSTMENT` (reconciles with the
   real balance shown by the room).
 - **Room balance** = sum of its movements + sum of the net of its games.

@@ -170,6 +170,173 @@ class StatsApiTests extends ApiIntegrationTest {
         assertThat(mvc.get().uri("/stats/summary?gameType=BINGO")).hasStatus(HttpStatus.BAD_REQUEST);
     }
 
+    // ---- groups ----
+
+    @Test
+    void groupsByDayWithTheCumulativeNet() {
+        recordSampleGames();
+
+        String json = groups("?groupBy=DAY&currency=EUR");
+
+        assertThat(JsonPath.<String>read(json, "$.groupBy")).isEqualTo("DAY");
+        assertThat(JsonPath.<Object>read(json, "$.currencies[0].groups[*].key.period"))
+                .hasToString("[\"2026-01-19\",\"2026-01-20\",\"2026-01-21\",\"2026-01-22\"]");
+        String monday = "$.currencies[0].groups[0]";
+        assertNumber(json, monday + ".figures.games", "2");
+        assertNumber(json, monday + ".figures.entries", "3");
+        assertNumber(json, monday + ".figures.invested", "12");
+        assertNumber(json, monday + ".figures.won", "13");
+        assertNumber(json, monday + ".figures.net", "1");
+        assertNumber(json, monday + ".figures.roi", "0.0833");
+        assertNumber(json, monday + ".cumulativeNet", "1");
+        assertNumber(json, "$.currencies[0].groups[1].figures.net", "-1");
+        assertNumber(json, "$.currencies[0].groups[1].cumulativeNet", "0");
+        assertNumber(json, "$.currencies[0].groups[2].cumulativeNet", "1");
+        // The game in play of the 22nd is not counted.
+        assertNumber(json, "$.currencies[0].groups[3].figures.games", "1");
+        assertNumber(json, "$.currencies[0].groups[3].cumulativeNet", "2.5");
+    }
+
+    @Test
+    void theCumulativeNetStartsFromZeroAtTheBeginningOfTheFilteredRange() {
+        recordSampleGames();
+
+        String json = groups("?groupBy=DAY&currency=EUR&from=2026-01-21");
+
+        assertThat(JsonPath.<Object>read(json, "$.currencies[0].groups[*].key.period"))
+                .hasToString("[\"2026-01-21\",\"2026-01-22\"]");
+        assertNumber(json, "$.currencies[0].groups[0].cumulativeNet", "1");
+        assertNumber(json, "$.currencies[0].groups[1].cumulativeNet", "2.5");
+    }
+
+    @Test
+    void groupsByWeekMonthAndYear() {
+        recordSampleGames();
+        game(winamax, "TOURNAMENT", "2025-12-31").buyIn("4").insert();
+        game(winamax, "TOURNAMENT", "2026-01-18").buyIn("1").prize("3").insert();
+
+        String weeks = groups("?groupBy=WEEK&currency=EUR");
+        // Weeks start on Monday: Sunday the 18th belongs to the week of the 12th.
+        assertThat(JsonPath.<Object>read(weeks, "$.currencies[0].groups[*].key.period"))
+                .hasToString("[\"2025-12-29\",\"2026-01-12\",\"2026-01-19\"]");
+        assertNumber(weeks, "$.currencies[0].groups[2].figures.games", "6");
+        assertNumber(weeks, "$.currencies[0].groups[2].cumulativeNet", "0.5");
+
+        String months = groups("?groupBy=MONTH&currency=EUR");
+        assertThat(JsonPath.<Object>read(months, "$.currencies[0].groups[*].key.period"))
+                .hasToString("[\"2025-12\",\"2026-01\"]");
+        assertNumber(months, "$.currencies[0].groups[1].figures.games", "7");
+        assertNumber(months, "$.currencies[0].groups[1].figures.net", "4.5");
+        // Figures are computed on the whole group, not added up from its days.
+        assertNumber(months, "$.currencies[0].groups[1].figures.averageBuyIn", "3.33");
+        assertNumber(months, "$.currencies[0].groups[1].cumulativeNet", "0.5");
+
+        String years = groups("?groupBy=YEAR&currency=EUR");
+        assertThat(JsonPath.<Object>read(years, "$.currencies[0].groups[*].key.period"))
+                .hasToString("[\"2025\",\"2026\"]");
+        assertNumber(years, "$.currencies[0].groups[0].figures.net", "-4");
+        assertNumber(years, "$.currencies[0].groups[1].cumulativeNet", "0.5");
+    }
+
+    @Test
+    void groupsByGameTypeLikeTheSummary() {
+        recordSampleGames();
+
+        String json = groups("?groupBy=GAME_TYPE&currency=EUR");
+
+        // Most played first; with the same games, the best net first.
+        assertThat(JsonPath.<Object>read(json, "$.currencies[0].groups[*].key.gameType"))
+                .hasToString("[\"TOURNAMENT\",\"CASH\",\"SIT_AND_GO\"]");
+        assertNumber(json, "$.currencies[0].groups[0].figures.games", "4");
+        assertNumber(json, "$.currencies[0].groups[0].figures.withPrizeRate", "0.75");
+        assertThat(JsonPath.<Object>read(json, "$.currencies[0].groups[0].cumulativeNet")).isNull();
+        assertThat(JsonPath.<Object>read(json, "$.currencies[0].groups[1].figures.averageBuyIn")).isNull();
+    }
+
+    @Test
+    void groupsByVariantWithinItsGameType() {
+        recordSampleGames();
+        long ko = builtInVariantId("TOURNAMENT", "KO");
+        long turbo = insertCustomVariant("SIT_AND_GO", "Turbo");
+        game(winamax, "SIT_AND_GO", "2026-01-23").variant(turbo).buyIn("1").insert();
+        game(winamax, "SIT_AND_GO", "2026-01-23").variant(turbo).buyIn("1").prize("2").insert();
+
+        String json = groups("?groupBy=VARIANT&currency=EUR");
+
+        String groups = "$.currencies[0].groups";
+        assertThat(JsonPath.<Integer>read(json, groups + ".length()")).isEqualTo(5);
+        // Tournaments without a variant are one group, Sit&Go without a variant another.
+        assertThat(JsonPath.<String>read(json, groups + "[0].key.gameType")).isEqualTo("TOURNAMENT");
+        assertThat(JsonPath.<Object>read(json, groups + "[0].key.variant")).isNull();
+        assertNumber(json, groups + "[0].figures.games", "3");
+        assertThat(JsonPath.<String>read(json, groups + "[1].key.gameType")).isEqualTo("SIT_AND_GO");
+        assertThat(JsonPath.<Integer>read(json, groups + "[1].key.variant.id")).isEqualTo((int) turbo);
+        assertThat(JsonPath.<String>read(json, groups + "[1].key.variant.name")).isEqualTo("Turbo");
+        assertThat(JsonPath.<Object>read(json, groups + "[1].key.variant.code")).isNull();
+        assertNumber(json, groups + "[1].figures.games", "2");
+        assertThat(JsonPath.<Object>read(json, groups + "[?(@.key.variant.code == 'KO')].key.variant.id"))
+                .hasToString("[" + ko + "]");
+        assertThat(JsonPath.<Object>read(json, groups + "[?(@.key.variant.code == 'KO')].key.gameType"))
+                .hasToString("[\"TOURNAMENT\"]");
+        assertThat(JsonPath.<Object>read(json,
+                groups + "[?(@.key.gameType == 'SIT_AND_GO' && @.key.variant == null)].figures.games"))
+                .hasToString("[1]");
+    }
+
+    @Test
+    void groupsByRoomAndByModality() {
+        recordSampleGames();
+        long unibet = insertRoom("Unibet", "EUR");
+        game(unibet, "TOURNAMENT", "2026-01-23").buyIn("1").insert();
+
+        String rooms = groups("?groupBy=ROOM");
+        assertThat(JsonPath.<Object>read(rooms, "$.currencies[0].groups[*].key.room.name"))
+                .hasToString("[\"Winamax\",\"Unibet\"]");
+        assertThat(JsonPath.<Integer>read(rooms, "$.currencies[0].groups[1].key.room.id")).isEqualTo((int) unibet);
+        assertNumber(rooms, "$.currencies[0].groups[0].figures.games", "6");
+        assertThat(JsonPath.<Object>read(rooms, "$.currencies[1].groups[*].key.room.name"))
+                .hasToString("[\"PokerStars\"]");
+
+        String modalities = groups("?groupBy=MODALITY&currency=EUR");
+        assertThat(JsonPath.<Object>read(modalities, "$.currencies[0].groups[*].key.modality"))
+                .hasToString("[\"NLHE\",\"PLO\"]");
+        assertNumber(modalities, "$.currencies[0].groups[1].figures.games", "1");
+    }
+
+    @Test
+    void groupsByBuyInFromLowestToHighestWithoutCashGames() {
+        recordSampleGames();
+
+        String json = groups("?groupBy=BUY_IN&currency=EUR");
+
+        assertThat(JsonPath.<Integer>read(json, "$.currencies[0].groups.length()")).isEqualTo(4);
+        assertNumber(json, "$.currencies[0].groups[0].key.buyIn", "1");
+        // The satellite and the Sit&Go; the cash game brought 2 to the table and is not a buy-in of 2.
+        assertNumber(json, "$.currencies[0].groups[0].figures.games", "2");
+        assertNumber(json, "$.currencies[0].groups[1].key.buyIn", "2");
+        assertNumber(json, "$.currencies[0].groups[1].figures.games", "1");
+        assertNumber(json, "$.currencies[0].groups[2].key.buyIn", "5");
+        assertNumber(json, "$.currencies[0].groups[3].key.buyIn", "10");
+        assertThat(groups("?groupBy=BUY_IN&gameType=CASH")).isEqualTo("{\"groupBy\":\"BUY_IN\",\"currencies\":[]}");
+    }
+
+    @Test
+    void groupsTakeTheFiltersOfTheGamesList() {
+        recordSampleGames();
+
+        String json = groups("?groupBy=MONTH&gameType=TOURNAMENT&roomId=" + winamax);
+
+        assertThat(JsonPath.<Integer>read(json, "$.currencies.length()")).isEqualTo(1);
+        assertNumber(json, "$.currencies[0].groups[0].figures.games", "4");
+        assertThat(groups("?groupBy=DAY&from=2027-01-01")).isEqualTo("{\"groupBy\":\"DAY\",\"currencies\":[]}");
+    }
+
+    @Test
+    void groupByIsRequiredAndMustBeKnown() {
+        assertThat(mvc.get().uri("/stats/groups")).hasStatus(HttpStatus.BAD_REQUEST);
+        assertThat(mvc.get().uri("/stats/groups?groupBy=DECADE")).hasStatus(HttpStatus.BAD_REQUEST);
+    }
+
     /**
      * EUR: four tournaments, a Sit&Go and a cash game finished, plus a tournament in play.
      * USD: one tournament finished.
@@ -187,7 +354,15 @@ class StatsApiTests extends ApiIntegrationTest {
     }
 
     private String summary(String query) {
-        var result = mvc.get().uri("/stats/summary" + query).exchange();
+        return get("/stats/summary" + query);
+    }
+
+    private String groups(String query) {
+        return get("/stats/groups" + query);
+    }
+
+    private String get(String uri) {
+        var result = mvc.get().uri(uri).exchange();
         assertThat(result).hasStatusOk();
         try {
             return result.getResponse().getContentAsString();
