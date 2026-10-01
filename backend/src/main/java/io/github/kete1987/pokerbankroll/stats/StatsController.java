@@ -1,0 +1,48 @@
+package io.github.kete1987.pokerbankroll.stats;
+
+import java.time.LocalDate;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+import io.github.kete1987.pokerbankroll.catalog.GameType;
+import io.github.kete1987.pokerbankroll.catalog.Modality;
+import io.github.kete1987.pokerbankroll.game.GameFilter;
+import org.jspecify.annotations.Nullable;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/stats")
+@Tag(name = "Statistics", description = "Aggregated results")
+class StatsController {
+
+    private final StatsService service;
+
+    StatsController(StatsService service) {
+        this.service = service;
+    }
+
+    @GetMapping("/summary")
+    @Operation(summary = "Results overall and per game type, for each currency",
+            description = "Takes the filters of the games list, all optional and combined with AND. "
+                    + "Only finished games count in the figures; games in play are reported apart.")
+    StatsSummaryResponse summary(
+            @Parameter(description = "Played on or after this date")
+            @RequestParam(required = false) @Nullable LocalDate from,
+            @Parameter(description = "Played on or before this date")
+            @RequestParam(required = false) @Nullable LocalDate to,
+            @RequestParam(required = false) @Nullable GameType gameType,
+            @RequestParam(required = false) @Nullable Modality modality,
+            @RequestParam(required = false) @Nullable Long roomId,
+            @RequestParam(required = false) @Nullable Long variantId,
+            @Parameter(description = "Currency of the room, e.g. EUR")
+            @RequestParam(required = false) @Nullable String currency,
+            @Parameter(description = "Text contained in the name or the notes, ignoring case")
+            @RequestParam(required = false) @Nullable String q) {
+        return service.summary(new GameFilter(from, to, gameType, modality, roomId, variantId, null, currency, q));
+    }
+}
