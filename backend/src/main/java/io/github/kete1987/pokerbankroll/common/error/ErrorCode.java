@@ -30,6 +30,16 @@ public enum ErrorCode {
     ROOM_IN_USE(HttpStatus.CONFLICT),
     /** The room has games or bankroll movements: its currency cannot change. */
     ROOM_CURRENCY_LOCKED(HttpStatus.CONFLICT),
+    LOGO_EMPTY(HttpStatus.BAD_REQUEST),
+    LOGO_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE),
+    /** The content is not a PNG, JPEG or WebP image, whatever the declared content type. */
+    LOGO_UNSUPPORTED_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE),
+    /** Not an http or https URL. */
+    LOGO_URL_INVALID(HttpStatus.BAD_REQUEST),
+    /** The URL points to this machine or to a private network, which is never fetched. */
+    LOGO_URL_NOT_PUBLIC(HttpStatus.BAD_REQUEST),
+    /** The image could not be downloaded: unknown host, timeout, an error of the other server. */
+    LOGO_URL_UNREACHABLE(HttpStatus.BAD_GATEWAY),
 
     // Variants
     VARIANT_NAME_TAKEN(HttpStatus.CONFLICT),
@@ -54,7 +64,19 @@ public enum ErrorCode {
     RE_ENTRY_NOT_FOR_CASH_GAMES(HttpStatus.CONFLICT),
     REBUY_ONLY_FOR_CASH_GAMES(HttpStatus.CONFLICT),
     /** A cash game finishes with a prize only: no bounties or tickets. */
-    CASH_GAME_RESULT(HttpStatus.BAD_REQUEST);
+    CASH_GAME_RESULT(HttpStatus.BAD_REQUEST),
+
+    // Import: what is wrong with the file as a whole. Errors of its rows are part of the response.
+    /** Nothing in the file, or only the header. */
+    IMPORT_FILE_EMPTY(HttpStatus.BAD_REQUEST),
+    IMPORT_FILE_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE),
+    IMPORT_FILE_NOT_UTF8(HttpStatus.BAD_REQUEST),
+    /** Not a CSV file: a quote that is not closed, or text after a closing quote. */
+    IMPORT_FILE_MALFORMED(HttpStatus.BAD_REQUEST),
+    IMPORT_TOO_MANY_ROWS(HttpStatus.BAD_REQUEST),
+    IMPORT_UNKNOWN_COLUMN(HttpStatus.BAD_REQUEST),
+    IMPORT_DUPLICATE_COLUMN(HttpStatus.BAD_REQUEST),
+    IMPORT_MISSING_COLUMN(HttpStatus.BAD_REQUEST);
 
     private final HttpStatus status;
 

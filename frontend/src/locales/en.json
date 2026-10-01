@@ -51,6 +51,231 @@
     "TRIPLE_OR_NOTHING_DEMENTE": "Triple or Nothing Demente",
     "HEADS_UP": "Heads-up"
   },
+  "dashboard": {
+    "currency": "Currency",
+    "empty": "There is nothing to show yet.",
+    "goToGames": "Go to games",
+    "noGames": "No finished games in this period.",
+    "noVariant": "No variant",
+    "total": "Total",
+    "results": "Results",
+    "ticketsWon": "Tickets won: {{value}} (not counted as money).",
+    "inPlay_one": "{{count}} game in play, {{invested}} invested.",
+    "inPlay_other": "{{count}} games in play, {{invested}} invested.",
+    "breakdown": {
+      "label": "Break the results down",
+      "type": "By type",
+      "variant": "By variant"
+    },
+    "cards": {
+      "net": "Net",
+      "netDetail": "{{won}} won · {{invested}} invested",
+      "roi": "ROI",
+      "games_one": "{{formatted}} game",
+      "games_other": "{{formatted}} games",
+      "itm": "ITM in tournaments",
+      "itmDetail_one": "{{inTheMoney}} of {{formatted}} tournament",
+      "itmDetail_other": "{{inTheMoney}} of {{formatted}} tournaments",
+      "bankroll": "Bankroll"
+    },
+    "columns": {
+      "games": "Played",
+      "withPrize": "With prize",
+      "withPrizeRate": "% with prize",
+      "averageBuyIn": "Avg. buy-in",
+      "inTheMoney": "ITM",
+      "inTheMoneyRate": "% ITM",
+      "invested": "Invested",
+      "won": "Won",
+      "net": "Net",
+      "roi": "ROI"
+    },
+    "bankroll": {
+      "title": "Bankroll per room",
+      "room": "Room",
+      "now": "Bankroll now",
+      "withoutRoom": "No room",
+      "periodNet": "Net of the period"
+    }
+  },
+  "movementTypes": {
+    "DEPOSIT": "Deposit",
+    "WITHDRAWAL": "Withdrawal",
+    "BONUS": "Rakeback / bonus",
+    "ADJUSTMENT": "Adjustment"
+  },
+  "bankroll": {
+    "add": "Add movement",
+    "edit": "Edit movement",
+    "saved": "Movement saved",
+    "rooms": "Per room",
+    "movements": "Movements",
+    "noMovements": "There are no movements for these filters.",
+    "total_one": "{{formatted}} movement",
+    "total_other": "{{formatted}} movements",
+    "withoutRoom": "No room",
+    "inactive": "Inactive",
+    "movementName": "{{type}} of {{date}}",
+    "cards": {
+      "bankroll": "Bankroll",
+      "change": "Change in the period",
+      "adjustments": "Adjustments: {{amount}}",
+      "deposited": "Deposited",
+      "withdrawn": "{{amount}} withdrawn",
+      "result": "Result",
+      "resultDetail": "Games {{games}} · Rakeback / bonuses {{bonuses}}"
+    },
+    "columns": {
+      "room": "Room",
+      "deposited": "Deposited",
+      "withdrawn": "Withdrawn",
+      "bonuses": "Rakeback / bonuses",
+      "adjustments": "Adjustments",
+      "gamesNet": "Net of games",
+      "result": "Result",
+      "bankroll": "Bankroll",
+      "change": "Change",
+      "date": "Date",
+      "type": "Type",
+      "amount": "Amount",
+      "notes": "Notes"
+    },
+    "filters": {
+      "type": "Type of movement",
+      "anyType": "Every type"
+    },
+    "actions": {
+      "editMovement": "Edit {{movement}}",
+      "deleteMovement": "Delete {{movement}}"
+    },
+    "delete": {
+      "title": "Delete movement",
+      "confirm": "Delete the {{type}} of {{amount}} of {{date}}? This cannot be undone.",
+      "done": "Movement deleted"
+    },
+    "form": {
+      "type": "Type of movement",
+      "typeHelp": {
+        "DEPOSIT": "Money you set aside for poker. It adds to the bankroll.",
+        "WITHDRAWAL": "Money you take out of the bankroll. It subtracts.",
+        "BONUS": "Poker money that does not come from a game: rakeback, promotions. It counts as result.",
+        "ADJUSTMENT": "A manual correction, up or down."
+      },
+      "room": "Room",
+      "inactiveRoom": "{{name}} ({{currency}}, inactive)",
+      "currency": "Currency",
+      "amount": "Amount",
+      "adjustmentHelp": "Negative to subtract.",
+      "date": "Date",
+      "errors": {
+        "amount": "Enter an amount greater than zero",
+        "notSaved": "The movement was not saved"
+      }
+    }
+  },
+  "settings": {
+    "active": "Active",
+    "tabs": {
+      "rooms": "Rooms",
+      "variants": "Variants"
+    },
+    "rooms": {
+      "add": "Add room",
+      "edit": "Edit room",
+      "room": "Room",
+      "name": "Name",
+      "currency": "Currency",
+      "currencyLocked": "It cannot change: the room already has games or movements.",
+      "activeHelp": "An inactive room keeps its history but is not offered for new games.",
+      "activeRoom": "{{room}} is active",
+      "editRoom": "Edit {{room}}",
+      "deleteRoom": "Delete {{room}}",
+      "inUse": "It has games or movements: deactivate it instead.",
+      "empty": "There are no rooms yet. Add the first one to start recording games.",
+      "created": "Room created",
+      "saved": "Room saved",
+      "delete": {
+        "title": "Delete room",
+        "confirm": "Delete the room {{room}}? This cannot be undone.",
+        "done": "Room deleted"
+      }
+    },
+    "logo": {
+      "title": "Logo",
+      "upload": "Upload logo",
+      "change": "Change logo",
+      "remove": "Remove logo",
+      "current": "Logo of {{room}}",
+      "help": "Any image, from a file or a URL: it is reduced to 128 px before it is stored.",
+      "unreadable": "The file could not be read as an image.",
+      "helpNew": "Optional. Any image, from a file or a URL: it is reduced to 128 px and stored when you save the room.",
+      "notStored": "The logo was not stored",
+      "url": "Or load it from a URL",
+      "load": "Load"
+    },
+    "variants": {
+      "add": "Add variant",
+      "edit": "Edit variant",
+      "name": "Name",
+      "gameType": "Game type",
+      "gameTypeLocked": "The game type of a variant cannot change.",
+      "own": "Yours",
+      "activeVariant": "{{variant}} is active",
+      "editVariant": "Edit {{variant}}",
+      "deleteVariant": "Delete {{variant}}",
+      "inUse": "It is used by games: deactivate it instead.",
+      "empty": "No variants.",
+      "created": "Variant created",
+      "saved": "Variant saved",
+      "delete": {
+        "title": "Delete variant",
+        "confirm": "Delete the variant {{variant}}? This cannot be undone.",
+        "done": "Variant deleted"
+      }
+    }
+  },
+  "stats": {
+    "groupBy": "Group by",
+    "weekOf": "Week of {{date}}",
+    "granularity": {
+      "DAY": "Day",
+      "WEEK": "Week",
+      "MONTH": "Month"
+    },
+    "net": {
+      "title": "Net over time",
+      "tooltipNet": "Net",
+      "tooltipGames_one": "{{count}} game",
+      "tooltipGames_other": "{{count}} games",
+      "tooltipCumulative": "Cumulative",
+      "cards": {
+        "net": "Net of the period",
+        "invested": "{{invested}} invested",
+        "best": {
+          "DAY": "Best day",
+          "WEEK": "Best week",
+          "MONTH": "Best month"
+        },
+        "worst": {
+          "DAY": "Worst day",
+          "WEEK": "Worst week",
+          "MONTH": "Worst month"
+        }
+      }
+    },
+    "chart": {
+      "label": "What the chart shows",
+      "cumulative": "Cumulative",
+      "period": "Per period"
+    },
+    "table": {
+      "title": {
+        "DAY": "Results per day",
+        "WEEK": "Results per week",
+        "MONTH": "Results per month"
+      }
+    }
+  },
   "games": {
     "add": "Add game",
     "loadError": "The data could not be loaded. Check that the API is available and reload the page.",
@@ -59,16 +284,96 @@
       "inPlay": "It is in play: finish it when you know the result.",
       "finished": "Net: {{net}}"
     },
-    "recent": {
-      "title": "Last games added",
-      "empty": "There are no games yet. Add the first one."
-    },
     "columns": {
       "date": "Date",
       "game": "Game",
       "room": "Room",
       "buyIn": "Buy-in",
-      "net": "Net"
+      "prize": "Won",
+      "net": "Net",
+      "invested": "Invested",
+      "actions": "Actions"
+    },
+    "edit": "Edit game",
+    "notes": "Notes: {{notes}}",
+    "paidWithTicket": "One entry paid with a ticket",
+    "ticketWon": "Ticket won: {{value}}",
+    "prizePart": "Prize {{amount}}",
+    "bountyPart": "Bounties {{amount}}",
+    "inPlay": {
+      "title_one": "{{count}} game in play",
+      "title_other": "{{count}} games in play",
+      "truncated_one": "Only the most recent one is listed.",
+      "truncated_other": "Only the {{count}} most recent ones are listed."
+    },
+    "actions": {
+      "finish": "Finish",
+      "reEntry": "Re-entry",
+      "rebuy": "Rebuy",
+      "finishGame": "Finish {{game}}",
+      "reEntryGame": "Add a re-entry to {{game}}",
+      "rebuyGame": "Add a rebuy to {{game}}",
+      "editGame": "Edit {{game}}",
+      "deleteGame": "Delete {{game}}"
+    },
+    "list": {
+      "empty": "There are no finished games yet.",
+      "noMatches": "No game matches these filters.",
+      "total_one": "{{formatted}} game",
+      "total_other": "{{formatted}} games",
+      "pages": {
+        "first": "First page",
+        "previous": "Previous page",
+        "next": "Next page",
+        "last": "Last page",
+        "page": "Page {{page}}"
+      }
+    },
+    "finish": {
+      "title": "Finish game",
+      "description": "{{game}}: {{invested}} invested.",
+      "cashHelp": "What you left the table with; 0 if you lost everything.",
+      "done": "Game finished"
+    },
+    "rebuy": {
+      "title": "Add rebuy",
+      "description": "You have brought {{amount}} to the table so far.",
+      "amount": "Amount of the rebuy",
+      "amountRequired": "Enter an amount greater than zero",
+      "done": "Rebuy added",
+      "total": "Brought to the table: {{amount}}"
+    },
+    "reEntry": {
+      "title": "Add re-entry",
+      "confirm": "Add one more entry of {{amount}} to {{game}}?",
+      "done": "Re-entry added",
+      "total_one": "{{count}} entry",
+      "total_other": "{{count}} entries"
+    },
+    "delete": {
+      "title": "Delete game",
+      "confirm": "Delete {{game}} of {{date}} in {{room}}? This cannot be undone.",
+      "confirmLabel": "Delete",
+      "done": "Game deleted"
+    }
+  },
+  "filters": {
+    "period": "Period",
+    "from": "From",
+    "to": "To",
+    "gameType": "Type",
+    "room": "Room",
+    "variant": "Variant",
+    "text": "Search",
+    "textPlaceholder": "Name or notes",
+    "any": "All",
+    "clear": "Clear filters",
+    "periods": {
+      "all": "All time",
+      "thisMonth": "This month",
+      "lastMonth": "Last month",
+      "thisYear": "This year",
+      "custom": "Custom"
     }
   },
   "gameForm": {
@@ -109,6 +414,13 @@
       "notSaved": "The game was not saved",
       "unexpected": "An unexpected error occurred. Try again."
     }
+  },
+  "actions": {
+    "cancel": "Cancel",
+    "close": "Close"
+  },
+  "errors": {
+    "unexpected": "An unexpected error occurred. Try again."
   },
   "notFound": {
     "title": "Page not found",

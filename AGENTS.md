@@ -100,6 +100,12 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - **Room**: poker site account (Winamax, 888poker...) holding money in **one currency**; its games
   and movements are in that currency. Two currencies on the same site are two rooms. The currency
   of a room cannot change once it has games or bankroll movements (database trigger).
+  - A room can have a **logo**: a PNG, JPEG or WebP image of at most 256 kB (no SVG: it can carry
+    scripts), uploaded by the user and stored in the database (table `room_logo`, apart from `room`
+    so that reading rooms never loads images; deleted with its room). The format is detected from
+    the content, not from the declared `Content-Type`. Rooms carry a `logoVersion` (`null` without
+    logo) that changes with every upload; the image is `GET /rooms/{id}/logo?v=<logoVersion>`,
+    cacheable forever under that URL. A logo does not make a room "in use".
 - **Inactive** rooms and variants keep their history and stay in statistics, but take no new games:
   the UI does not offer them and the API rejects creating a game in them, or moving one to them
   (`ROOM_INACTIVE`, `VARIANT_INACTIVE`). A game already there can still be edited.
@@ -149,7 +155,8 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   `GameTotals`; rates and ROI are fractions with 4 decimals (`0.3496`), formatted by the frontend.
   `/stats/summary` gives them overall and per game type, `/stats/groups?groupBy=` per period (`DAY`,
   `WEEK` from Monday, `MONTH`, `YEAR`), `GAME_TYPE`, `VARIANT`, `ROOM`, `MODALITY` or `BUY_IN`; both
-  take the filters of the games list. Periods carry the **cumulative net**, which starts from zero
+  take the filters of the games list. With `byGameType=true` each group is also broken down by
+  game type. Periods carry the **cumulative net**, which starts from zero
   at the beginning of the filtered range. A new grouping is a `GroupBy` constant plus its `Grouping`
   in `StatsService`.
 - **Bankroll**: the money set aside for poker and what was won or lost with it. It is **not the
@@ -158,6 +165,8 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   result, negative when losing.
   - **Result** = net of the games (those in play included) + bonuses.
   - **Bankroll** = deposited − withdrawn + adjustments + result, per room and per currency.
+  - `GET /bankroll/summary` with dates gives the figures of that period (the result is what was won
+    or lost in it); without them, the bankroll as it is now.
 - **Bankroll movement**: `DEPOSIT` (money set aside for poker; the first one is the initial
   bankroll), `WITHDRAWAL`, `BONUS` (poker money not coming from a game: rakeback, promotions) or
   `ADJUSTMENT` (manual correction). The amount is positive and the type gives its direction; only
@@ -194,6 +203,9 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   Aggregates are the exception: `/stats/groups` returns every group, because a chart needs the whole
   series and the cumulative net of a page would be meaningless. Its size is bounded by the grouping
   (at most one small row per day played), and `from`/`to` narrow it.
+- A filter that takes several values (`gameType`, `roomId`, `variantId` of the games filters) is a
+  `List` parameter: repeated or comma-separated, its values combined with OR, the filters with each
+  other with AND; empty is no filter.
 - Optional fields omitted in a request take their documented default; `PUT` replaces the whole resource.
 - State changes that are a single user gesture are their own `POST` sub-resource instead of a
   full `PUT` (e.g. `/games/{id}/finish`, `/games/{id}/re-entries`, `/games/{id}/rebuys`); they return
@@ -201,8 +213,26 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - Every change to a game loads it with `GameRepository.findForUpdateById` (row lock), so simultaneous
   requests on the same game (a double click, a re-entry racing a finish) run one after another and
   none is lost.
+- `GET /games/names?q=&gameType=&limit=` suggests names of recorded games while one is typed: those
+  containing `q` (ignoring case, literally; nothing below 2 characters), most used first. Names that
+  differ only in case or surrounding spaces are one, written as in its most recent game, whose
+  buy-in (with its `currencyCode`), variant and modality come with it. It is a plain list bounded by `limit` (8, at most 20),
+  not a `PageResponse`.
 - Recording a game or a bankroll movement in a room loads it with `RoomRepository.findToRecordInById`
   (shared row lock), so a simultaneous change of the room's currency waits and is rejected.
+- A body that is not JSON (the logo of a room) is read from the `InputStream` up to its limit plus
+  one byte, never as `@RequestBody byte[]`, which would load whatever is sent; its content is
+  described by hand in `@Operation(requestBody = ...)`.
+- `POST /imports/games` (`gameimport` package) imports games from a CSV file sent as the body
+  (`text/csv`), in the one format of the application, described for users in `docs/import.md`: keep
+  that document and `docs/import-example.csv` (imported by a test) in step with `GameCsv`. A file
+  that cannot be read as a whole is an error (`IMPORT_*` codes); errors of rows come in the `200`
+  response (`errors`, with `imported: false`), each with its row, column, `code` and message.
+  It is all or nothing, and `dryRun=true` only checks. Rows are recorded through `GameService`,
+  `RoomService` and `VariantService`, so the rules are those of the API, and the transaction is
+  rolled back on a dry run or when a row failed: do not add a second validation path for imports.
+- Controller method names are the `operationId`s of the contract: keep them unique across
+  controllers (`getLogo`, not a second `get`), or springdoc renumbers the ones of other endpoints.
 - The OpenAPI spec is the contract, and it is committed as `frontend/openapi.json` (sorted keys,
   without `servers` and the version). The frontend types are generated from that file, so two
   checks keep everything in sync: `OpenApiContractTests` fails when the file is not what the API
@@ -232,6 +262,10 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - Configuration comes from `application.yaml`; override it with standard Spring environment
   variables (`SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`...).
 - Hibernate never changes the schema (`ddl-auto: validate`); Flyway owns it.
+- A `LocalTime` attribute is mapped with `@JdbcTypeCode(SqlTypes.LOCAL_TIME)` (see `Game.playedAt`):
+  by default Hibernate sends it as `java.sql.Time` and shifts it from the time zone of the JVM to
+  `hibernate.jdbc.time_zone` (UTC), so the stored time would depend on where the API runs
+  (pinned by `GameTimeZoneApiTests`).
 - Validate input with Bean Validation on request DTOs (`@Valid @RequestBody`) and on simple
   parameters. Rules spanning several fields go in a **class-level constraint on the DTO** that
   reports each offending field (see `game/CashGameFields`): the annotation name is the `code`
@@ -245,12 +279,15 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 
 ### Demo data
 - The Spring profile `demo` (`demo/DemoDataSeeder`) fills an **empty** database on startup with a
-  year of made-up results ending today: four rooms (EUR and USD, one inactive), a user-defined
+  year of made-up results ending today: four rooms (EUR and USD, one inactive, three with a logo), a user-defined
   variant, about 400 games of every type, three games in play and bankroll movements. It does
   nothing when the database already has a room, a game, a movement or a user-defined variant, and
   is never active by default.
 - It creates everything through the services, so it also exercises the rules of the API. When a
   feature adds data worth seeing in the UI, add it to the seeder.
+- The logos of the demo rooms are invented shapes drawn in code (`demo/DemoLogo`): the real logos
+  of poker rooms are trademarks and are never shipped. The PNG is written by hand, because the
+  runtime of the API image has no `java.desktop` (`ImageIO`, `java.awt`).
 - To look at the frontend with data: run the API with the command above and `npm run dev` in
   `frontend/`, then open `http://localhost:5173`.
 
@@ -286,6 +323,42 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - Forms use `@mantine/form`: required fields are checked before sending, validation errors of the
   backend (`ApiError.errors`) are set on their fields and any other error is shown in an alert
   (see `games/GameForm.tsx`). Success is confirmed with a notification (`@mantine/notifications`).
+- Number inputs give text for some values (`8.40` keeps its zero): read them with `amountOrNull`
+  (`games/amount.ts`), never with `typeof value === 'number'`.
+- Dialogs with one action use `components/useSubmit` (one run at a time, failure message) and
+  `components/ConfirmDialog` for a plain confirmation; the close button of a modal is labelled
+  `actions.close`, so it is not confused with a "Cancel" button.
+- Filters, order and page of a list live in the URL (`games/useGameFilters.ts`): they survive a
+  reload and the back button. Lists are written with commas (`room=1,2`). Invalid values in the
+  URL are ignored.
+- Type, room and variant are chosen with `games/ScopeFilters`, and anything read from the URL goes
+  through `components/urlParams` (invalid values are dropped there).
+- The name of a game is an `Autocomplete` fed by `useGameNames` (debounced, from 2 characters, for
+  the type of the form). Picking a name fills the buy-in, variant and modality of a **new** game,
+  except the ones the user has set by hand in that form (`setByHand` in `games/GameForm.tsx`: give
+  such a field its props with `filledByName`); a game being edited only takes the name. The buy-in
+  is only filled when it is in the currency of the chosen room, and is emptied again if the room
+  then changes to another currency.
+- Charts are built as an ECharts option passed to `components/Chart` (register there the ECharts
+  components a new chart needs). Colouring a line by value needs closed ranges in `visualMap`.
+  Tests replace `Chart` with a stub and assert on the option (see `pages/StatsPage.test.tsx`).
+- A period is chosen with `components/PeriodFilter` (`components/period.ts` has the predefined
+  ranges). A screen shows one currency at a time: amounts in different currencies are never added.
+- A logo can also come from a URL: the browser cannot read images of other sites, so
+  `POST /rooms/logo-fetch` downloads it (`room/RemoteImageFetcher`) and hands it back; it then
+  follows the same path as a file. That endpoint only fetches `http`/`https` URLs of **public**
+  addresses, also after redirects (`room/PublicAddress`): the app has no login and must not be a
+  way into the local network. The HTTP client (Apache HttpClient 5) gets its addresses from the
+  application, so the ones checked are the ones connected to; the whole download has a deadline
+  (`poker-bankroll.logo-fetch.timeout`, 20 s). `poker-bankroll.logo-fetch.allow-private-addresses=true`
+  lifts the address check (the tests need it to reach their own web server).
+- A logo is resized in the browser before it is uploaded (`settings/resizeImage.ts`, 128 px at
+  most, PNG), so the backend only stores small images. Tests replace that module: canvas does not
+  exist in jsdom.
+- Changing a room or a variant invalidates every query (`api/rooms.ts`, `api/variants.ts`): they
+  are named all over the app.
+- A room is always rendered with `components/RoomLabel`: its logo (or its initial when it has
+  none) and its name. It takes the `logoVersion` from the shared list of rooms (`useRooms`).
 - A mutation invalidates every query its data affects (a game changes `games`, `stats` and
   `bankroll`): see `api/games.ts`.
 - The light/dark and language choices are stored in `localStorage` under `poker-bankroll.*` keys.

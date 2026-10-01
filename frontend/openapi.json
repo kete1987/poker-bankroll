@@ -187,6 +187,115 @@
         },
         "type" : "object"
       },
+      "GameImportResponse" : {
+        "properties" : {
+          "dryRun" : {
+            "description" : "The file was only checked: nothing was stored",
+            "type" : "boolean"
+          },
+          "errorCount" : {
+            "description" : "Errors found in the rows; `errors` lists only the first ones",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "errors" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ImportRowError"
+            },
+            "type" : "array"
+          },
+          "from" : {
+            "description" : "Date of the first game",
+            "format" : "date",
+            "type" : [ "string", "null" ]
+          },
+          "games" : {
+            "description" : "Rows without errors",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "gamesByType" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ImportGameTypeCount"
+            },
+            "type" : "array"
+          },
+          "imported" : {
+            "description" : "The games were stored: not a dry run, and no row had errors",
+            "type" : "boolean"
+          },
+          "newRooms" : {
+            "description" : "Rooms that did not exist and are created by the import",
+            "items" : {
+              "$ref" : "#/components/schemas/ImportedRoom"
+            },
+            "type" : "array"
+          },
+          "newVariants" : {
+            "description" : "Variants that did not exist and are created by the import",
+            "items" : {
+              "$ref" : "#/components/schemas/ImportedVariant"
+            },
+            "type" : "array"
+          },
+          "rows" : {
+            "description" : "Rows of the file with something in them, the header apart",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "to" : {
+            "description" : "Date of the last game",
+            "format" : "date",
+            "type" : [ "string", "null" ]
+          },
+          "totals" : {
+            "description" : "Games and their net per currency, to compare with the source of the file",
+            "items" : {
+              "$ref" : "#/components/schemas/ImportCurrencyTotal"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "dryRun", "errorCount", "errors", "games", "gamesByType", "imported", "newRooms", "newVariants", "rows", "totals" ],
+        "type" : "object"
+      },
+      "GameNameResponse" : {
+        "properties" : {
+          "buyIn" : {
+            "type" : "number"
+          },
+          "currencyCode" : {
+            "description" : "Currency of the buy-in: the one of the room of that game",
+            "type" : "string"
+          },
+          "gameType" : {
+            "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
+            "type" : "string"
+          },
+          "games" : {
+            "description" : "How many games have that name",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "modality" : {
+            "enum" : [ "NLHE", "PLO" ],
+            "type" : "string"
+          },
+          "name" : {
+            "description" : "As it was written in the most recent game of that name; names that differ only in case or surrounding spaces are the same one",
+            "type" : "string"
+          },
+          "variant" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/VariantRef"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "buyIn", "currencyCode", "gameType", "games", "modality", "name" ],
+        "type" : "object"
+      },
       "GameRequest" : {
         "properties" : {
           "bounty" : {
@@ -310,7 +419,7 @@
             "type" : [ "string", "null" ]
           },
           "net" : {
-            "description" : "Real money won or lost: prize + bounty - invested",
+            "description" : "Real money won or lost: won - invested",
             "type" : "number"
           },
           "notes" : {
@@ -354,9 +463,13 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "won" : {
+            "description" : "Money won: prize + bounty",
+            "type" : "number"
           }
         },
-        "required" : [ "bounty", "buyIn", "createdAt", "currencyCode", "entries", "gameType", "id", "invested", "modality", "net", "paidWithTicket", "playedOn", "prize", "room", "status", "ticketPrizeValue", "updatedAt" ],
+        "required" : [ "bounty", "buyIn", "createdAt", "currencyCode", "entries", "gameType", "id", "invested", "modality", "net", "paidWithTicket", "playedOn", "prize", "room", "status", "ticketPrizeValue", "updatedAt", "won" ],
         "type" : "object"
       },
       "GameTypeSummary" : {
@@ -374,6 +487,13 @@
       },
       "Group" : {
         "properties" : {
+          "byGameType" : {
+            "description" : "The group broken down by game type (those with games, in catalog order); only when asked for with `byGameType=true`",
+            "items" : {
+              "$ref" : "#/components/schemas/GameTypeSummary"
+            },
+            "type" : [ "array", "null" ]
+          },
           "cumulativeNet" : {
             "description" : "Net of this period and the earlier ones in the response, so it starts from zero at the beginning of the filtered range; only for groups in time",
             "type" : [ "number", "null" ]
@@ -427,6 +547,80 @@
         },
         "type" : "object"
       },
+      "ImportCurrencyTotal" : {
+        "properties" : {
+          "currencyCode" : {
+            "type" : "string"
+          },
+          "games" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "net" : {
+            "type" : "number"
+          }
+        },
+        "required" : [ "currencyCode", "games", "net" ],
+        "type" : "object"
+      },
+      "ImportGameTypeCount" : {
+        "properties" : {
+          "gameType" : {
+            "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
+            "type" : "string"
+          },
+          "games" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "gameType", "games" ],
+        "type" : "object"
+      },
+      "ImportRowError" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "field" : {
+            "type" : [ "string", "null" ]
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "row" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "code", "message", "row" ],
+        "type" : "object"
+      },
+      "ImportedRoom" : {
+        "properties" : {
+          "currencyCode" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "currencyCode", "name" ],
+        "type" : "object"
+      },
+      "ImportedVariant" : {
+        "properties" : {
+          "gameType" : {
+            "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "gameType", "name" ],
+        "type" : "object"
+      },
       "InPlay" : {
         "properties" : {
           "games" : {
@@ -439,6 +633,17 @@
           }
         },
         "required" : [ "games", "invested" ],
+        "type" : "object"
+      },
+      "LogoFetchRequest" : {
+        "properties" : {
+          "url" : {
+            "maxLength" : 2000,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "required" : [ "url" ],
         "type" : "object"
       },
       "MovementRequest" : {
@@ -660,6 +865,10 @@
           "inUse" : {
             "description" : "The room has games or bankroll movements: it cannot be deleted and its currency cannot change",
             "type" : "boolean"
+          },
+          "logoVersion" : {
+            "description" : "Null when the room has no logo. Otherwise an opaque value that changes every time the logo is uploaded: get the image from `/rooms/{id}/logo?v=<logoVersion>`",
+            "type" : [ "string", "null" ]
           },
           "name" : {
             "type" : "string"
@@ -894,12 +1103,16 @@
             "type" : "string"
           }
         }, {
+          "description" : "One or more rooms: movements of any of them",
           "in" : "query",
           "name" : "roomId",
           "required" : false,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
           }
         }, {
           "description" : "true: only movements that belong to no room; false: only those of a room",
@@ -1072,6 +1285,37 @@
       "get" : {
         "description" : "bankroll = deposited - withdrawn + adjustments + result, with result = net of the games + bonuses. It is not the balance of the room account: with no movements recorded it is just the result, negative when losing.",
         "operationId" : "summary_1",
+        "parameters" : [ {
+          "description" : "Only movements and games on or after this date: with dates, the figures are those of the period (what the bankroll changed, what was won or lost)",
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Only movements and games on or before this date",
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "One or more rooms: only they are listed and added up, without the movements that belong to no room",
+          "in" : "query",
+          "name" : "roomId",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        } ],
         "responses" : {
           "200" : {
             "content" : {
@@ -1130,12 +1374,16 @@
             "type" : "string"
           }
         }, {
+          "description" : "One or more game types: games of any of them",
           "in" : "query",
           "name" : "gameType",
           "required" : false,
           "schema" : {
-            "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
-            "type" : "string"
+            "items" : {
+              "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
+              "type" : "string"
+            },
+            "type" : "array"
           }
         }, {
           "in" : "query",
@@ -1146,20 +1394,28 @@
             "type" : "string"
           }
         }, {
+          "description" : "One or more rooms: games in any of them",
           "in" : "query",
           "name" : "roomId",
           "required" : false,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
           }
         }, {
+          "description" : "One or more variants: games of any of them",
           "in" : "query",
           "name" : "variantId",
           "required" : false,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
           }
         }, {
           "in" : "query",
@@ -1208,7 +1464,7 @@
             "type" : "integer"
           }
         }, {
-          "description" : "`<field>,<asc|desc>` with field one of playedOn, net, buyIn, prize, createdAt",
+          "description" : "`<field>,<asc|desc>` with field one of playedOn, net, buyIn, prize, won, createdAt",
           "in" : "query",
           "name" : "sort",
           "required" : false,
@@ -1258,6 +1514,59 @@
           }
         },
         "summary" : "Record a game",
+        "tags" : [ "Games" ]
+      }
+    },
+    "/games/names" : {
+      "get" : {
+        "description" : "The names containing the text, most used first, then most recent, then by name. Names that differ only in case or surrounding spaces are one, written as in its most recent game (latest date, then latest id), whose type, modality, buy-in and variant come with it. Games in play count too.",
+        "operationId" : "names",
+        "parameters" : [ {
+          "description" : "Text contained in the name, ignoring case and searched literally; with less than 2 characters, surrounding spaces apart, nothing is suggested",
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "default" : "",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Only the games of this type: their names, counts and figures",
+          "in" : "query",
+          "name" : "gameType",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 8,
+            "format" : "int32",
+            "maximum" : 20,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/GameNameResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Suggest names of recorded games",
         "tags" : [ "Games" ]
       }
     },
@@ -1451,6 +1760,46 @@
         "tags" : [ "Games" ]
       }
     },
+    "/imports/games" : {
+      "post" : {
+        "description" : "The body is the file itself, in the format of `docs/import.md`: UTF-8, comma separated, a header row and one game per row, up to 5 MB and 50,000 rows. Every game is imported as finished; rooms and variants that do not exist are created.\n\nIt is all or nothing: with an error in any row nothing is stored, and the response (still 200) lists the errors with `imported: false`. With `dryRun=true` the file is checked in the same way and nothing is stored either. Importing the same file twice records its games twice.\n\nA file that cannot be read as a whole fails with `IMPORT_FILE_EMPTY`, `IMPORT_FILE_NOT_UTF8`, `IMPORT_FILE_MALFORMED`, `IMPORT_UNKNOWN_COLUMN`, `IMPORT_DUPLICATE_COLUMN`, `IMPORT_MISSING_COLUMN`, `IMPORT_TOO_MANY_ROWS` (400) or `IMPORT_FILE_TOO_LARGE` (413).",
+        "operationId" : "importGames",
+        "parameters" : [ {
+          "description" : "Only check the file and report what it would import",
+          "in" : "query",
+          "name" : "dryRun",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "text/csv" : {
+              "schema" : {
+                "type" : "string"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GameImportResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Import games from a CSV file",
+        "tags" : [ "Import" ]
+      }
+    },
     "/rooms" : {
       "get" : {
         "operationId" : "list_1",
@@ -1505,6 +1854,49 @@
           }
         },
         "summary" : "Create a room",
+        "tags" : [ "Rooms" ]
+      }
+    },
+    "/rooms/logo-fetch" : {
+      "post" : {
+        "description" : "Returns the image itself (PNG, JPEG or WebP, up to 5 MB). A browser cannot read images of other sites, so it asks for them here, resizes the result and uploads it with `PUT /rooms/{id}/logo`; nothing is stored by this request. Only `http` and `https` URLs of public addresses. Fails with `LOGO_URL_INVALID` (400), `LOGO_URL_NOT_PUBLIC` (400), `LOGO_URL_UNREACHABLE` (502), `LOGO_TOO_LARGE` (413) or `LOGO_UNSUPPORTED_TYPE` (415).",
+        "operationId" : "fetchLogo",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LogoFetchRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "image/jpeg" : {
+                "schema" : {
+                  "format" : "binary",
+                  "type" : "string"
+                }
+              },
+              "image/png" : {
+                "schema" : {
+                  "format" : "binary",
+                  "type" : "string"
+                }
+              },
+              "image/webp" : {
+                "schema" : {
+                  "format" : "binary",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Download the image of a URL, to use it as the logo of a room",
         "tags" : [ "Rooms" ]
       }
     },
@@ -1593,6 +1985,128 @@
         "tags" : [ "Rooms" ]
       }
     },
+    "/rooms/{id}/logo" : {
+      "delete" : {
+        "operationId" : "deleteLogo",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Delete the logo of a room",
+        "tags" : [ "Rooms" ]
+      },
+      "get" : {
+        "description" : "The image, with a strong `ETag` (`If-None-Match` is answered with 304). Request it as `?v=<logoVersion of the room>`: that URL never changes its content, so it is served to be cached for a year without revalidation. Without `v`, or with another value, it is revalidated on every use.",
+        "operationId" : "getLogo",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "description" : "The `logoVersion` of the room",
+          "in" : "query",
+          "name" : "v",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "image/jpeg" : {
+                "schema" : {
+                  "format" : "binary",
+                  "type" : "string"
+                }
+              },
+              "image/png" : {
+                "schema" : {
+                  "format" : "binary",
+                  "type" : "string"
+                }
+              },
+              "image/webp" : {
+                "schema" : {
+                  "format" : "binary",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "304" : {
+            "description" : "Not modified"
+          }
+        },
+        "summary" : "Get the logo of a room",
+        "tags" : [ "Rooms" ]
+      },
+      "put" : {
+        "description" : "The body is the image itself: PNG, JPEG or WebP, up to 256 kB. The format is detected from the content and the declared `Content-Type` is ignored. Replaces the logo the room had and returns the room with its new `logoVersion`. Fails with `LOGO_EMPTY` (400), `LOGO_TOO_LARGE` (413) or `LOGO_UNSUPPORTED_TYPE` (415).",
+        "operationId" : "replaceLogo",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "image/jpeg" : {
+              "schema" : {
+                "format" : "binary",
+                "type" : "string"
+              }
+            },
+            "image/png" : {
+              "schema" : {
+                "format" : "binary",
+                "type" : "string"
+              }
+            },
+            "image/webp" : {
+              "schema" : {
+                "format" : "binary",
+                "type" : "string"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RoomResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Set the logo of a room",
+        "tags" : [ "Rooms" ]
+      }
+    },
     "/stats/groups" : {
       "get" : {
         "description" : "Groups by period (day, week, month, year), game type, variant, room, modality or buy-in, with the same figures as the summary. Takes the filters of the games list, so e.g. `groupBy=MONTH&gameType=TOURNAMENT` gives the tournaments per month. Periods without games are not returned.",
@@ -1604,6 +2118,15 @@
           "schema" : {
             "enum" : [ "DAY", "WEEK", "MONTH", "YEAR", "GAME_TYPE", "VARIANT", "ROOM", "MODALITY", "BUY_IN" ],
             "type" : "string"
+          }
+        }, {
+          "description" : "Also break each group down by game type",
+          "in" : "query",
+          "name" : "byGameType",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
           }
         }, {
           "description" : "Played on or after this date",
@@ -1624,12 +2147,16 @@
             "type" : "string"
           }
         }, {
+          "description" : "One or more game types: games of any of them",
           "in" : "query",
           "name" : "gameType",
           "required" : false,
           "schema" : {
-            "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
-            "type" : "string"
+            "items" : {
+              "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
+              "type" : "string"
+            },
+            "type" : "array"
           }
         }, {
           "in" : "query",
@@ -1640,20 +2167,28 @@
             "type" : "string"
           }
         }, {
+          "description" : "One or more rooms: games in any of them",
           "in" : "query",
           "name" : "roomId",
           "required" : false,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
           }
         }, {
+          "description" : "One or more variants: games of any of them",
           "in" : "query",
           "name" : "variantId",
           "required" : false,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
           }
         }, {
           "description" : "Currency of the room, e.g. EUR",
@@ -1711,12 +2246,16 @@
             "type" : "string"
           }
         }, {
+          "description" : "One or more game types: games of any of them",
           "in" : "query",
           "name" : "gameType",
           "required" : false,
           "schema" : {
-            "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
-            "type" : "string"
+            "items" : {
+              "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
+              "type" : "string"
+            },
+            "type" : "array"
           }
         }, {
           "in" : "query",
@@ -1727,20 +2266,28 @@
             "type" : "string"
           }
         }, {
+          "description" : "One or more rooms: games in any of them",
           "in" : "query",
           "name" : "roomId",
           "required" : false,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
           }
         }, {
+          "description" : "One or more variants: games of any of them",
           "in" : "query",
           "name" : "variantId",
           "required" : false,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
           }
         }, {
           "description" : "Currency of the room, e.g. EUR",

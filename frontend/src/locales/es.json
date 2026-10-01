@@ -51,6 +51,231 @@
     "TRIPLE_OR_NOTHING_DEMENTE": "Triple or Nothing Demente",
     "HEADS_UP": "Heads-up"
   },
+  "dashboard": {
+    "currency": "Moneda",
+    "empty": "Todavía no hay nada que mostrar.",
+    "goToGames": "Ir a partidas",
+    "noGames": "No hay partidas finalizadas en este periodo.",
+    "noVariant": "Sin variante",
+    "total": "Total",
+    "results": "Resultados",
+    "ticketsWon": "Tickets ganados: {{value}} (no cuentan como dinero).",
+    "inPlay_one": "{{count}} partida en juego, {{invested}} invertidos.",
+    "inPlay_other": "{{count}} partidas en juego, {{invested}} invertidos.",
+    "breakdown": {
+      "label": "Desglosar los resultados",
+      "type": "Por tipo",
+      "variant": "Por variante"
+    },
+    "cards": {
+      "net": "Neto",
+      "netDetail": "{{won}} ganados · {{invested}} invertidos",
+      "roi": "ROI",
+      "games_one": "{{formatted}} partida",
+      "games_other": "{{formatted}} partidas",
+      "itm": "ITM en torneos",
+      "itmDetail_one": "{{inTheMoney}} de {{formatted}} torneo",
+      "itmDetail_other": "{{inTheMoney}} de {{formatted}} torneos",
+      "bankroll": "Bankroll"
+    },
+    "columns": {
+      "games": "Jugadas",
+      "withPrize": "Con premio",
+      "withPrizeRate": "% premiados",
+      "averageBuyIn": "Buy-in medio",
+      "inTheMoney": "ITM",
+      "inTheMoneyRate": "% ITM",
+      "invested": "Invertido",
+      "won": "Ganado",
+      "net": "Neto",
+      "roi": "ROI"
+    },
+    "bankroll": {
+      "title": "Bankroll por sala",
+      "room": "Sala",
+      "now": "Bankroll actual",
+      "withoutRoom": "Sin sala",
+      "periodNet": "Neto del periodo"
+    }
+  },
+  "movementTypes": {
+    "DEPOSIT": "Ingreso",
+    "WITHDRAWAL": "Retirada",
+    "BONUS": "Rakeback / bono",
+    "ADJUSTMENT": "Ajuste"
+  },
+  "bankroll": {
+    "add": "Añadir movimiento",
+    "edit": "Editar movimiento",
+    "saved": "Movimiento guardado",
+    "rooms": "Por sala",
+    "movements": "Movimientos",
+    "noMovements": "No hay movimientos para estos filtros.",
+    "total_one": "{{formatted}} movimiento",
+    "total_other": "{{formatted}} movimientos",
+    "withoutRoom": "Sin sala",
+    "inactive": "Inactiva",
+    "movementName": "{{type}} del {{date}}",
+    "cards": {
+      "bankroll": "Bankroll",
+      "change": "Variación en el periodo",
+      "adjustments": "Ajustes: {{amount}}",
+      "deposited": "Aportado",
+      "withdrawn": "{{amount}} retirados",
+      "result": "Resultado",
+      "resultDetail": "Partidas {{games}} · Rakeback / bonos {{bonuses}}"
+    },
+    "columns": {
+      "room": "Sala",
+      "deposited": "Aportado",
+      "withdrawn": "Retirado",
+      "bonuses": "Rakeback / bonos",
+      "adjustments": "Ajustes",
+      "gamesNet": "Neto de partidas",
+      "result": "Resultado",
+      "bankroll": "Bankroll",
+      "change": "Variación",
+      "date": "Fecha",
+      "type": "Tipo",
+      "amount": "Importe",
+      "notes": "Notas"
+    },
+    "filters": {
+      "type": "Tipo de movimiento",
+      "anyType": "Todos los tipos"
+    },
+    "actions": {
+      "editMovement": "Editar {{movement}}",
+      "deleteMovement": "Borrar {{movement}}"
+    },
+    "delete": {
+      "title": "Borrar movimiento",
+      "confirm": "¿Borrar el movimiento ({{type}}) de {{amount}} del {{date}}? No se puede deshacer.",
+      "done": "Movimiento borrado"
+    },
+    "form": {
+      "type": "Tipo de movimiento",
+      "typeHelp": {
+        "DEPOSIT": "Dinero que destinas al póker. Suma al bankroll.",
+        "WITHDRAWAL": "Dinero que sacas del bankroll. Resta.",
+        "BONUS": "Dinero de póker que no viene de una partida: rakeback, promociones. Cuenta como resultado.",
+        "ADJUSTMENT": "Una corrección manual, hacia arriba o hacia abajo."
+      },
+      "room": "Sala",
+      "inactiveRoom": "{{name}} ({{currency}}, inactiva)",
+      "currency": "Moneda",
+      "amount": "Importe",
+      "adjustmentHelp": "En negativo para restar.",
+      "date": "Fecha",
+      "errors": {
+        "amount": "Indica un importe mayor que cero",
+        "notSaved": "El movimiento no se ha guardado"
+      }
+    }
+  },
+  "settings": {
+    "active": "Activa",
+    "tabs": {
+      "rooms": "Salas",
+      "variants": "Variantes"
+    },
+    "rooms": {
+      "add": "Añadir sala",
+      "edit": "Editar sala",
+      "room": "Sala",
+      "name": "Nombre",
+      "currency": "Moneda",
+      "currencyLocked": "No se puede cambiar: la sala ya tiene partidas o movimientos.",
+      "activeHelp": "Una sala inactiva conserva su historial pero no se ofrece para partidas nuevas.",
+      "activeRoom": "{{room}} está activa",
+      "editRoom": "Editar {{room}}",
+      "deleteRoom": "Borrar {{room}}",
+      "inUse": "Tiene partidas o movimientos: desactívala en su lugar.",
+      "empty": "Todavía no hay salas. Añade la primera para empezar a registrar partidas.",
+      "created": "Sala creada",
+      "saved": "Sala guardada",
+      "delete": {
+        "title": "Borrar sala",
+        "confirm": "¿Borrar la sala {{room}}? No se puede deshacer.",
+        "done": "Sala borrada"
+      }
+    },
+    "logo": {
+      "title": "Logo",
+      "upload": "Subir logo",
+      "change": "Cambiar logo",
+      "remove": "Quitar logo",
+      "current": "Logo de {{room}}",
+      "help": "Cualquier imagen, desde un fichero o una URL: se reduce a 128 px antes de guardarla.",
+      "unreadable": "No se ha podido leer el fichero como imagen.",
+      "helpNew": "Opcional. Cualquier imagen, desde un fichero o una URL: se reduce a 128 px y se guarda al guardar la sala.",
+      "notStored": "El logo no se ha guardado",
+      "url": "O cárgalo desde una URL",
+      "load": "Cargar"
+    },
+    "variants": {
+      "add": "Añadir variante",
+      "edit": "Editar variante",
+      "name": "Nombre",
+      "gameType": "Tipo de partida",
+      "gameTypeLocked": "El tipo de una variante no se puede cambiar.",
+      "own": "Propia",
+      "activeVariant": "{{variant}} está activa",
+      "editVariant": "Editar {{variant}}",
+      "deleteVariant": "Borrar {{variant}}",
+      "inUse": "La usan partidas: desactívala en su lugar.",
+      "empty": "Sin variantes.",
+      "created": "Variante creada",
+      "saved": "Variante guardada",
+      "delete": {
+        "title": "Borrar variante",
+        "confirm": "¿Borrar la variante {{variant}}? No se puede deshacer.",
+        "done": "Variante borrada"
+      }
+    }
+  },
+  "stats": {
+    "groupBy": "Agrupar por",
+    "weekOf": "Semana del {{date}}",
+    "granularity": {
+      "DAY": "Día",
+      "WEEK": "Semana",
+      "MONTH": "Mes"
+    },
+    "net": {
+      "title": "Evolución del neto",
+      "tooltipNet": "Neto",
+      "tooltipGames_one": "{{count}} partida",
+      "tooltipGames_other": "{{count}} partidas",
+      "tooltipCumulative": "Acumulado",
+      "cards": {
+        "net": "Neto del periodo",
+        "invested": "{{invested}} invertidos",
+        "best": {
+          "DAY": "Mejor día",
+          "WEEK": "Mejor semana",
+          "MONTH": "Mejor mes"
+        },
+        "worst": {
+          "DAY": "Peor día",
+          "WEEK": "Peor semana",
+          "MONTH": "Peor mes"
+        }
+      }
+    },
+    "chart": {
+      "label": "Qué muestra la gráfica",
+      "cumulative": "Acumulado",
+      "period": "Por periodo"
+    },
+    "table": {
+      "title": {
+        "DAY": "Resultados por día",
+        "WEEK": "Resultados por semana",
+        "MONTH": "Resultados por mes"
+      }
+    }
+  },
   "games": {
     "add": "Añadir partida",
     "loadError": "No se han podido cargar los datos. Comprueba que la API está disponible y recarga la página.",
@@ -59,16 +284,96 @@
       "inPlay": "Está en juego: finalízala cuando sepas el resultado.",
       "finished": "Neto: {{net}}"
     },
-    "recent": {
-      "title": "Últimas partidas añadidas",
-      "empty": "Todavía no hay partidas. Añade la primera."
-    },
     "columns": {
       "date": "Fecha",
       "game": "Partida",
       "room": "Sala",
       "buyIn": "Buy-in",
-      "net": "Neto"
+      "prize": "Ganado",
+      "net": "Neto",
+      "invested": "Invertido",
+      "actions": "Acciones"
+    },
+    "edit": "Editar partida",
+    "notes": "Notas: {{notes}}",
+    "paidWithTicket": "Una entrada pagada con ticket",
+    "ticketWon": "Ticket ganado: {{value}}",
+    "prizePart": "Premio {{amount}}",
+    "bountyPart": "Bounties {{amount}}",
+    "inPlay": {
+      "title_one": "{{count}} partida en juego",
+      "title_other": "{{count}} partidas en juego",
+      "truncated_one": "Solo se muestra la más reciente.",
+      "truncated_other": "Solo se muestran las {{count}} más recientes."
+    },
+    "actions": {
+      "finish": "Finalizar",
+      "reEntry": "Reentrada",
+      "rebuy": "Recompra",
+      "finishGame": "Finalizar {{game}}",
+      "reEntryGame": "Añadir una reentrada a {{game}}",
+      "rebuyGame": "Añadir una recompra a {{game}}",
+      "editGame": "Editar {{game}}",
+      "deleteGame": "Borrar {{game}}"
+    },
+    "list": {
+      "empty": "Todavía no hay partidas finalizadas.",
+      "noMatches": "Ninguna partida coincide con estos filtros.",
+      "total_one": "{{formatted}} partida",
+      "total_other": "{{formatted}} partidas",
+      "pages": {
+        "first": "Primera página",
+        "previous": "Página anterior",
+        "next": "Página siguiente",
+        "last": "Última página",
+        "page": "Página {{page}}"
+      }
+    },
+    "finish": {
+      "title": "Finalizar partida",
+      "description": "{{game}}: {{invested}} invertidos.",
+      "cashHelp": "Con lo que te levantaste de la mesa; 0 si lo perdiste todo.",
+      "done": "Partida finalizada"
+    },
+    "rebuy": {
+      "title": "Añadir recompra",
+      "description": "Hasta ahora has llevado {{amount}} a la mesa.",
+      "amount": "Importe de la recompra",
+      "amountRequired": "Indica un importe mayor que cero",
+      "done": "Recompra añadida",
+      "total": "Llevado a la mesa: {{amount}}"
+    },
+    "reEntry": {
+      "title": "Añadir reentrada",
+      "confirm": "¿Añadir una entrada más de {{amount}} a {{game}}?",
+      "done": "Reentrada añadida",
+      "total_one": "{{count}} entrada",
+      "total_other": "{{count}} entradas"
+    },
+    "delete": {
+      "title": "Borrar partida",
+      "confirm": "¿Borrar {{game}} del {{date}} en {{room}}? No se puede deshacer.",
+      "confirmLabel": "Borrar",
+      "done": "Partida borrada"
+    }
+  },
+  "filters": {
+    "period": "Periodo",
+    "from": "Desde",
+    "to": "Hasta",
+    "gameType": "Tipo",
+    "room": "Sala",
+    "variant": "Variante",
+    "text": "Buscar",
+    "textPlaceholder": "Nombre o notas",
+    "any": "Todos",
+    "clear": "Limpiar filtros",
+    "periods": {
+      "all": "Todo",
+      "thisMonth": "Este mes",
+      "lastMonth": "Mes pasado",
+      "thisYear": "Este año",
+      "custom": "Personalizado"
     }
   },
   "gameForm": {
@@ -109,6 +414,13 @@
       "notSaved": "La partida no se ha guardado",
       "unexpected": "Se ha producido un error inesperado. Inténtalo de nuevo."
     }
+  },
+  "actions": {
+    "cancel": "Cancelar",
+    "close": "Cerrar"
+  },
+  "errors": {
+    "unexpected": "Se ha producido un error inesperado. Inténtalo de nuevo."
   },
   "notFound": {
     "title": "Página no encontrada",

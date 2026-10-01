@@ -72,6 +72,7 @@ class GameApiTests extends ApiIntegrationTest {
         json.extractingPath("$.name").isEqualTo("Kill The Fish");
         json.extractingPath("$.entries").isEqualTo(3);
         json.extractingPath("$.invested").isEqualTo(7.5);
+        json.extractingPath("$.won").isEqualTo(11.25);
         json.extractingPath("$.net").isEqualTo(3.75);
         json.extractingPath("$.notes").isEqualTo("final table");
     }
@@ -277,6 +278,43 @@ class GameApiTests extends ApiIntegrationTest {
     }
 
     @Test
+    void filtersBySeveralTypesRoomsAndVariantsAtOnce() {
+        long ko = builtInVariantId("TOURNAMENT", "KO");
+        long expresso = builtInVariantId("SIT_AND_GO", "EXPRESSO");
+        long unibet = insertRoom("Unibet", "EUR");
+        create("""
+                {"playedOn": "2026-01-19", "roomId": %d, "gameType": "TOURNAMENT", "variantId": %d,
+                 "buyIn": 1, "name": "ko winamax"}""".formatted(winamax, ko));
+        create("""
+                {"playedOn": "2026-01-19", "roomId": %d, "gameType": "SIT_AND_GO", "variantId": %d,
+                 "buyIn": 1, "name": "expresso unibet"}""".formatted(unibet, expresso));
+        create("""
+                {"playedOn": "2026-01-19", "roomId": %d, "gameType": "CASH", "buyIn": 1, "name": "cash stars"}"""
+                .formatted(pokerStars));
+
+        // Repeated parameters or one with commas: games matching any of the values.
+        assertThat(mvc.get().uri("/games").param("gameType", "TOURNAMENT").param("gameType", "CASH")).hasStatusOk()
+                .bodyJson().extractingPath("$.items[*].name").asArray()
+                .containsExactlyInAnyOrder("ko winamax", "cash stars");
+        assertThat(names("gameType", "TOURNAMENT,SIT_AND_GO"))
+                .containsExactlyInAnyOrder("ko winamax", "expresso unibet");
+        assertThat(names("roomId", winamax + "," + unibet)).containsExactlyInAnyOrder("ko winamax", "expresso unibet");
+        assertThat(names("variantId", ko + "," + expresso))
+                .containsExactlyInAnyOrder("ko winamax", "expresso unibet");
+        // Different filters are still combined with AND.
+        assertThat(mvc.get().uri("/games")
+                .param("gameType", "TOURNAMENT,SIT_AND_GO").param("roomId", unibet + "," + pokerStars)).hasStatusOk()
+                .bodyJson().extractingPath("$.items[*].name").asArray().containsExactly("expresso unibet");
+        // A blank value is no filter.
+        assertThat(mvc.get().uri("/games").param("roomId", "").param("gameType", "").param("variantId", ""))
+                .hasStatusOk().bodyJson().extractingPath("$.totalItems").isEqualTo(3);
+        assertThat(mvc.get().uri("/stats/summary").param("roomId", "").param("currency", "USD"))
+                .hasStatusOk().bodyJson().extractingPath("$.currencies[0].inPlay.games").isEqualTo(1);
+        assertThat(mvc.get().uri("/games").param("gameType", "TOURNAMENT,BINGO")).hasStatus(HttpStatus.BAD_REQUEST);
+        assertThat(mvc.get().uri("/games").param("roomId", "1,abc")).hasStatus(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
     void searchesTextInNameAndNotesIgnoringCaseAndLiterally() {
         create(game("2026-01-19", "Kill The Fish"));
         create(game("2026-01-19", "Freeroll").replace("}", ", \"notes\": \"killed at the bubble\"}"));
@@ -316,6 +354,21 @@ class GameApiTests extends ApiIntegrationTest {
         assertThat(mvc.get().uri("/games").param("sort", "net,asc")).hasStatusOk()
                 .bodyJson().extractingPath("$.items[*].name").asArray()
                 .containsExactly("loss", "break even", "big win");
+    }
+
+    @Test
+    void sortsByWhatWasWonBountiesIncluded() {
+        create(game("2026-01-19", "prize only").replace("}", ", \"prize\": 10}"));
+        create(game("2026-01-20", "mostly bounties").replace("}", ", \"prize\": 2, \"bounty\": 15}"));
+        create(game("2026-01-21", "nothing"));
+
+        assertThat(mvc.get().uri("/games").param("sort", "won,desc")).hasStatusOk()
+                .bodyJson().extractingPath("$.items[*].name").asArray()
+                .containsExactly("mostly bounties", "prize only", "nothing");
+        // By prize alone the order is another.
+        assertThat(mvc.get().uri("/games").param("sort", "prize,desc")).hasStatusOk()
+                .bodyJson().extractingPath("$.items[*].name").asArray()
+                .containsExactly("prize only", "mostly bounties", "nothing");
     }
 
     @Test

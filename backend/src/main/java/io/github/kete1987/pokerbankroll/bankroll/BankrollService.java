@@ -1,11 +1,15 @@
 package io.github.kete1987.pokerbankroll.bankroll;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import io.github.kete1987.pokerbankroll.bankroll.BankrollSummaryResponse.CurrencyBankroll;
 import io.github.kete1987.pokerbankroll.bankroll.BankrollSummaryResponse.BankrollFigures;
@@ -103,9 +107,20 @@ public class BankrollService {
     /**
      * The poker bankroll per currency: its total, the movements that belong to no room and one row
      * per room. Rooms that are inactive and have neither games nor movements are left out.
+     *
+     * <p>With dates, only the movements and games of that period count, so the bankroll is what it
+     * changed in it and the result what was won or lost. With rooms, only those are listed and
+     * added up, without the movements that belong to no room.
      */
     @Transactional(readOnly = true)
-    public BankrollSummaryResponse summary() {
+    public BankrollSummaryResponse summary(@Nullable LocalDate from, @Nullable LocalDate to,
+            @Nullable List<Long> roomIds) {
+        // A blank parameter arrives as a list holding a null: it is no value.
+        Set<Long> onlyRooms = roomIds == null
+                ? Set.of()
+                : roomIds.stream().filter(Objects::nonNull).collect(Collectors.toSet());
+        boolean everyRoom = onlyRooms.isEmpty();
+
         Map<Long, Totals> byRoom = new HashMap<>();
         Map<String, Totals> withoutRoom = new TreeMap<>();
         jdbc.sql("""
@@ -113,9 +128,15 @@ public class BankrollService {
                        sum(m.amount) as amount
                 from bankroll_movement m
                 left join room r on r.id = m.room_id
+                where (cast(:from as date) is null or m.occurred_on >= cast(:from as date))
+                  and (cast(:to as date) is null or m.occurred_on <= cast(:to as date))
                 group by m.room_id, coalesce(r.currency_code, m.currency_code), m.type
-                """).query((row, n) -> {
+                """).param("from", from).param("to", to).query((row, n) -> {
                     long roomId = row.getLong("room_id");
+                    if (row.wasNull() && !everyRoom) {
+                        // Movements without a room are of no room in particular.
+                        return null;
+                    }
                     Totals totals = row.wasNull()
                             ? withoutRoom.computeIfAbsent(row.getString("currency_code"), code -> new Totals())
                             : byRoom.computeIfAbsent(roomId, id -> new Totals());
@@ -127,7 +148,8 @@ public class BankrollService {
         Map<String, Totals> totalByCurrency = new TreeMap<>();
         jdbc.sql("""
                 select r.id, r.name, r.currency_code, r.active,
-                       count(g.id) as games,
+                       exists (select 1 from game where room_id = r.id)
+                           or exists (select 1 from bankroll_movement where room_id = r.id) as has_history,
                        coalesce(sum(g.net), 0) as games_net,
                        coalesce(sum(g.ticket_prize_value), 0) as tickets_won,
                        count(g.id) filter (where g.status = 'IN_PLAY') as games_in_play,
@@ -135,13 +157,19 @@ public class BankrollService {
                                 filter (where g.status = 'IN_PLAY'), 0) as invested_in_play
                 from room r
                 left join game g on g.room_id = r.id
+                    and (cast(:from as date) is null or g.played_on >= cast(:from as date))
+                    and (cast(:to as date) is null or g.played_on <= cast(:to as date))
                 group by r.id
                 order by lower(r.name), r.id
-                """).query((row, n) -> {
+                """).param("from", from).param("to", to).query((row, n) -> {
                     long roomId = row.getLong("id");
                     Totals movementsOfRoom = byRoom.get(roomId);
                     boolean active = row.getBoolean("active");
-                    if (!active && movementsOfRoom == null && row.getLong("games") == 0) {
+                    if (!everyRoom && !onlyRooms.contains(roomId)) {
+                        return roomId;
+                    }
+                    // Whatever the dates asked for, so the same rooms are listed for every period.
+                    if (!active && !row.getBoolean("has_history")) {
                         return roomId;
                     }
                     Totals totals = movementsOfRoom == null ? new Totals() : movementsOfRoom;

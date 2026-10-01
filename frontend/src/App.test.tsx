@@ -3,11 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
 import { LANGUAGE_STORAGE_KEY } from './i18n';
-import { renderApp, stubFetchJson } from './test/renderApp';
+import { problem, renderApp, stubApi } from './test/renderApp';
 
 describe('App', () => {
   it('opens on the dashboard, in English by default', async () => {
-    stubFetchJson({ status: 'UP' });
+    stubApi({});
     renderApp();
 
     expect(await screen.findByRole('heading', { name: 'Dashboard', level: 2 })).toBeInTheDocument();
@@ -15,7 +15,7 @@ describe('App', () => {
   });
 
   it('offers every section in the menu and marks the current one', async () => {
-    stubFetchJson({ status: 'UP' });
+    stubApi({});
     renderApp('/games');
 
     const menu = screen.getByRole('navigation', { name: 'Sections' });
@@ -34,7 +34,7 @@ describe('App', () => {
   });
 
   it('navigates between sections', async () => {
-    stubFetchJson({ status: 'UP' });
+    stubApi({});
     renderApp();
     const menu = screen.getByRole('navigation', { name: 'Sections' });
 
@@ -51,7 +51,7 @@ describe('App', () => {
   it.each(['/games', '/bankroll', '/stats', '/import', '/settings'])(
     'has a page at %s',
     async (path) => {
-      stubFetchJson({ status: 'UP' });
+      stubApi({});
       renderApp(path);
 
       expect(await screen.findByRole('heading', { level: 2 })).not.toHaveTextContent(
@@ -61,7 +61,7 @@ describe('App', () => {
   );
 
   it('has a button to open the menu on narrow screens', async () => {
-    stubFetchJson({ status: 'UP' });
+    stubApi({});
     renderApp();
 
     const burger = screen.getByRole('button', { name: 'Open or close the menu' });
@@ -75,42 +75,40 @@ describe('App', () => {
   });
 
   it('shows the API as online when the backend is healthy', async () => {
-    const fetchMock = stubFetchJson({ status: 'UP' });
+    const calls = stubApi({});
     renderApp();
 
     expect(
       await within(await screen.findByTestId('api-status')).findByText('Online'),
     ).toBeVisible();
-    expect(fetchMock).toHaveBeenCalledWith('/api/actuator/health', expect.anything());
+    expect(calls.some((call) => call.path === '/actuator/health')).toBe(true);
   });
 
   it('shows the API as unavailable when the backend fails', async () => {
-    stubFetchJson({ status: 'DOWN' }, 503);
+    stubApi({ 'GET /actuator/health': () => problem(503, 'INTERNAL_ERROR', 'Down') });
     renderApp();
 
     expect(await within(screen.getByTestId('api-status')).findByText('Unavailable')).toBeVisible();
   });
 
   it('shows the API as unavailable when a refresh fails after it was online', async () => {
-    const fetchMock = stubFetchJson({ status: 'UP' });
+    let healthy = true;
+    stubApi({
+      'GET /actuator/health': () =>
+        healthy ? { status: 'UP' } : problem(503, 'INTERNAL_ERROR', 'Down'),
+    });
     const { queryClient } = renderApp();
     const badge = await screen.findByTestId('api-status');
     expect(await within(badge).findByText('Online')).toBeVisible();
 
-    fetchMock.mockImplementation(
-      async () =>
-        new Response(JSON.stringify({ status: 'DOWN' }), {
-          status: 503,
-          headers: { 'Content-Type': 'application/json' },
-        }),
-    );
+    healthy = false;
     await queryClient.refetchQueries({ queryKey: ['health'] });
 
     expect(await within(badge).findByText('Unavailable')).toBeVisible();
   });
 
   it('switches to Spanish and remembers the choice', async () => {
-    stubFetchJson({ status: 'UP' });
+    stubApi({});
     renderApp();
 
     await userEvent.click(await screen.findByText('ES'));
@@ -124,7 +122,7 @@ describe('App', () => {
   });
 
   it('toggles the color scheme', async () => {
-    stubFetchJson({ status: 'UP' });
+    stubApi({});
     renderApp();
 
     const toggle = await screen.findByRole('button', {
@@ -139,7 +137,7 @@ describe('App', () => {
   });
 
   it('shows a not found page for unknown routes', async () => {
-    stubFetchJson({ status: 'UP' });
+    stubApi({});
     renderApp('/does-not-exist');
 
     expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument();

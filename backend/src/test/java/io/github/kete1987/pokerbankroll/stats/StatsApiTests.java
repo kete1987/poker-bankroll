@@ -162,6 +162,12 @@ class StatsApiTests extends ApiIntegrationTest {
         assertNumber(summary("?roomId=" + pokerStars), "$.currencies[0].total.games", "1");
         assertNumber(summary("?variantId=" + ko), "$.currencies[0].total.games", "1");
         assertNumber(summary("?q=satellite"), "$.currencies[0].total.games", "1");
+        // Several values of a filter: the games of any of them.
+        assertNumber(summary("?currency=EUR&gameType=SIT_AND_GO,CASH"), "$.currencies[0].total.games", "2");
+        assertNumber(summary("?gameType=TOURNAMENT&roomId=" + winamax + "&roomId=" + pokerStars),
+                "$.currencies[1].total.games", "1");
+        assertThat(JsonPath.<Integer>read(groups("?groupBy=GAME_TYPE&currency=EUR&gameType=SIT_AND_GO,CASH"),
+                "$.currencies[0].groups.length()")).isEqualTo(2);
         assertThat(summary("?from=2027-01-01")).isEqualTo("{\"currencies\":[]}");
     }
 
@@ -236,6 +242,32 @@ class StatsApiTests extends ApiIntegrationTest {
                 .hasToString("[\"2025\",\"2026\"]");
         assertNumber(years, "$.currencies[0].groups[0].figures.net", "-4");
         assertNumber(years, "$.currencies[0].groups[1].cumulativeNet", "0.5");
+    }
+
+    @Test
+    void breaksEachGroupDownByGameTypeWhenAsked() {
+        recordSampleGames();
+
+        String json = groups("?groupBy=MONTH&currency=EUR&byGameType=true");
+
+        String month = "$.currencies[0].groups[0]";
+        assertNumber(json, month + ".figures.games", "6");
+        // In catalog order, only the types with games.
+        assertThat(JsonPath.<Object>read(json, month + ".byGameType[*].gameType"))
+                .hasToString("[\"TOURNAMENT\",\"SIT_AND_GO\",\"CASH\"]");
+        assertNumber(json, month + ".byGameType[0].figures.games", "4");
+        assertNumber(json, month + ".byGameType[0].figures.net", "0");
+        assertNumber(json, month + ".byGameType[1].figures.net", "1");
+        assertNumber(json, month + ".byGameType[2].figures.net", "1.5");
+
+        String days = groups("?groupBy=DAY&currency=EUR&byGameType=true");
+        assertThat(JsonPath.<Object>read(days, "$.currencies[0].groups[0].byGameType[*].gameType"))
+                .hasToString("[\"TOURNAMENT\"]");
+        assertThat(JsonPath.<Object>read(days, "$.currencies[0].groups[2].byGameType[*].gameType"))
+                .hasToString("[\"SIT_AND_GO\"]");
+        // Not sent unless asked for.
+        assertThat(JsonPath.<Object>read(groups("?groupBy=MONTH&currency=EUR"),
+                "$.currencies[0].groups[0].byGameType")).isNull();
     }
 
     @Test

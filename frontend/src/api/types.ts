@@ -24,10 +24,13 @@ export type GameRequest = Schemas['GameRequest'];
 export type FinishGameRequest = Schemas['FinishGameRequest'];
 export type RebuyRequest = Schemas['RebuyRequest'];
 export type GamePage = Schemas['PageResponseGameResponse'];
+export type GameName = Schemas['GameNameResponse'];
 
 export type StatsFigures = Schemas['StatsFigures'];
 export type StatsSummary = Schemas['StatsSummaryResponse'];
+export type CurrencySummary = Schemas['CurrencySummary'];
 export type StatsGroups = Schemas['StatsGroupsResponse'];
+export type StatsGroup = Schemas['Group'];
 export type GroupBy = StatsGroups['groupBy'];
 
 export type MovementType = Schemas['MovementResponse']['type'];
@@ -35,4 +38,5 @@ export type Movement = Schemas['MovementResponse'];
 export type MovementRequest = Schemas['MovementRequest'];
 export type MovementPage = Schemas['PageResponseMovementResponse'];
 export type BankrollSummary = Schemas['BankrollSummaryResponse'];
+export type CurrencyBankroll = Schemas['CurrencyBankroll'];
 export type BankrollFigures = Schemas['BankrollFigures'];

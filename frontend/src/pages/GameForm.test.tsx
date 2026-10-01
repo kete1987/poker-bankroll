@@ -2,78 +2,10 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
-import type { Game, GamePage, GameRequest, Room, Variant } from '../api/types';
+import type { Game, GameRequest, Room } from '../api/types';
 import { todayIso } from '../games/gameDefaults';
+import { game, page, room, ROOMS, VARIANTS } from '../test/fixtures';
 import { problem, renderApp, stubApi, type ApiCall } from '../test/renderApp';
-
-const ROOMS: Room[] = [
-  room({ id: 2, name: 'PokerStars', currencyCode: 'USD' }),
-  room({ id: 3, name: 'Unibet', active: false }),
-  room({ id: 1, name: 'Winamax' }),
-];
-
-const VARIANTS: Variant[] = [
-  variant({ id: 10, gameType: 'TOURNAMENT', code: 'KO' }),
-  variant({ id: 11, gameType: 'TOURNAMENT', code: 'SPACE_KO', active: false }),
-  variant({ id: 20, gameType: 'SIT_AND_GO', code: 'EXPRESSO' }),
-  variant({ id: 21, gameType: 'SIT_AND_GO', code: null, name: 'Hyper Turbo', builtIn: false }),
-];
-
-function room(overrides: Partial<Room>): Room {
-  return {
-    id: 1,
-    name: 'Winamax',
-    currencyCode: 'EUR',
-    active: true,
-    inUse: true,
-    createdAt: '2026-01-01T00:00:00Z',
-    updatedAt: '2026-01-01T00:00:00Z',
-    ...overrides,
-  };
-}
-
-function variant(overrides: Partial<Variant>): Variant {
-  return {
-    id: 10,
-    gameType: 'TOURNAMENT',
-    builtIn: true,
-    active: true,
-    inUse: false,
-    ...overrides,
-  };
-}
-
-function game(overrides: Partial<Game>): Game {
-  return {
-    id: 100,
-    playedOn: '2026-01-19',
-    playedAt: null,
-    room: { id: 1, name: 'Winamax' },
-    gameType: 'TOURNAMENT',
-    modality: 'NLHE',
-    variant: null,
-    status: 'FINISHED',
-    name: null,
-    currencyCode: 'EUR',
-    buyIn: 5,
-    entries: 1,
-    prize: 0,
-    bounty: 0,
-    ticketPrizeValue: 0,
-    ticketDescription: null,
-    paidWithTicket: false,
-    invested: 5,
-    net: -5,
-    notes: null,
-    createdAt: '2026-01-19T20:00:00Z',
-    updatedAt: '2026-01-19T20:00:00Z',
-    ...overrides,
-  };
-}
-
-function page(items: Game[]): GamePage {
-  return { items, page: 0, size: 10, totalItems: items.length, totalPages: 1 };
-}
 
 /** The API with the given rooms; saving a game echoes it back as the backend would. */
 function stubGamesApi(options: { rooms?: Room[]; games?: Game[]; onCreate?: unknown } = {}) {
@@ -132,49 +64,6 @@ async function choose(form: ReturnType<typeof within>, label: string, option: st
   await userEvent.click(await screen.findByRole('option', { name: option, hidden: true }));
 }
 
-describe('Games page', () => {
-  it('lists the last games added, with their net or that they are in play', async () => {
-    const calls = stubGamesApi({
-      games: [
-        game({
-          id: 1,
-          name: 'Kill The Fish',
-          variant: { id: 10, code: 'KO', name: null },
-          net: 12.5,
-        }),
-        game({ id: 2, gameType: 'CASH', status: 'IN_PLAY', net: -5, modality: 'PLO' }),
-        game({ id: 3, gameType: 'SIT_AND_GO', currencyCode: 'USD', entries: 2, net: -10 }),
-      ],
-    });
-    renderApp('/games');
-
-    const rows = (await screen.findAllByRole('row')).slice(1);
-    expect(rows).toHaveLength(3);
-    expect(rows[0]).toHaveTextContent('19/01/2026');
-    expect(rows[0]).toHaveTextContent('Kill The Fish');
-    expect(rows[0]).toHaveTextContent('Tournament · KO');
-    expect(rows[0]).toHaveTextContent('+€12.50');
-    expect(rows[1]).toHaveTextContent('Cash');
-    expect(rows[1]).toHaveTextContent('Omaha');
-    expect(rows[1]).toHaveTextContent('In play');
-    expect(rows[2]).toHaveTextContent('Sit & Go / Spin');
-    expect(rows[2]).toHaveTextContent('×2');
-    expect(rows[2]).toHaveTextContent('-US$10.00');
-
-    const list = calls.find((call) => call.path === '/games');
-    expect(list?.query.get('sort')).toBe('createdAt,desc');
-  });
-
-  it('says so when there are no games yet', async () => {
-    stubGamesApi();
-    renderApp('/games');
-
-    expect(
-      await screen.findByText('There are no games yet. Add the first one.'),
-    ).toBeInTheDocument();
-  });
-});
-
 describe('Add game form', () => {
   it('starts with today, a tournament in play, and only offers active rooms and variants', async () => {
     stubGamesApi();
@@ -200,7 +89,7 @@ describe('Add game form', () => {
     const form = await openForm();
 
     await choose(form, 'Room', 'Winamax (EUR)');
-    await userEvent.type(form.getByRole('textbox', { name: 'Buy-in' }), '2.5');
+    await userEvent.type(form.getByRole('textbox', { name: 'Buy-in' }), '2.50');
     await userEvent.click(form.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(created(calls)).toHaveLength(1));
@@ -237,14 +126,14 @@ describe('Add game form', () => {
     await choose(form, 'Room', 'Winamax (EUR)');
     await choose(form, 'Variant', 'KO');
     await userEvent.type(form.getByRole('textbox', { name: 'Buy-in' }), '5');
-    await userEvent.type(form.getByRole('textbox', { name: 'Name' }), ' Kill The Fish ');
+    await userEvent.type(form.getByRole('combobox', { name: 'Name' }), ' Kill The Fish ');
     await userEvent.type(form.getByLabelText('Start time'), '21:30');
     await userEvent.clear(form.getByRole('textbox', { name: 'Entries (with re-entries)' }));
     await userEvent.type(form.getByRole('textbox', { name: 'Entries (with re-entries)' }), '2');
     await userEvent.click(form.getByRole('radio', { name: 'Omaha' }));
     await userEvent.click(form.getByRole('checkbox', { name: 'I paid the entry with a ticket' }));
     await userEvent.click(form.getByRole('radio', { name: 'Finished' }));
-    await userEvent.type(form.getByRole('textbox', { name: 'Prize' }), '30');
+    await userEvent.type(form.getByRole('textbox', { name: 'Prize' }), '30.00');
     await userEvent.type(form.getByRole('textbox', { name: 'Bounties' }), '2.75');
     await userEvent.click(form.getByRole('checkbox', { name: 'I won a ticket' }));
     await userEvent.type(form.getByRole('textbox', { name: 'Ticket value' }), '20');

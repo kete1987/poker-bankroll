@@ -184,6 +184,9 @@ class BankrollApiTests extends ApiIntegrationTest {
 
         assertThat(ids("")).isEqualTo("[%d,%d,%d,%d]".formatted(third, second, first, global));
         assertThat(ids("?roomId=" + winamax)).isEqualTo("[%d,%d]".formatted(second, first));
+        // Several rooms: the movements of any of them. A blank value is no filter.
+        assertThat(ids("?roomId=" + winamax + "," + pokerStars)).isEqualTo("[%d,%d,%d]".formatted(third, second, first));
+        assertThat(ids("?roomId=")).isEqualTo("[%d,%d,%d,%d]".formatted(third, second, first, global));
         assertThat(ids("?type=DEPOSIT")).isEqualTo("[%d,%d]".formatted(first, global));
         assertThat(ids("?from=2026-01-10&to=2026-01-19")).isEqualTo("[%d]".formatted(first));
         // The currency of the room, or the own one of a movement without a room.
@@ -303,6 +306,71 @@ class BankrollApiTests extends ApiIntegrationTest {
         assertThat(JsonPath.<Object>read(json, "$.currencies[0].rooms[*].room.name"))
                 .hasToString("[\"888poker\",\"Winamax\"]");
         assertThat(JsonPath.<Boolean>read(json, "$.currencies[0].rooms[0].active")).isFalse();
+    }
+
+    @Test
+    void withDatesTheFiguresAreThoseOfThePeriod() {
+        long unibet = insertRoom("Unibet", "EUR");
+        movement("2025-12-01", "DEPOSIT", winamax, null, "100");
+        movement("2026-01-10", "BONUS", winamax, null, "5");
+        movement("2026-02-01", "WITHDRAWAL", winamax, null, "20");
+        movement("2026-01-05", "DEPOSIT", null, "EUR", "200");
+        // Both games are of 2026-01-19.
+        game(winamax, "FINISHED", "10", 1, "4", "0");
+        game(unibet, "FINISHED", "1", 1, "0", "0");
+        jdbc.update("update room set active = false where id = ?", unibet);
+
+        String january = body("/bankroll/summary?from=2026-01-01&to=2026-01-31");
+
+        String rooms = "$.currencies[0].rooms";
+        assertThat(JsonPath.<Object>read(january, rooms + "[*].room.name")).hasToString("[\"Unibet\",\"Winamax\"]");
+        assertNumber(january, rooms + "[1].figures.deposited", "0");
+        assertNumber(january, rooms + "[1].figures.withdrawn", "0");
+        assertNumber(january, rooms + "[1].figures.bonuses", "5");
+        assertNumber(january, rooms + "[1].figures.gamesNet", "-6");
+        // What was won or lost in the period, and what the bankroll changed in it.
+        assertNumber(january, rooms + "[1].figures.result", "-1");
+        assertNumber(january, rooms + "[1].figures.bankroll", "-1");
+        assertNumber(january, "$.currencies[0].withoutRoom.deposited", "200");
+        assertNumber(january, "$.currencies[0].total.result", "-2");
+        assertNumber(january, "$.currencies[0].total.bankroll", "198");
+
+        // A period without activity still lists the same rooms, at zero.
+        String march = body("/bankroll/summary?from=2026-03-01");
+        assertThat(JsonPath.<Object>read(march, rooms + "[*].room.name")).hasToString("[\"Unibet\",\"Winamax\"]");
+        assertNumber(march, "$.currencies[0].total.bankroll", "0");
+
+        // An open end: everything up to a date.
+        assertNumber(body("/bankroll/summary?to=2025-12-31"), "$.currencies[0].total.bankroll", "100");
+        // Without dates, the bankroll as it is now.
+        assertNumber(body("/bankroll/summary"), "$.currencies[0].total.bankroll", "278");
+    }
+
+    @Test
+    void withRoomsOnlyTheyAreListedAndAddedUp() {
+        long unibet = insertRoom("Unibet", "EUR");
+        movement("2026-01-01", "DEPOSIT", winamax, null, "100");
+        movement("2026-01-01", "DEPOSIT", unibet, null, "30");
+        movement("2026-01-01", "DEPOSIT", pokerStars, null, "50");
+        movement("2026-01-01", "DEPOSIT", null, "EUR", "200");
+        game(winamax, "FINISHED", "10", 1, "4", "0");
+
+        String one = body("/bankroll/summary?roomId=" + winamax);
+        assertThat(JsonPath.<Integer>read(one, "$.currencies.length()")).isEqualTo(1);
+        assertThat(JsonPath.<Object>read(one, "$.currencies[0].rooms[*].room.name")).hasToString("[\"Winamax\"]");
+        // The movements without a room are of no room in particular.
+        assertNumber(one, "$.currencies[0].withoutRoom.deposited", "0");
+        assertNumber(one, "$.currencies[0].total.bankroll", "94");
+
+        String two = body("/bankroll/summary?roomId=" + winamax + "," + unibet + "&from=2026-01-01&to=2026-01-01");
+        assertThat(JsonPath.<Object>read(two, "$.currencies[0].rooms[*].room.name"))
+                .hasToString("[\"Unibet\",\"Winamax\"]");
+        assertNumber(two, "$.currencies[0].total.deposited", "130");
+        assertNumber(two, "$.currencies[0].total.gamesNet", "0");
+
+        // A blank value is no filter.
+        assertNumber(body("/bankroll/summary?roomId="), "$.currencies[0].total.deposited", "330");
+        assertThat(mvc.get().uri("/bankroll/summary?from=yesterday")).hasStatus(HttpStatus.BAD_REQUEST);
     }
 
     // ---- rooms with movements ----

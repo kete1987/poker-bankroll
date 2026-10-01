@@ -1,4 +1,6 @@
 # Documentation
 
-User and developer documentation will live here (installation, configuration, backups and
-restore, importing data, architecture decisions).
+- [Importing games](import.md): the CSV format to load games recorded somewhere else, with an
+  [example file](import-example.csv).
+- [Backups](backups.md): where they are kept and how to restore one.
+- [Releasing](releasing.md): versions, updates and rollbacks.

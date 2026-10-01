@@ -1,5 +1,7 @@
 package io.github.kete1987.pokerbankroll.game;
 
+import java.util.List;
+
 import io.github.kete1987.pokerbankroll.catalog.GameType;
 import io.github.kete1987.pokerbankroll.common.api.PageResponse;
 import io.github.kete1987.pokerbankroll.common.error.ApiException;
@@ -17,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 public class GameService {
+
+    static final int MIN_NAME_SEARCH_LENGTH = 2;
 
     private final GameRepository games;
     private final RoomRepository rooms;
@@ -38,6 +42,22 @@ public class GameService {
     @Transactional(readOnly = true)
     public GameResponse get(long id) {
         return GameResponse.of(find(id));
+    }
+
+    /**
+     * Names of recorded games containing the text, to suggest them while one is typed: most used
+     * first. Nothing is suggested for less than {@link #MIN_NAME_SEARCH_LENGTH} characters, so the
+     * API never lists every name.
+     */
+    @Transactional(readOnly = true)
+    public List<GameNameResponse> names(@Nullable String text, @Nullable GameType gameType, int limit) {
+        String search = text == null ? "" : text.strip();
+        if (search.length() < MIN_NAME_SEARCH_LENGTH) {
+            return List.of();
+        }
+        return games.findNamesContaining(search, gameType == null ? null : gameType.name(), limit).stream()
+                .map(GameNameResponse::of)
+                .toList();
     }
 
     public GameResponse create(GameRequest request) {

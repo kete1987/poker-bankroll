@@ -2,6 +2,7 @@ package io.github.kete1987.pokerbankroll.game;
 
 import java.net.URI;
 import java.time.LocalDate;
+import java.util.List;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -36,6 +37,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 class GameController {
 
     static final int MAX_PAGE_SIZE = 200;
+    static final int MAX_NAMES = 20;
 
     private final GameService service;
 
@@ -50,10 +52,13 @@ class GameController {
             @RequestParam(required = false) @Nullable LocalDate from,
             @Parameter(description = "Played on or before this date")
             @RequestParam(required = false) @Nullable LocalDate to,
-            @RequestParam(required = false) @Nullable GameType gameType,
+            @Parameter(description = "One or more game types: games of any of them")
+            @RequestParam(required = false) @Nullable List<GameType> gameType,
             @RequestParam(required = false) @Nullable Modality modality,
-            @RequestParam(required = false) @Nullable Long roomId,
-            @RequestParam(required = false) @Nullable Long variantId,
+            @Parameter(description = "One or more rooms: games in any of them")
+            @RequestParam(required = false) @Nullable List<Long> roomId,
+            @Parameter(description = "One or more variants: games of any of them")
+            @RequestParam(required = false) @Nullable List<Long> variantId,
             @RequestParam(required = false) @Nullable GameStatus status,
             @Parameter(description = "Currency of the room, e.g. EUR")
             @RequestParam(required = false) @Nullable String currency,
@@ -62,10 +67,27 @@ class GameController {
             @Parameter(description = "Zero-based page number")
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "50") @Min(1) @Max(MAX_PAGE_SIZE) int size,
-            @Parameter(description = "`<field>,<asc|desc>` with field one of playedOn, net, buyIn, prize, createdAt")
+            @Parameter(description = "`<field>,<asc|desc>` with field one of playedOn, net, buyIn, prize, won, createdAt")
             @RequestParam(defaultValue = GameSort.DEFAULT) String sort) {
         GameFilter filter = new GameFilter(from, to, gameType, modality, roomId, variantId, status, currency, q);
         return service.list(filter, page, size, GameSort.parse(sort));
+    }
+
+    // A plain list, not a page: it is bounded by `limit` and nobody asks for the rest.
+    @GetMapping("/names")
+    @Operation(summary = "Suggest names of recorded games",
+            description = "The names containing the text, most used first, then most recent, then by name. "
+                    + "Names that differ only in case or surrounding spaces are one, written as in its most "
+                    + "recent game (latest date, then latest id), whose type, modality, buy-in and variant "
+                    + "come with it. Games in play count too.")
+    List<GameNameResponse> names(
+            @Parameter(description = "Text contained in the name, ignoring case and searched literally; "
+                    + "with less than 2 characters, surrounding spaces apart, nothing is suggested")
+            @RequestParam(defaultValue = "") String q,
+            @Parameter(description = "Only the games of this type: their names, counts and figures")
+            @RequestParam(required = false) @Nullable GameType gameType,
+            @RequestParam(defaultValue = "8") @Min(1) @Max(MAX_NAMES) int limit) {
+        return service.names(q, gameType, limit);
     }
 
     @GetMapping("/{id}")

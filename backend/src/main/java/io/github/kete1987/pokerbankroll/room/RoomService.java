@@ -2,7 +2,9 @@ package io.github.kete1987.pokerbankroll.room;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import io.github.kete1987.pokerbankroll.catalog.CurrencyRepository;
 import io.github.kete1987.pokerbankroll.common.error.ApiException;
@@ -16,10 +18,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class RoomService {
 
     private final RoomRepository rooms;
+    private final RoomLogoRepository logos;
     private final CurrencyRepository currencies;
 
-    RoomService(RoomRepository rooms, CurrencyRepository currencies) {
+    RoomService(RoomRepository rooms, RoomLogoRepository logos, CurrencyRepository currencies) {
         this.rooms = rooms;
+        this.logos = logos;
         this.currencies = currencies;
     }
 
@@ -27,16 +31,18 @@ public class RoomService {
     @Transactional(readOnly = true)
     public List<RoomResponse> list(@Nullable Boolean active) {
         Set<Long> inUse = rooms.findIdsInUse();
+        Map<Long, String> logoVersions = logos.findVersions().stream()
+                .collect(Collectors.toMap(RoomLogoVersion::roomId, RoomLogoVersion::value));
         return rooms.findAll().stream()
                 .filter(room -> active == null || room.isActive() == active)
                 .sorted(Comparator.comparing(room -> room.getName().toLowerCase()))
-                .map(room -> RoomResponse.of(room, inUse.contains(room.getId())))
+                .map(room -> RoomResponse.of(room, inUse.contains(room.getId()), logoVersions.get(room.getId())))
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public RoomResponse get(long id) {
-        return RoomResponse.of(find(id), rooms.isInUse(id));
+        return RoomResponse.of(find(id), rooms.isInUse(id), logoVersion(id));
     }
 
     public RoomResponse create(RoomRequest request) {
@@ -46,7 +52,7 @@ public class RoomService {
 
         Room room = new Room(name, request.currencyCode());
         room.setActive(request.active() == null || request.active());
-        return RoomResponse.of(rooms.saveAndFlush(room), false);
+        return RoomResponse.of(rooms.saveAndFlush(room), false, null);
     }
 
     public RoomResponse update(long id, RoomRequest request) {
@@ -66,9 +72,10 @@ public class RoomService {
         if (request.active() != null) {
             room.setActive(request.active());
         }
-        return RoomResponse.of(rooms.saveAndFlush(room), inUse);
+        return RoomResponse.of(rooms.saveAndFlush(room), inUse, logoVersion(id));
     }
 
+    /** The logo of the room, if any, goes with it (the database cascades the delete). */
     public void delete(long id) {
         Room room = find(id);
         if (rooms.isInUse(id)) {
@@ -79,6 +86,10 @@ public class RoomService {
 
     private Room find(long id) {
         return rooms.findById(id).orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
+    }
+
+    private @Nullable String logoVersion(long id) {
+        return logos.findVersionByRoomId(id).map(RoomLogoVersion::value).orElse(null);
     }
 
     private void checkNameIsFree(String name, @Nullable Long ownId) {

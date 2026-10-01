@@ -111,6 +111,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/games/names": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Suggest names of recorded games
+         * @description The names containing the text, most used first, then most recent, then by name. Names that differ only in case or surrounding spaces are one, written as in its most recent game (latest date, then latest id), whose type, modality, buy-in and variant come with it. Games in play count too.
+         */
+        get: operations["names"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/games/{id}": {
         parameters: {
             query?: never;
@@ -193,6 +213,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/imports/games": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import games from a CSV file
+         * @description The body is the file itself, in the format of `docs/import.md`: UTF-8, comma separated, a header row and one game per row, up to 5 MB and 50,000 rows. Every game is imported as finished; rooms and variants that do not exist are created.
+         *
+         *     It is all or nothing: with an error in any row nothing is stored, and the response (still 200) lists the errors with `imported: false`. With `dryRun=true` the file is checked in the same way and nothing is stored either. Importing the same file twice records its games twice.
+         *
+         *     A file that cannot be read as a whole fails with `IMPORT_FILE_EMPTY`, `IMPORT_FILE_NOT_UTF8`, `IMPORT_FILE_MALFORMED`, `IMPORT_UNKNOWN_COLUMN`, `IMPORT_DUPLICATE_COLUMN`, `IMPORT_MISSING_COLUMN`, `IMPORT_TOO_MANY_ROWS` (400) or `IMPORT_FILE_TOO_LARGE` (413).
+         */
+        post: operations["importGames"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rooms": {
         parameters: {
             query?: never;
@@ -205,6 +249,26 @@ export interface paths {
         put?: never;
         /** Create a room */
         post: operations["create_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rooms/logo-fetch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Download the image of a URL, to use it as the logo of a room
+         * @description Returns the image itself (PNG, JPEG or WebP, up to 5 MB). A browser cannot read images of other sites, so it asks for them here, resizes the result and uploads it with `PUT /rooms/{id}/logo`; nothing is stored by this request. Only `http` and `https` URLs of public addresses. Fails with `LOGO_URL_INVALID` (400), `LOGO_URL_NOT_PUBLIC` (400), `LOGO_URL_UNREACHABLE` (502), `LOGO_TOO_LARGE` (413) or `LOGO_UNSUPPORTED_TYPE` (415).
+         */
+        post: operations["fetchLogo"];
         delete?: never;
         options?: never;
         head?: never;
@@ -231,6 +295,31 @@ export interface paths {
          * @description Only rooms without games; otherwise deactivate it.
          */
         delete: operations["delete_1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rooms/{id}/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the logo of a room
+         * @description The image, with a strong `ETag` (`If-None-Match` is answered with 304). Request it as `?v=<logoVersion of the room>`: that URL never changes its content, so it is served to be cached for a year without revalidation. Without `v`, or with another value, it is revalidated on every use.
+         */
+        get: operations["getLogo"];
+        /**
+         * Set the logo of a room
+         * @description The body is the image itself: PNG, JPEG or WebP, up to 256 kB. The format is detected from the content and the declared `Content-Type` is ignored. Replaces the logo the room had and returns the room with its new `logoVersion`. Fails with `LOGO_EMPTY` (400), `LOGO_TOO_LARGE` (413) or `LOGO_UNSUPPORTED_TYPE` (415).
+         */
+        put: operations["replaceLogo"];
+        post?: never;
+        /** Delete the logo of a room */
+        delete: operations["deleteLogo"];
         options?: never;
         head?: never;
         patch?: never;
@@ -392,6 +481,62 @@ export interface components {
             /** @description Value of a tournament ticket won. Not for cash games. Defaults to 0 */
             ticketPrizeValue?: number | null;
         };
+        GameImportResponse: {
+            /** @description The file was only checked: nothing was stored */
+            dryRun: boolean;
+            /**
+             * Format: int32
+             * @description Errors found in the rows; `errors` lists only the first ones
+             */
+            errorCount: number;
+            errors: components["schemas"]["ImportRowError"][];
+            /**
+             * Format: date
+             * @description Date of the first game
+             */
+            from?: string | null;
+            /**
+             * Format: int32
+             * @description Rows without errors
+             */
+            games: number;
+            gamesByType: components["schemas"]["ImportGameTypeCount"][];
+            /** @description The games were stored: not a dry run, and no row had errors */
+            imported: boolean;
+            /** @description Rooms that did not exist and are created by the import */
+            newRooms: components["schemas"]["ImportedRoom"][];
+            /** @description Variants that did not exist and are created by the import */
+            newVariants: components["schemas"]["ImportedVariant"][];
+            /**
+             * Format: int32
+             * @description Rows of the file with something in them, the header apart
+             */
+            rows: number;
+            /**
+             * Format: date
+             * @description Date of the last game
+             */
+            to?: string | null;
+            /** @description Games and their net per currency, to compare with the source of the file */
+            totals: components["schemas"]["ImportCurrencyTotal"][];
+        };
+        GameNameResponse: {
+            buyIn: number;
+            /** @description Currency of the buy-in: the one of the room of that game */
+            currencyCode: string;
+            /** @enum {string} */
+            gameType: "TOURNAMENT" | "SIT_AND_GO" | "CASH";
+            /**
+             * Format: int64
+             * @description How many games have that name
+             */
+            games: number;
+            /** @enum {string} */
+            modality: "NLHE" | "PLO";
+            /** @description As it was written in the most recent game of that name; names that differ only in case or surrounding spaces are the same one */
+            name: string;
+            variant?: components["schemas"]["VariantRef"] | null;
+        };
         GameRequest: {
             /** @description Bounties won. Defaults to 0 */
             bounty?: number | null;
@@ -456,7 +601,7 @@ export interface components {
             /** @enum {string} */
             modality: "NLHE" | "PLO";
             name?: string | null;
-            /** @description Real money won or lost: prize + bounty - invested */
+            /** @description Real money won or lost: won - invested */
             net: number;
             notes?: string | null;
             paidWithTicket: boolean;
@@ -476,6 +621,8 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
             variant?: components["schemas"]["VariantRef"] | null;
+            /** @description Money won: prize + bounty */
+            won: number;
         };
         GameTypeSummary: {
             figures: components["schemas"]["StatsFigures"];
@@ -483,6 +630,8 @@ export interface components {
             gameType: "TOURNAMENT" | "SIT_AND_GO" | "CASH";
         };
         Group: {
+            /** @description The group broken down by game type (those with games, in catalog order); only when asked for with `byGameType=true` */
+            byGameType?: components["schemas"]["GameTypeSummary"][] | null;
             /** @description Net of this period and the earlier ones in the response, so it starts from zero at the beginning of the filtered range; only for groups in time */
             cumulativeNet?: number | null;
             figures: components["schemas"]["StatsFigures"];
@@ -508,11 +657,42 @@ export interface components {
             /** @description VARIANT; null for the games of the type without a variant */
             variant?: components["schemas"]["VariantRef"] | null;
         };
+        ImportCurrencyTotal: {
+            currencyCode: string;
+            /** Format: int32 */
+            games: number;
+            net: number;
+        };
+        ImportGameTypeCount: {
+            /** @enum {string} */
+            gameType: "TOURNAMENT" | "SIT_AND_GO" | "CASH";
+            /** Format: int32 */
+            games: number;
+        };
+        ImportRowError: {
+            code: string;
+            field?: string | null;
+            message: string;
+            /** Format: int32 */
+            row: number;
+        };
+        ImportedRoom: {
+            currencyCode: string;
+            name: string;
+        };
+        ImportedVariant: {
+            /** @enum {string} */
+            gameType: "TOURNAMENT" | "SIT_AND_GO" | "CASH";
+            name: string;
+        };
         InPlay: {
             /** Format: int64 */
             games: number;
             /** @description Money paid so far for their entries */
             invested: number;
+        };
+        LogoFetchRequest: {
+            url: string;
         };
         MovementRequest: {
             /** @description Greater than zero: the type gives the direction (a withdrawal subtracts). Only an ADJUSTMENT can be negative */
@@ -617,6 +797,8 @@ export interface components {
             id: number;
             /** @description The room has games or bankroll movements: it cannot be deleted and its currency cannot change */
             inUse: boolean;
+            /** @description Null when the room has no logo. Otherwise an opaque value that changes every time the logo is uploaded: get the image from `/rooms/{id}/logo?v=<logoVersion>` */
+            logoVersion?: string | null;
             name: string;
             /** Format: date-time */
             updatedAt: string;
@@ -724,7 +906,8 @@ export interface operations {
                 /** @description On or before this date */
                 to?: string;
                 type?: "DEPOSIT" | "WITHDRAWAL" | "BONUS" | "ADJUSTMENT";
-                roomId?: number;
+                /** @description One or more rooms: movements of any of them */
+                roomId?: number[];
                 /** @description true: only movements that belong to no room; false: only those of a room */
                 withoutRoom?: boolean;
                 /** @description Currency of the amount, e.g. EUR */
@@ -844,7 +1027,14 @@ export interface operations {
     };
     summary_1: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Only movements and games on or after this date: with dates, the figures are those of the period (what the bankroll changed, what was won or lost) */
+                from?: string;
+                /** @description Only movements and games on or before this date */
+                to?: string;
+                /** @description One or more rooms: only they are listed and added up, without the movements that belong to no room */
+                roomId?: number[];
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -889,10 +1079,13 @@ export interface operations {
                 from?: string;
                 /** @description Played on or before this date */
                 to?: string;
-                gameType?: "TOURNAMENT" | "SIT_AND_GO" | "CASH";
+                /** @description One or more game types: games of any of them */
+                gameType?: ("TOURNAMENT" | "SIT_AND_GO" | "CASH")[];
                 modality?: "NLHE" | "PLO";
-                roomId?: number;
-                variantId?: number;
+                /** @description One or more rooms: games in any of them */
+                roomId?: number[];
+                /** @description One or more variants: games of any of them */
+                variantId?: number[];
                 status?: "IN_PLAY" | "FINISHED";
                 /** @description Currency of the room, e.g. EUR */
                 currency?: string;
@@ -901,7 +1094,7 @@ export interface operations {
                 /** @description Zero-based page number */
                 page?: number;
                 size?: number;
-                /** @description `<field>,<asc|desc>` with field one of playedOn, net, buyIn, prize, createdAt */
+                /** @description `<field>,<asc|desc>` with field one of playedOn, net, buyIn, prize, won, createdAt */
                 sort?: string;
             };
             header?: never;
@@ -941,6 +1134,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GameResponse"];
+                };
+            };
+        };
+    };
+    names: {
+        parameters: {
+            query?: {
+                /** @description Text contained in the name, ignoring case and searched literally; with less than 2 characters, surrounding spaces apart, nothing is suggested */
+                q?: string;
+                /** @description Only the games of this type: their names, counts and figures */
+                gameType?: "TOURNAMENT" | "SIT_AND_GO" | "CASH";
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GameNameResponse"][];
                 };
             };
         };
@@ -1087,6 +1306,33 @@ export interface operations {
             };
         };
     };
+    importGames: {
+        parameters: {
+            query?: {
+                /** @description Only check the file and report what it would import */
+                dryRun?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "text/csv": string;
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GameImportResponse"];
+                };
+            };
+        };
+    };
     list_1: {
         parameters: {
             query?: {
@@ -1129,6 +1375,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RoomResponse"];
+                };
+            };
+        };
+    };
+    fetchLogo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LogoFetchRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
+                    "image/png": string;
+                    "image/webp": string;
                 };
             };
         };
@@ -1201,18 +1473,105 @@ export interface operations {
             };
         };
     };
+    getLogo: {
+        parameters: {
+            query?: {
+                /** @description The `logoVersion` of the room */
+                v?: string;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
+                    "image/png": string;
+                    "image/webp": string;
+                };
+            };
+            /** @description Not modified */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    replaceLogo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "image/jpeg": string;
+                "image/png": string;
+                "image/webp": string;
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomResponse"];
+                };
+            };
+        };
+    };
+    deleteLogo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     groups: {
         parameters: {
             query: {
                 groupBy: "DAY" | "WEEK" | "MONTH" | "YEAR" | "GAME_TYPE" | "VARIANT" | "ROOM" | "MODALITY" | "BUY_IN";
+                /** @description Also break each group down by game type */
+                byGameType?: boolean;
                 /** @description Played on or after this date */
                 from?: string;
                 /** @description Played on or before this date */
                 to?: string;
-                gameType?: "TOURNAMENT" | "SIT_AND_GO" | "CASH";
+                /** @description One or more game types: games of any of them */
+                gameType?: ("TOURNAMENT" | "SIT_AND_GO" | "CASH")[];
                 modality?: "NLHE" | "PLO";
-                roomId?: number;
-                variantId?: number;
+                /** @description One or more rooms: games in any of them */
+                roomId?: number[];
+                /** @description One or more variants: games of any of them */
+                variantId?: number[];
                 /** @description Currency of the room, e.g. EUR */
                 currency?: string;
                 /** @description Text contained in the name or the notes, ignoring case */
@@ -1242,10 +1601,13 @@ export interface operations {
                 from?: string;
                 /** @description Played on or before this date */
                 to?: string;
-                gameType?: "TOURNAMENT" | "SIT_AND_GO" | "CASH";
+                /** @description One or more game types: games of any of them */
+                gameType?: ("TOURNAMENT" | "SIT_AND_GO" | "CASH")[];
                 modality?: "NLHE" | "PLO";
-                roomId?: number;
-                variantId?: number;
+                /** @description One or more rooms: games in any of them */
+                roomId?: number[];
+                /** @description One or more variants: games of any of them */
+                variantId?: number[];
                 /** @description Currency of the room, e.g. EUR */
                 currency?: string;
                 /** @description Text contained in the name or the notes, ignoring case */

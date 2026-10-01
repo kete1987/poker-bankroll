@@ -22,9 +22,12 @@ import io.github.kete1987.pokerbankroll.catalog.Modality;
 import io.github.kete1987.pokerbankroll.room.Room;
 import io.github.kete1987.pokerbankroll.variant.Variant;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.Formula;
 import org.hibernate.annotations.Generated;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.generator.EventType;
+import org.hibernate.type.SqlTypes;
 import org.jspecify.annotations.Nullable;
 
 /** One recorded result. Amounts are in the currency of the room. */
@@ -40,7 +43,12 @@ public class Game {
     @Column(name = "played_on", nullable = false)
     private LocalDate playedOn;
 
-    /** Optional local start time, only used to order the games of a day. */
+    /**
+     * Optional local start time, only used to order the games of a day. Sent to the database as a
+     * {@code LocalTime}: through {@code java.sql.Time}, the default, Hibernate would shift it from
+     * the time zone of the JVM to {@code hibernate.jdbc.time_zone}.
+     */
+    @JdbcTypeCode(SqlTypes.LOCAL_TIME)
     @Column(name = "played_at")
     private @Nullable LocalTime playedAt;
 
@@ -96,6 +104,13 @@ public class Game {
     @Generated(event = {EventType.INSERT, EventType.UPDATE})
     @Column(name = "net", insertable = false, updatable = false, precision = 14, scale = 2)
     private BigDecimal net;
+
+    /**
+     * Money won, as an expression of the database: only there to order and filter by it. Read it
+     * with {@link #getWon()}, which follows changes not saved yet.
+     */
+    @Formula("prize + bounty")
+    private BigDecimal won;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -247,6 +262,11 @@ public class Game {
 
     public void setNotes(@Nullable String notes) {
         this.notes = notes;
+    }
+
+    /** Money won: the prize plus the bounties. */
+    public BigDecimal getWon() {
+        return prize.add(bounty);
     }
 
     public BigDecimal getNet() {

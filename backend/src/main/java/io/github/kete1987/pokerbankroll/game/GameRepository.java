@@ -1,9 +1,12 @@
 package io.github.kete1987.pokerbankroll.game;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import jakarta.persistence.LockModeType;
 
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -32,4 +35,55 @@ public interface GameRepository extends JpaRepository<Game, Long>, JpaSpecificat
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select g from Game g where g.id = :id")
     Optional<Game> findForUpdateById(long id);
+
+    /**
+     * The names of the games that contain the text, most used first (then most recent, then by
+     * name). Names that differ only in case or surrounding spaces are one; each comes as written
+     * in its most recent game (latest date, then latest id), with what that game had. The text is
+     * searched literally and ignoring case; {@code gameType} is optional and restricts both the
+     * names and their figures to the games of that type.
+     */
+    @Query(value = """
+            select name, games, game_type as "gameType", modality, buy_in as "buyIn",
+                   currency_code as "currencyCode",
+                   variant_id as "variantId", variant_code as "variantCode", variant_name as "variantName"
+            from (
+                select btrim(g.name) as name, lower(btrim(g.name)) as name_key, g.played_on,
+                       g.game_type_code as game_type, g.modality_code as modality, g.buy_in,
+                       r.currency_code,
+                       v.id as variant_id, v.code as variant_code, v.name as variant_name,
+                       count(*) over (partition by lower(btrim(g.name))) as games,
+                       row_number() over (
+                           partition by lower(btrim(g.name)) order by g.played_on desc, g.id desc) as recency
+                from game g join room r on r.id = g.room_id left join variant v on v.id = g.variant_id
+                where strpos(lower(g.name), lower(:text)) > 0
+                  and (cast(:gameType as varchar) is null or g.game_type_code = :gameType)
+            ) named
+            where recency = 1
+            order by games desc, played_on desc, name_key
+            limit :limit
+            """, nativeQuery = true)
+    List<NameUse> findNamesContaining(String text, @Nullable String gameType, int limit);
+
+    /** A row of {@link #findNamesContaining}. */
+    interface NameUse {
+
+        String getName();
+
+        long getGames();
+
+        String getGameType();
+
+        String getModality();
+
+        BigDecimal getBuyIn();
+
+        String getCurrencyCode();
+
+        @Nullable Long getVariantId();
+
+        @Nullable String getVariantCode();
+
+        @Nullable String getVariantName();
+    }
 }
