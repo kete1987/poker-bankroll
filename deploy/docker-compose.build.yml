@@ -1,0 +1,13 @@
+# Builds the api and web images from this checkout instead of pulling them from GHCR.
+# Used on top of docker-compose.yml:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+#
+# It is a separate file so that docker-compose.yml can be used where there is no source code
+# (a Portainer stack): with a `build` section there, Compose tries to build and fails.
+services:
+  api:
+    build: ../backend
+
+  web:
+    build: ../frontend

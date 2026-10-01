@@ -6,8 +6,8 @@ Self-hosted poker bankroll manager. Record the results of your tournaments, Sit&
 spins and cash games, keep track of your poker bankroll in each poker room, and see how
 your results evolve over time.
 
-> **Status: work in progress.** Nothing is runnable yet. Follow the
-> [v0.1 MVP milestone](https://github.com/kete1987/poker-bankroll/milestone/1) and the
+> **Status: first version (0.1).** It is usable and young. What comes next is in the
+> [issues](https://github.com/kete1987/poker-bankroll/issues) and the
 > [project board](https://github.com/users/kete1987/projects/3).
 
 ## Why
@@ -19,7 +19,7 @@ poker-bankroll replaces that spreadsheet with a small app you run on your own ma
 It is **not** a hand-history analyser: tools like PokerTracker 4 already do that. The focus
 here is results and bankroll management.
 
-## Planned features (v0.1)
+## Features
 
 - Quick entry of games: tournaments (re-entries, bounties, ticket prizes), Sit&Go and spins
   (Expresso...) and cash games, in No-Limit Hold'em or PLO
@@ -28,10 +28,10 @@ here is results and bankroll management.
 - Poker bankroll per room and currency: deposits, withdrawals, bonuses and the result of your games
 - Multiple currencies (EUR and USD out of the box, extensible)
 - English and Spanish UI
-- Import from an existing spreadsheet (CSV)
+- Import of games from a CSV file ([format](docs/import.md)), to bring your history from a spreadsheet
 - Daily database backups
 
-See the [issues](https://github.com/kete1987/poker-bankroll/issues) for the full roadmap.
+See the [issues](https://github.com/kete1987/poker-bankroll/issues) for what is planned.
 
 ## Stack
 
@@ -48,22 +48,28 @@ browser ──► web (nginx + SPA) ──/api──► api (Spring Boot) ──
 
 ## Quick start
 
-Requires Docker with Compose. The app is still a skeleton, but the stack already runs:
+Requires Docker with Compose:
 
 ```bash
 git clone https://github.com/kete1987/poker-bankroll.git
 cd poker-bankroll/deploy
-cp .env.example .env          # set POSTGRES_PASSWORD
-docker compose up -d --build  # builds the images from the source
+cp .env.example .env   # set POSTGRES_PASSWORD
+docker compose up -d   # runs the published images
 ```
 
 Open `http://<your-host>:8080` (change the port with `WEB_PORT` in `.env`). Data lives in the
-`poker-bankroll_db-data` Docker volume.
+`poker-bankroll_db-data` Docker volume, which is kept when the stack is updated.
 
-Instead of building, `docker compose pull && docker compose up -d` runs the ready-made images from
-GHCR (`linux/amd64` and `linux/arm64`). Choose them with `POKER_BANKROLL_VERSION`: `latest` (last
-stable release), an exact version such as `0.1.0`, or `edge` (last merge to `main`).
-In Portainer, create a stack from `deploy/docker-compose.yml` and set the variables of `.env.example`.
+The images come from GHCR (`linux/amd64` and `linux/arm64`). Choose them with
+`POKER_BANKROLL_VERSION`: `latest` (last stable release), a series such as `0.1` (fixes only), an
+exact version such as `0.1.0`, or `edge` (last merge to `main`).
+
+**Portainer:** create a stack, paste [`deploy/docker-compose.yml`](deploy/docker-compose.yml) and
+set the variables of [`deploy/.env.example`](deploy/.env.example) (`POSTGRES_PASSWORD` at least,
+and `BACKUP_DIR` as an absolute path of the host).
+
+To build the images from the source instead:
+`docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build`.
 Versions, updates and rollbacks are explained in [docs/releasing.md](docs/releasing.md).
 
 > The app has no login. Run it on your local network and do not expose it to the internet
