@@ -126,7 +126,7 @@ describe('Add game form', () => {
     await choose(form, 'Room', 'Winamax (EUR)');
     await choose(form, 'Variant', 'KO');
     await userEvent.type(form.getByRole('textbox', { name: 'Buy-in' }), '5');
-    await userEvent.type(form.getByRole('textbox', { name: 'Name' }), ' Kill The Fish ');
+    await userEvent.type(form.getByRole('combobox', { name: 'Name' }), ' Kill The Fish ');
     await userEvent.type(form.getByLabelText('Start time'), '21:30');
     await userEvent.clear(form.getByRole('textbox', { name: 'Entries (with re-entries)' }));
     await userEvent.type(form.getByRole('textbox', { name: 'Entries (with re-entries)' }), '2');

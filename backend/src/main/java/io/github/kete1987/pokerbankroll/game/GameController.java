@@ -37,6 +37,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 class GameController {
 
     static final int MAX_PAGE_SIZE = 200;
+    static final int MAX_NAMES = 20;
 
     private final GameService service;
 
@@ -70,6 +71,23 @@ class GameController {
             @RequestParam(defaultValue = GameSort.DEFAULT) String sort) {
         GameFilter filter = new GameFilter(from, to, gameType, modality, roomId, variantId, status, currency, q);
         return service.list(filter, page, size, GameSort.parse(sort));
+    }
+
+    // A plain list, not a page: it is bounded by `limit` and nobody asks for the rest.
+    @GetMapping("/names")
+    @Operation(summary = "Suggest names of recorded games",
+            description = "The names containing the text, most used first, then most recent, then by name. "
+                    + "Names that differ only in case or surrounding spaces are one, written as in its most "
+                    + "recent game (latest date, then latest id), whose type, modality, buy-in and variant "
+                    + "come with it. Games in play count too.")
+    List<GameNameResponse> names(
+            @Parameter(description = "Text contained in the name, ignoring case and searched literally; "
+                    + "with less than 2 characters, surrounding spaces apart, nothing is suggested")
+            @RequestParam(defaultValue = "") String q,
+            @Parameter(description = "Only the games of this type: their names, counts and figures")
+            @RequestParam(required = false) @Nullable GameType gameType,
+            @RequestParam(defaultValue = "8") @Min(1) @Max(MAX_NAMES) int limit) {
+        return service.names(q, gameType, limit);
     }
 
     @GetMapping("/{id}")

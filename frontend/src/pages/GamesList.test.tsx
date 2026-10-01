@@ -439,7 +439,7 @@ describe('Games table', () => {
     expect(form.getByRole('radio', { name: 'Finished' })).toBeChecked();
     expect(form.getByRole('combobox', { name: 'Room' })).toHaveValue('Winamax (EUR)');
     expect(form.getByRole('combobox', { name: 'Variant' })).toHaveValue('KO');
-    expect(form.getByRole('textbox', { name: 'Name' })).toHaveValue('Kill The Fish');
+    expect(form.getByRole('combobox', { name: 'Name' })).toHaveValue('Kill The Fish');
     expect(form.getByLabelText(/^Date/)).toHaveValue('2026-01-19');
     expect(form.getByLabelText('Start time')).toHaveValue('21:30');
     expect(form.getByRole('textbox', { name: 'Buy-in' })).toHaveValue('5');
