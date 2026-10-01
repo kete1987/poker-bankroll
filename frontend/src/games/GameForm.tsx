@@ -158,20 +158,26 @@ export function GameForm({ rooms, variants, game, onSave, onSaved, onCancel }: G
       return;
     }
     const filled: Partial<GameFormValues> = {};
-    if (!setByHand.current.has('buyIn') && suggestion.currencyCode === currency) {
-      filled.buyIn = suggestion.buyIn;
-      suggestedBuyInCurrency.current = suggestion.currencyCode;
-      form.clearFieldError('buyIn');
+    if (!setByHand.current.has('buyIn')) {
+      if (suggestion.currencyCode === currency) {
+        filled.buyIn = suggestion.buyIn;
+        suggestedBuyInCurrency.current = suggestion.currencyCode;
+        form.clearFieldError('buyIn');
+      } else if (suggestedBuyInCurrency.current !== null) {
+        // The buy-in of the name picked before does not belong to this one.
+        filled.buyIn = '';
+        suggestedBuyInCurrency.current = null;
+      }
     }
     if (!setByHand.current.has('modality')) {
       filled.modality = suggestion.modality;
     }
     if (!setByHand.current.has('variantId')) {
       const variantId = suggestion.variant ? String(suggestion.variant.id) : null;
-      // A variant that is no longer offered (inactive) is not chosen.
-      if (variantId === null || variantOptions.some((option) => option.value === variantId)) {
-        filled.variantId = variantId;
-      }
+      // A variant that is no longer offered (inactive) is not chosen: the game is left without
+      // one, not with the variant of a name picked before.
+      const offered = variantOptions.some((option) => option.value === variantId);
+      filled.variantId = offered ? variantId : null;
     }
     form.setValues(filled);
   }

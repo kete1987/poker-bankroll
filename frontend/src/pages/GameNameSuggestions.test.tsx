@@ -166,6 +166,35 @@ describe('Name of a game', () => {
     expect(form.getByRole('combobox', { name: 'Name' })).toHaveValue('Kill The Fish');
   });
 
+  it('picking another name does not keep what the first one filled in', async () => {
+    stubNamesApi([
+      KILL_THE_FISH,
+      suggestion({
+        name: 'Killer Dollars',
+        buyIn: 50,
+        currencyCode: 'USD',
+        // Inactive: not offered any more.
+        variant: { id: 11, code: 'SPACE_KO', name: null },
+      }),
+    ]);
+    renderApp('/games');
+    const form = await openForm();
+    await choose(form, 'Room', 'Winamax (EUR)');
+    const name = form.getByRole('combobox', { name: 'Name' });
+    await userEvent.type(name, 'kill');
+    await userEvent.click(await suggested(/Kill The Fish/));
+    expect(form.getByRole('textbox', { name: 'Buy-in' })).toHaveValue('5');
+    expect(form.getByRole('combobox', { name: 'Variant' })).toHaveValue('KO');
+
+    await userEvent.clear(name);
+    await userEvent.type(name, 'kill');
+    await userEvent.click(await suggested(/Killer Dollars/));
+
+    expect(name).toHaveValue('Killer Dollars');
+    expect(form.getByRole('textbox', { name: 'Buy-in' })).toHaveValue('');
+    expect(form.getByRole('combobox', { name: 'Variant' })).toHaveValue('');
+  });
+
   it('keeps a buy-in typed by hand when the room changes', async () => {
     stubNamesApi([KILL_THE_FISH]);
     renderApp('/games');
