@@ -176,6 +176,9 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - Lists that can grow are paginated with `page` (zero-based) and `size`, and return a
   `PageResponse` (`items`, `page`, `size`, `totalItems`, `totalPages`). Sorting uses
   `sort=<field>,<asc|desc>` with a whitelist of fields and always a total order (see `game/GameSort`).
+  Aggregates are the exception: `/stats/groups` returns every group, because a chart needs the whole
+  series and the cumulative net of a page would be meaningless. Its size is bounded by the grouping
+  (at most one small row per day played), and `from`/`to` narrow it.
 - Optional fields omitted in a request take their documented default; `PUT` replaces the whole resource.
 - State changes that are a single user gesture are their own `POST` sub-resource instead of a
   full `PUT` (e.g. `/games/{id}/finish`, `/games/{id}/re-entries`, `/games/{id}/rebuys`); they return
