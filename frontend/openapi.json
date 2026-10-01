@@ -1212,7 +1212,7 @@
             "type" : "integer"
           }
         }, {
-          "description" : "`<field>,<asc|desc>` with field one of playedOn, net, buyIn, prize, createdAt",
+          "description" : "`<field>,<asc|desc>` with field one of playedOn, net, buyIn, prize, won, createdAt",
           "in" : "query",
           "name" : "sort",
           "required" : false,

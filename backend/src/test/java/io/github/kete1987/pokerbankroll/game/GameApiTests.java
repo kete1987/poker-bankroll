@@ -320,6 +320,21 @@ class GameApiTests extends ApiIntegrationTest {
     }
 
     @Test
+    void sortsByWhatWasWonBountiesIncluded() {
+        create(game("2026-01-19", "prize only").replace("}", ", \"prize\": 10}"));
+        create(game("2026-01-20", "mostly bounties").replace("}", ", \"prize\": 2, \"bounty\": 15}"));
+        create(game("2026-01-21", "nothing"));
+
+        assertThat(mvc.get().uri("/games").param("sort", "won,desc")).hasStatusOk()
+                .bodyJson().extractingPath("$.items[*].name").asArray()
+                .containsExactly("mostly bounties", "prize only", "nothing");
+        // By prize alone the order is another.
+        assertThat(mvc.get().uri("/games").param("sort", "prize,desc")).hasStatusOk()
+                .bodyJson().extractingPath("$.items[*].name").asArray()
+                .containsExactly("prize only", "mostly bounties", "nothing");
+    }
+
+    @Test
     void rejectsInvalidSortAndPaging() {
         assertThat(mvc.get().uri("/games").param("sort", "notes,desc")).hasStatus(HttpStatus.BAD_REQUEST)
                 .bodyJson().extractingPath("$.code").isEqualTo("INVALID_SORT");

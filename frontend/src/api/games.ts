@@ -22,7 +22,7 @@ export interface GameQuery {
   q?: string;
   page?: number;
   size?: number;
-  /** `<field>,<asc|desc>` with field one of playedOn, net, buyIn, prize, createdAt. */
+  /** `<field>,<asc|desc>` with field one of playedOn, net, buyIn, prize, won, createdAt. */
   sort?: string;
 }
 

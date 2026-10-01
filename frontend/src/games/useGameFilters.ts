@@ -5,7 +5,7 @@ import type { GameQuery } from '../api/games';
 import type { GameType } from '../api/types';
 
 /** Columns the table can be ordered by, as the API names them. */
-export const SORT_FIELDS = ['playedOn', 'buyIn', 'prize', 'net'] as const;
+export const SORT_FIELDS = ['playedOn', 'buyIn', 'won', 'net'] as const;
 export type SortField = (typeof SORT_FIELDS)[number];
 
 export interface GameFilters {
@@ -25,6 +25,15 @@ export const PAGE_SIZE = 25;
 const GAME_TYPES: readonly string[] = ['TOURNAMENT', 'SIT_AND_GO', 'CASH'];
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** A real day of the calendar: `2026-02-31` has the right shape but does not exist. */
+function isDate(value: string): boolean {
+  if (!ISO_DATE.test(value)) {
+    return false;
+  }
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
 function positiveInteger(value: string | null): number | undefined {
   return value !== null && /^\d+$/.test(value) && Number(value) > 0 ? Number(value) : undefined;
 }
@@ -32,7 +41,7 @@ function positiveInteger(value: string | null): number | undefined {
 function parse(params: URLSearchParams): GameFilters {
   const date = (key: string) => {
     const value = params.get(key);
-    return value !== null && ISO_DATE.test(value) ? value : undefined;
+    return value !== null && isDate(value) ? value : undefined;
   };
   const gameType = params.get('type');
   const [sortField, direction] = (params.get('sort') ?? '').split(',');

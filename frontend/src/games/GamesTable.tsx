@@ -69,7 +69,7 @@ export function GamesTable({
             <Table.Th>{t('games.columns.game')}</Table.Th>
             <Table.Th>{t('games.columns.room')}</Table.Th>
             {sortableHeader('buyIn', t('games.columns.buyIn'), true)}
-            {sortableHeader('prize', t('games.columns.prize'), true)}
+            {sortableHeader('won', t('games.columns.prize'), true)}
             {sortableHeader('net', t('games.columns.net'), true)}
             <Table.Th>
               <Text span size="sm" fw={700} visibleFrom="xs" style={{ visibility: 'hidden' }}>

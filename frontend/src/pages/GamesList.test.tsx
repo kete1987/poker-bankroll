@@ -178,7 +178,7 @@ describe('Games table', () => {
 
   it('ignores what makes no sense in the URL', async () => {
     const calls = stubGames({ finished: [game({})] });
-    renderApp('/games?from=yesterday&type=BINGO&room=abc&sort=name,up&page=-3');
+    renderApp('/games?from=yesterday&to=2026-02-31&type=BINGO&room=abc&sort=name,up&page=-3');
 
     await tableRows();
 
@@ -282,7 +282,7 @@ describe('Games table', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Buy-in' }));
     await waitFor(() => expect(lastListQuery(calls)).toMatchObject({ sort: 'buyIn,desc' }));
     await userEvent.click(screen.getByRole('button', { name: 'Won' }));
-    await waitFor(() => expect(lastListQuery(calls)).toMatchObject({ sort: 'prize,desc' }));
+    await waitFor(() => expect(lastListQuery(calls)).toMatchObject({ sort: 'won,desc' }));
   });
 
   it('moves between pages', async () => {
@@ -296,6 +296,32 @@ describe('Games table', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Next page' }));
     await waitFor(() => expect(lastListQuery(calls)).toMatchObject({ page: '3' }));
+  });
+
+  it('goes to the last page when the one asked for is past the end', async () => {
+    const calls = stubApi({
+      'GET /rooms': ROOMS,
+      'GET /variants': VARIANTS,
+      'GET /games': (call: ApiCall) => {
+        if (call.query.get('status') === 'IN_PLAY') {
+          return page([]);
+        }
+        const asked = Number(call.query.get('page'));
+        // Two pages: anything further is empty, as the backend answers.
+        return page(asked < 2 ? [game({ id: asked + 1 })] : [], {
+          page: asked,
+          totalPages: 2,
+          totalItems: 26,
+        });
+      },
+    });
+    renderApp('/games?page=9');
+
+    await tableRows();
+
+    expect(lastListQuery(calls)).toMatchObject({ page: '1' });
+    expect(screen.getByRole('button', { name: 'Page 2' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.queryByText('There are no finished games yet.')).not.toBeInTheDocument();
   });
 
   it('edits a game with the form filled in', async () => {

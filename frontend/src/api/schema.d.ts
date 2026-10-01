@@ -903,7 +903,7 @@ export interface operations {
                 /** @description Zero-based page number */
                 page?: number;
                 size?: number;
-                /** @description `<field>,<asc|desc>` with field one of playedOn, net, buyIn, prize, createdAt */
+                /** @description `<field>,<asc|desc>` with field one of playedOn, net, buyIn, prize, won, createdAt */
                 sort?: string;
             };
             header?: never;

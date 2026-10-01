@@ -62,7 +62,7 @@ class GameController {
             @Parameter(description = "Zero-based page number")
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "50") @Min(1) @Max(MAX_PAGE_SIZE) int size,
-            @Parameter(description = "`<field>,<asc|desc>` with field one of playedOn, net, buyIn, prize, createdAt")
+            @Parameter(description = "`<field>,<asc|desc>` with field one of playedOn, net, buyIn, prize, won, createdAt")
             @RequestParam(defaultValue = GameSort.DEFAULT) String sort) {
         GameFilter filter = new GameFilter(from, to, gameType, modality, roomId, variantId, status, currency, q);
         return service.list(filter, page, size, GameSort.parse(sort));

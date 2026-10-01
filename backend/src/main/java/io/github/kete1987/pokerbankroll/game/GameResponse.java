@@ -70,7 +70,7 @@ public record GameResponse(
                 game.getTicketDescription(),
                 game.isPaidWithTicket(),
                 game.getInvested(),
-                game.getPrize().add(game.getBounty()),
+                game.getWon(),
                 game.getNet(),
                 game.getNotes(),
                 game.getCreatedAt(),

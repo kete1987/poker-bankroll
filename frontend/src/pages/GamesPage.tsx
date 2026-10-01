@@ -1,7 +1,7 @@
 import { Alert, Button, Group, Loader, Modal, Pagination, Stack, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconPlus } from '@tabler/icons-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -75,6 +75,18 @@ export function GamesPage() {
   const loadFailed = rooms.isError || variants.isError;
   const pageCount = games.data?.totalPages ?? 0;
 
+  // A page past the end (the last game of the last page was deleted, an old link): go to the last.
+  const pastTheEnd =
+    games.data !== undefined &&
+    !games.isPlaceholderData &&
+    games.data.items.length === 0 &&
+    filters.page > 0;
+  useEffect(() => {
+    if (pastTheEnd) {
+      update({ page: Math.max(pageCount - 1, 0) });
+    }
+  }, [pastTheEnd, pageCount, update]);
+
   return (
     <Page title={t('nav.games')}>
       <Group>
@@ -105,7 +117,7 @@ export function GamesPage() {
 
       {games.isError ? (
         <Alert color="red">{t('games.loadError')}</Alert>
-      ) : games.isPending ? (
+      ) : games.isPending || pastTheEnd ? (
         <Loader />
       ) : games.data.items.length === 0 ? (
         <Text c="dimmed">{hasFilters ? t('games.list.noMatches') : t('games.list.empty')}</Text>
