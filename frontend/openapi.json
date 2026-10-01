@@ -489,6 +489,17 @@
         "required" : [ "games", "invested" ],
         "type" : "object"
       },
+      "LogoFetchRequest" : {
+        "properties" : {
+          "url" : {
+            "maxLength" : 2000,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "required" : [ "url" ],
+        "type" : "object"
+      },
       "MovementRequest" : {
         "properties" : {
           "amount" : {
@@ -1657,6 +1668,49 @@
           }
         },
         "summary" : "Create a room",
+        "tags" : [ "Rooms" ]
+      }
+    },
+    "/rooms/logo-fetch" : {
+      "post" : {
+        "description" : "Returns the image itself (PNG, JPEG or WebP, up to 5 MB). A browser cannot read images of other sites, so it asks for them here, resizes the result and uploads it with `PUT /rooms/{id}/logo`; nothing is stored by this request. Only `http` and `https` URLs of public addresses. Fails with `LOGO_URL_INVALID` (400), `LOGO_URL_NOT_PUBLIC` (400), `LOGO_URL_UNREACHABLE` (502), `LOGO_TOO_LARGE` (413) or `LOGO_UNSUPPORTED_TYPE` (415).",
+        "operationId" : "fetchLogo",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LogoFetchRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "image/jpeg" : {
+                "schema" : {
+                  "format" : "binary",
+                  "type" : "string"
+                }
+              },
+              "image/png" : {
+                "schema" : {
+                  "format" : "binary",
+                  "type" : "string"
+                }
+              },
+              "image/webp" : {
+                "schema" : {
+                  "format" : "binary",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Download the image of a URL, to use it as the logo of a room",
         "tags" : [ "Rooms" ]
       }
     },
