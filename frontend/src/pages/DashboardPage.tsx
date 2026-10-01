@@ -44,8 +44,9 @@ function toneOf(amount: number): 'positive' | 'negative' | undefined {
 }
 
 /**
- * At a glance, for one currency: results of the chosen period, the bankroll now and what it won
- * or lost in the period, and the breakdown per game type or variant and per room.
+ * At a glance, for one currency: results of the chosen period, the bankroll now, and the breakdown
+ * per game type or variant and per room. Every result of the period is the net of its finished
+ * games, the same figure everywhere.
  */
 export function DashboardPage() {
   const { t } = useTranslation();
@@ -58,7 +59,7 @@ export function DashboardPage() {
   const stats = useStatsSummary(query);
   const byVariant = useStatsGroups('VARIANT', query, breakdown === 'variant');
   const bankrollNow = useBankrollSummary({ roomId: roomIds });
-  const bankrollOfPeriod = useBankrollSummary(query);
+  const byRoom = useStatsGroups('ROOM', query);
 
   const filterBar = (
     <Group gap="sm" align="flex-end">
@@ -76,7 +77,7 @@ export function DashboardPage() {
     </Group>
   );
 
-  if (stats.isError || bankrollNow.isError || bankrollOfPeriod.isError || byVariant.isError) {
+  if (stats.isError || bankrollNow.isError || byRoom.isError || byVariant.isError) {
     return (
       <Page title={t('nav.dashboard')}>
         {filterBar}
@@ -84,7 +85,7 @@ export function DashboardPage() {
       </Page>
     );
   }
-  if (!stats.data || !bankrollNow.data || !bankrollOfPeriod.data) {
+  if (!stats.data || !bankrollNow.data || !byRoom.data) {
     return (
       <Page title={t('nav.dashboard')}>
         {filterBar}
@@ -129,8 +130,12 @@ export function DashboardPage() {
   const now = bankrollNow.data.currencies.find(
     (currency) => currency.currencyCode === currencyCode,
   );
-  const period = bankrollOfPeriod.data.currencies.find(
-    (currency) => currency.currencyCode === currencyCode,
+  // Net of the finished games of the period in each room.
+  const netOfPeriod = new Map(
+    (
+      byRoom.data.currencies.find((currency) => currency.currencyCode === currencyCode)?.groups ??
+      []
+    ).flatMap((group) => (group.key.room ? [[group.key.room.id, group.figures.net] as const] : [])),
   );
   const money = (amount: number) => format.money(amount, currencyCode);
   const signed = (amount: number) => format.signedMoney(amount, currencyCode);
@@ -156,8 +161,6 @@ export function DashboardPage() {
             figures: group.figures,
           };
         });
-
-  const periodResult = period?.total.result ?? 0;
 
   return (
     <Page title={t('nav.dashboard')}>
@@ -203,10 +206,10 @@ export function DashboardPage() {
           })}
         </StatCard>
         <StatCard label={t('dashboard.cards.bankroll')} value={money(now?.total.bankroll ?? 0)}>
-          <Text span c={periodResult > 0 ? 'teal' : periodResult < 0 ? 'red' : undefined} fw={600}>
-            {signed(periodResult)}
-          </Text>{' '}
-          {t('dashboard.cards.bankrollPeriod')}
+          {t('dashboard.cards.bankrollDetail', {
+            deposited: money(now?.total.deposited ?? 0),
+            withdrawn: money(now?.total.withdrawn ?? 0),
+          })}
         </StatCard>
       </SimpleGrid>
 
@@ -257,7 +260,7 @@ export function DashboardPage() {
           <Title order={3} size="h4">
             {t('dashboard.bankroll.title')}
           </Title>
-          <BankrollByRoom now={now} period={period} />
+          <BankrollByRoom now={now} netOfPeriod={netOfPeriod} totalNetOfPeriod={total.net} />
         </Stack>
       )}
     </Page>

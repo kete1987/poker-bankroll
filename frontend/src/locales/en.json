@@ -77,7 +77,7 @@
       "itmDetail_one": "{{inTheMoney}} of {{formatted}} tournament",
       "itmDetail_other": "{{inTheMoney}} of {{formatted}} tournaments",
       "bankroll": "Bankroll",
-      "bankrollPeriod": "in the period"
+      "bankrollDetail": "{{deposited}} deposited · {{withdrawn}} withdrawn"
     },
     "columns": {
       "games": "Played",
@@ -94,9 +94,9 @@
     "bankroll": {
       "title": "Bankroll per room",
       "room": "Room",
-      "periodResult": "Result of the period",
       "now": "Bankroll now",
-      "withoutRoom": "No room"
+      "withoutRoom": "No room",
+      "periodNet": "Net of the period"
     }
   },
   "games": {

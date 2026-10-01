@@ -140,12 +140,19 @@ const BY_VARIANT: StatsGroups = {
 const WINAMAX = { id: 1, name: 'Winamax' };
 const UNIBET = { id: 3, name: 'Unibet' };
 
-/** The bankroll now, and the figures of a period (asked with dates). */
+/** The bankroll as it is now. */
 const BANKROLL_NOW: BankrollSummary = {
   currencies: [
     {
       currencyCode: 'EUR',
-      total: bankroll({ bankroll: 320.5, result: 120.5, gamesInPlay: 2, investedInPlay: 12 }),
+      total: bankroll({
+        deposited: 200,
+        withdrawn: 50,
+        bankroll: 320.5,
+        result: 120.5,
+        gamesInPlay: 2,
+        investedInPlay: 12,
+      }),
       withoutRoom: bankroll({ deposited: 200, bankroll: 200 }),
       rooms: [
         { room: UNIBET, active: false, figures: bankroll({ result: -30, bankroll: -30 }) },
@@ -160,16 +167,13 @@ const BANKROLL_NOW: BankrollSummary = {
     },
   ],
 };
-const BANKROLL_PERIOD: BankrollSummary = {
+/** Net of the finished games of the period per room. */
+const BY_ROOM: StatsGroups = {
+  groupBy: 'ROOM',
   currencies: [
     {
       currencyCode: 'EUR',
-      total: bankroll({ result: 72, bankroll: 72 }),
-      withoutRoom: bankroll(),
-      rooms: [
-        { room: UNIBET, active: false, figures: bankroll() },
-        { room: WINAMAX, active: true, figures: bankroll({ result: 72, bankroll: 72 }) },
-      ],
+      groups: [{ key: { room: WINAMAX }, figures: figures({ games: 43, net: 72 }) }],
     },
   ],
 };
@@ -181,9 +185,9 @@ function stubDashboard(handlers: Record<string, unknown> = {}) {
       room({ id: 3, name: 'Unibet', active: false }),
     ],
     'GET /stats/summary': STATS,
-    'GET /stats/groups': BY_VARIANT,
-    'GET /bankroll/summary': (call: ApiCall) =>
-      call.query.has('from') || call.query.has('to') ? BANKROLL_PERIOD : BANKROLL_NOW,
+    'GET /stats/groups': (call: ApiCall) =>
+      call.query.get('groupBy') === 'VARIANT' ? BY_VARIANT : BY_ROOM,
+    'GET /bankroll/summary': BANKROLL_NOW,
     ...handlers,
   });
 }
@@ -227,20 +231,15 @@ describe('Dashboard', () => {
     expect(card('ITM in tournaments').getByText('8 of 40 tournaments')).toBeInTheDocument();
   });
 
-  it('shows the bankroll now and what was won or lost in the period', async () => {
+  it('shows the bankroll as it is now, whatever the period', async () => {
     const calls = stubDashboard();
     renderApp('/');
     await screen.findByRole('region', { name: 'Bankroll' });
 
     expect(card('Bankroll').getByText('€320.50')).toBeInTheDocument();
-    expect(card('Bankroll').getByText('+€72.00')).toBeInTheDocument();
-    expect(card('Bankroll').getByText('in the period')).toBeInTheDocument();
-
-    // One request without dates (now) and one with the dates of the period.
-    const thisYear = rangeOf('thisYear');
-    const bankrollQueries = queriesTo(calls, '/bankroll/summary');
-    expect(bankrollQueries).toContainEqual({});
-    expect(bankrollQueries).toContainEqual({ from: thisYear.from, to: thisYear.to });
+    expect(card('Bankroll').getByText('€200.00 deposited · €50.00 withdrawn')).toBeInTheDocument();
+    // The bankroll is never asked for with the dates of the period.
+    expect(queriesTo(calls, '/bankroll/summary')).toEqual([{}]);
   });
 
   it('breaks the results down per game type, with a total', async () => {
@@ -277,7 +276,9 @@ describe('Dashboard', () => {
     const calls = stubDashboard();
     renderApp('/');
     await screen.findAllByRole('table');
-    expect(queriesTo(calls, '/stats/groups')).toHaveLength(0);
+    const variantQueries = () =>
+      queriesTo(calls, '/stats/groups').filter((query) => query.groupBy === 'VARIANT');
+    expect(variantQueries()).toHaveLength(0);
 
     await userEvent.click(screen.getByRole('radio', { name: 'By variant' }));
 
@@ -294,14 +295,14 @@ describe('Dashboard', () => {
       ]),
     );
     const thisYear = rangeOf('thisYear');
-    expect(queriesTo(calls, '/stats/groups').at(-1)).toEqual({
+    expect(variantQueries().at(-1)).toEqual({
       groupBy: 'VARIANT',
       from: thisYear.from,
       to: thisYear.to,
     });
   });
 
-  it('lists each room with the result of the period and its bankroll now', async () => {
+  it('lists each room with the net of the period and its bankroll now', async () => {
     stubDashboard();
     renderApp('/');
 
@@ -312,11 +313,12 @@ describe('Dashboard', () => {
     expect(rows[0]).toHaveTextContent('€0.00-€30.00');
     expect(rows[1]).toHaveTextContent('Winamax');
     expect(rows[1]).toHaveTextContent('+€72.00+€150.50');
-    // Movements that belong to no room have their own row.
+    // Movements that belong to no room have their own row; they have no games.
     expect(rows[2]).toHaveTextContent('No room');
-    expect(rows[2]).toHaveTextContent('€0.00+€200.00');
+    expect(rows[2]).toHaveTextContent('—+€200.00');
     expect(rows[3]).toHaveTextContent('Total');
-    expect(rows[3]).toHaveTextContent('+€72.00+€320.50');
+    // The same net as the card and the results table.
+    expect(rows[3]).toHaveTextContent('+€65.00+€320.50');
   });
 
   it('reminds of the games in play', async () => {
