@@ -313,6 +313,11 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - Filters, order and page of a list live in the URL (`games/useGameFilters.ts`): they survive a
   reload and the back button. Lists are written with commas (`room=1,2`). Invalid values in the
   URL are ignored.
+- Type, room and variant are chosen with `games/ScopeFilters`, and anything read from the URL goes
+  through `components/urlParams` (invalid values are dropped there).
+- Charts are built as an ECharts option passed to `components/Chart` (register there the ECharts
+  components a new chart needs). Colouring a line by value needs closed ranges in `visualMap`.
+  Tests replace `Chart` with a stub and assert on the option (see `pages/StatsPage.test.tsx`).
 - A period is chosen with `components/PeriodFilter` (`components/period.ts` has the predefined
   ranges). A screen shows one currency at a time: amounts in different currencies are never added.
 - A room is always rendered with `components/RoomLabel`: its logo (or its initial when it has

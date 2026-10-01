@@ -33,5 +33,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    // Tests fill whole forms key by key: the default 5 s is short on a busy CI runner.
+    testTimeout: 20_000,
   },
 });

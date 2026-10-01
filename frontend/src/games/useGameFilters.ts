@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router';
 
 import type { GameQuery } from '../api/games';
 import type { GameType } from '../api/types';
+import { parseDate, parseList, parseOneOf, parsePositiveInteger } from '../components/urlParams';
 
 /** Columns the table can be ordered by, as the API names them. */
 export const SORT_FIELDS = ['playedOn', 'buyIn', 'won', 'net'] as const;
@@ -23,55 +24,19 @@ export interface GameFilters {
 }
 
 export const PAGE_SIZE = 25;
-const GAME_TYPES: readonly string[] = ['TOURNAMENT', 'SIT_AND_GO', 'CASH'];
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
-
-/** A real day of the calendar: `2026-02-31` has the right shape but does not exist. */
-function isDate(value: string): boolean {
-  if (!ISO_DATE.test(value)) {
-    return false;
-  }
-  const date = new Date(`${value}T00:00:00Z`);
-  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
-}
-
-/** Largest page or id worth sending: beyond it the backend could not even read the number. */
-const MAX_INTEGER = 2_147_483_647;
-
-function positiveInteger(value: string | null): number | undefined {
-  if (value === null || !/^\d+$/.test(value)) {
-    return undefined;
-  }
-  const number = Number(value);
-  return number > 0 && number <= MAX_INTEGER ? number : undefined;
-}
-
-/** The valid values of a comma-separated parameter, each one once and in the order given. */
-function list<T>(value: string | null, parseOne: (text: string) => T | undefined): T[] {
-  const values = (value ?? '')
-    .split(',')
-    .map((text) => parseOne(text.trim()))
-    .filter((item): item is T => item !== undefined);
-  return [...new Set(values)];
-}
+const GAME_TYPES: readonly GameType[] = ['TOURNAMENT', 'SIT_AND_GO', 'CASH'];
 
 function parse(params: URLSearchParams): GameFilters {
-  const date = (key: string) => {
-    const value = params.get(key);
-    return value !== null && isDate(value) ? value : undefined;
-  };
   const [sortField, direction] = (params.get('sort') ?? '').split(',');
   return {
-    from: date('from'),
-    to: date('to'),
-    gameTypes: list(params.get('type'), (text) =>
-      GAME_TYPES.includes(text) ? (text as GameType) : undefined,
-    ),
-    roomIds: list(params.get('room'), positiveInteger),
-    variantIds: list(params.get('variant'), positiveInteger),
+    from: parseDate(params.get('from')),
+    to: parseDate(params.get('to')),
+    gameTypes: parseList(params.get('type'), (text) => parseOneOf(text, GAME_TYPES)),
+    roomIds: parseList(params.get('room'), parsePositiveInteger),
+    variantIds: parseList(params.get('variant'), parsePositiveInteger),
     q: params.get('q')?.trim() || undefined,
     // The page is one-based in the URL, as people count.
-    page: (positiveInteger(params.get('page')) ?? 1) - 1,
+    page: (parsePositiveInteger(params.get('page')) ?? 1) - 1,
     sortField: (SORT_FIELDS as readonly string[]).includes(sortField ?? '')
       ? (sortField as SortField)
       : 'playedOn',

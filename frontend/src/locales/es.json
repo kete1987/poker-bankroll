@@ -98,6 +98,36 @@
       "periodNet": "Neto del periodo"
     }
   },
+  "stats": {
+    "groupBy": "Agrupar por",
+    "weekOf": "Semana del {{date}}",
+    "granularity": {
+      "DAY": "Día",
+      "WEEK": "Semana",
+      "MONTH": "Mes"
+    },
+    "net": {
+      "title": "Evolución del neto",
+      "tooltipNet": "Neto",
+      "tooltipGames_one": "{{count}} partida",
+      "tooltipGames_other": "{{count}} partidas",
+      "tooltipCumulative": "Acumulado",
+      "cards": {
+        "net": "Neto del periodo",
+        "invested": "{{invested}} invertidos",
+        "best": {
+          "DAY": "Mejor día",
+          "WEEK": "Mejor semana",
+          "MONTH": "Mejor mes"
+        },
+        "worst": {
+          "DAY": "Peor día",
+          "WEEK": "Peor semana",
+          "MONTH": "Peor mes"
+        }
+      }
+    }
+  },
   "games": {
     "add": "Añadir partida",
     "loadError": "No se han podido cargar los datos. Comprueba que la API está disponible y recarga la página.",

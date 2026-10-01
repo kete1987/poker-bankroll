@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router';
 
 import { rangeOf, type DateRange } from '../components/period';
+import { parseDate, parseList, parsePositiveInteger } from '../components/urlParams';
 
 /** How the results table is broken down. */
 export type Breakdown = 'type' | 'variant';
@@ -16,37 +17,15 @@ export interface DashboardFilters {
   breakdown: Breakdown;
 }
 
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
-const MAX_INTEGER = 2_147_483_647;
-
-function date(value: string | null): string | undefined {
-  if (value === null || !ISO_DATE.test(value)) {
-    return undefined;
-  }
-  const parsed = new Date(`${value}T00:00:00Z`);
-  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value
-    ? value
-    : undefined;
-}
-
-function roomIds(value: string | null): number[] {
-  const ids = (value ?? '')
-    .split(',')
-    .filter((text) => /^\d+$/.test(text.trim()))
-    .map(Number)
-    .filter((id) => id > 0 && id <= MAX_INTEGER);
-  return [...new Set(ids)];
-}
-
 function parse(params: URLSearchParams): DashboardFilters {
-  const from = date(params.get('from'));
-  const to = date(params.get('to'));
+  const from = parseDate(params.get('from'));
+  const to = parseDate(params.get('to'));
   // Without dates the dashboard is about this year; "all time" has to be asked for.
   const range =
     params.get('period') === 'all' ? {} : from || to ? { from, to } : rangeOf('thisYear');
   return {
     range,
-    roomIds: roomIds(params.get('room')),
+    roomIds: parseList(params.get('room'), parsePositiveInteger),
     currency: params.get('currency')?.trim().toUpperCase() || undefined,
     breakdown: params.get('by') === 'variant' ? 'variant' : 'type',
   };

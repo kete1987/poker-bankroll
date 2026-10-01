@@ -1,0 +1,189 @@
+import { Alert, Group, Loader, Select, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import { useTranslation } from 'react-i18next';
+
+import { useRooms } from '../api/rooms';
+import { useStatsOverTime } from '../api/stats';
+import type { StatsGroup } from '../api/types';
+import { useVariants } from '../api/variants';
+import { Page } from '../components/Page';
+import { PeriodFilter } from '../components/PeriodFilter';
+import { StatCard } from '../components/StatCard';
+import { useFormat } from '../format/useFormat';
+import { ScopeFilters } from '../games/ScopeFilters';
+import { NetEvolutionChart, type NetPoint } from '../stats/NetEvolutionChart';
+import {
+  GRANULARITIES,
+  granularityFor,
+  toStatsQuery,
+  useStatsFilters,
+  type Granularity,
+} from '../stats/useStatsFilters';
+
+function toneOf(amount: number): 'positive' | 'negative' | undefined {
+  return amount > 0 ? 'positive' : amount < 0 ? 'negative' : undefined;
+}
+
+/** Statistics over time, for one currency: for now, the evolution of the net. */
+export function StatsPage() {
+  const { t } = useTranslation();
+  const format = useFormat();
+  const { filters, update } = useStatsFilters();
+  const granularity = filters.granularity ?? granularityFor(filters.range);
+  const query = toStatsQuery(filters);
+
+  const rooms = useRooms();
+  const variants = useVariants();
+  const stats = useStatsOverTime(granularity, query);
+
+  const filterBar = (
+    <>
+      <PeriodFilter range={filters.range} onChange={(range) => update({ range })} />
+      <ScopeFilters
+        gameTypes={filters.gameTypes}
+        roomIds={filters.roomIds}
+        variantIds={filters.variantIds}
+        rooms={rooms.data ?? []}
+        variants={variants.data ?? []}
+        onChange={update}
+      />
+    </>
+  );
+
+  if ([rooms, variants, stats].some((request) => request.isError)) {
+    return (
+      <Page title={t('nav.stats')}>
+        <Group gap="sm" align="flex-end">
+          {filterBar}
+        </Group>
+        <Alert color="red">{t('games.loadError')}</Alert>
+      </Page>
+    );
+  }
+  if (!stats.data) {
+    return (
+      <Page title={t('nav.stats')}>
+        <Group gap="sm" align="flex-end">
+          {filterBar}
+        </Group>
+        <Loader />
+      </Page>
+    );
+  }
+
+  // Amounts in different currencies are never added up: one currency at a time, by default the
+  // one with most games in the period.
+  const { summary, groups: overTime } = stats.data;
+  const currencies = [...summary.currencies]
+    .sort((a, b) => b.total.games - a.total.games || a.currencyCode.localeCompare(b.currencyCode))
+    .map((currency) => currency.currencyCode);
+  const currencyCode =
+    filters.currency && currencies.includes(filters.currency) ? filters.currency : currencies[0];
+  const total = summary.currencies.find(
+    (currency) => currency.currencyCode === currencyCode,
+  )?.total;
+  const groups: StatsGroup[] =
+    overTime.currencies.find((currency) => currency.currencyCode === currencyCode)?.groups ?? [];
+
+  // While another cut is loading the previous data stays on screen: it is named by its own cut,
+  // not by the one just chosen.
+  const drawn = GRANULARITIES.find((value) => value === overTime.groupBy) ?? granularity;
+  const labelOf = (period: string) =>
+    drawn === 'MONTH'
+      ? format.month(period)
+      : drawn === 'WEEK'
+        ? t('stats.weekOf', { date: format.date(period) })
+        : format.date(period);
+  const points: NetPoint[] = groups.map((group) => ({
+    label: labelOf(group.key.period ?? ''),
+    // A week is named by its Monday: on the axis the date is enough.
+    axisLabel:
+      drawn === 'WEEK' ? format.date(group.key.period ?? '') : labelOf(group.key.period ?? ''),
+    games: group.figures.games,
+    net: group.figures.net,
+    cumulativeNet: group.cumulativeNet ?? 0,
+  }));
+  // The best and the worst are picked, not added up: every amount comes from the backend.
+  const best = points.reduce<NetPoint | undefined>(
+    (found, point) => (!found || point.net > found.net ? point : found),
+    undefined,
+  );
+  const worst = points.reduce<NetPoint | undefined>(
+    (found, point) => (!found || point.net < found.net ? point : found),
+    undefined,
+  );
+
+  return (
+    <Page title={t('nav.stats')}>
+      <Group gap="sm" align="flex-end">
+        {filterBar}
+        <Select
+          label={t('stats.groupBy')}
+          w={130}
+          allowDeselect={false}
+          data={GRANULARITIES.map((value) => ({ value, label: t(`stats.granularity.${value}`) }))}
+          value={granularity}
+          onChange={(value) => update({ granularity: value as Granularity })}
+        />
+        {currencies.length > 1 && currencyCode && (
+          <Select
+            label={t('dashboard.currency')}
+            w={110}
+            allowDeselect={false}
+            data={[...currencies].sort()}
+            value={currencyCode}
+            onChange={(value) => update({ currency: value ?? undefined })}
+          />
+        )}
+      </Group>
+
+      <Stack gap="xs">
+        <Title order={3} size="h4">
+          {t('stats.net.title')}
+        </Title>
+        {!currencyCode || !total || points.length === 0 ? (
+          <Text c="dimmed">{t('dashboard.noGames')}</Text>
+        ) : (
+          <>
+            <SimpleGrid cols={{ base: 1, xs: 2, lg: 4 }}>
+              <StatCard
+                label={t('stats.net.cards.net')}
+                value={format.signedMoney(total.net, currencyCode)}
+                tone={toneOf(total.net)}
+              >
+                {t('dashboard.cards.games', {
+                  count: total.games,
+                  formatted: format.number(total.games),
+                })}
+              </StatCard>
+              <StatCard label={t('dashboard.cards.roi')} value={format.percent(total.roi)}>
+                {t('stats.net.cards.invested', {
+                  invested: format.money(total.invested, currencyCode),
+                })}
+              </StatCard>
+              {/* With a single point there is nothing to compare. */}
+              {best && worst && points.length > 1 && (
+                <>
+                  <StatCard
+                    label={t(`stats.net.cards.best.${drawn}`)}
+                    value={format.signedMoney(best.net, currencyCode)}
+                    tone={toneOf(best.net)}
+                  >
+                    {best.label}
+                  </StatCard>
+                  <StatCard
+                    label={t(`stats.net.cards.worst.${drawn}`)}
+                    value={format.signedMoney(worst.net, currencyCode)}
+                    tone={toneOf(worst.net)}
+                  >
+                    {worst.label}
+                  </StatCard>
+                </>
+              )}
+            </SimpleGrid>
+            <NetEvolutionChart points={points} currencyCode={currencyCode} />
+          </>
+        )}
+      </Stack>
+    </Page>
+  );
+}
