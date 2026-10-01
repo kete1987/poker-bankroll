@@ -3,7 +3,7 @@
 [English](README.md) | **Español**
 
 Gestor de banca de póker autoalojado. Registra los resultados de tus torneos, Sit&Go,
-Expresso y partidas de cash, lleva el saldo real de cada sala y consulta cómo evolucionan
+spins y partidas de cash, lleva el saldo real de cada sala y consulta cómo evolucionan
 tus resultados.
 
 > **Estado: en desarrollo.** Todavía no hay nada ejecutable. Puedes seguir el
@@ -22,8 +22,8 @@ Aquí el foco son los resultados y la gestión de la banca.
 
 ## Funcionalidades previstas (v0.1)
 
-- Alta rápida de partidas: torneos (re-entries, primas, premios en ticket), Sit&Go,
-  Expresso (con multiplicador) y cash
+- Alta rápida de partidas: torneos (re-entries, primas, premios en ticket), Sit&Go y spins
+  (Expresso...) y cash, en No-Limit Hold'em o PLO
 - Dashboard con resultado neto, ROI e ITM por modalidad
 - Resultados por día y por mes, gráfica de evolución
 - Banca por sala: depósitos, retiradas, bonos y conciliación con el saldo real
