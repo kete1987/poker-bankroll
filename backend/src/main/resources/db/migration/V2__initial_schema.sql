@@ -98,15 +98,21 @@ CREATE TABLE game (
     -- Cash won, bounties apart. Cash game: amount when leaving the table.
     prize              NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (prize >= 0),
     bounty             NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (bounty >= 0),
-    -- Value of a tournament ticket won as a prize.
+    -- Value of a tournament ticket won as a prize. Informative: a ticket is not money until it is
+    -- played, so it does not count in net.
     ticket_prize_value NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (ticket_prize_value >= 0),
     ticket_description VARCHAR(150)  CHECK (btrim(ticket_description) <> ''),
-    -- One entry was paid with a ticket instead of cash: it counts in the result, not in the balance.
+    -- One entry was paid with a ticket instead of cash, so it cost no money (re-entries are cash).
     paid_with_ticket   BOOLEAN       NOT NULL DEFAULT FALSE,
     notes              TEXT,
-    -- Computed by PostgreSQL, so it can never disagree with the amounts.
-    net                NUMERIC(14,2) GENERATED ALWAYS AS
-                           (prize + bounty + ticket_prize_value - buy_in * entries) STORED,
+    -- Real money won or lost: cash prizes minus the entries paid in cash. Tickets count neither when
+    -- won nor when used, whatever their origin (won, gift...), so the sum of net is always the cash
+    -- result and matches the effect on the room balance. Computed by PostgreSQL, so it can never
+    -- disagree with the amounts.
+    net                NUMERIC(14,2) GENERATED ALWAYS AS (
+                           prize + bounty
+                           - buy_in * (entries - CASE WHEN paid_with_ticket THEN 1 ELSE 0 END)
+                       ) STORED,
     created_at         TIMESTAMPTZ   NOT NULL DEFAULT now(),
     updated_at         TIMESTAMPTZ   NOT NULL DEFAULT now(),
     -- The variant, if any, must be one of the game's type.

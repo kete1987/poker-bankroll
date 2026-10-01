@@ -74,16 +74,49 @@ class InitialSchemaTests {
     // ---- game ----
 
     @Test
-    void netIsComputedFromTheAmounts() {
+    void netIsCashPrizesMinusEntriesPaidInCash() {
         long room = insertRoom("Winamax", "EUR");
         long game = jdbc.queryForObject("""
-                insert into game (played_on, room_id, game_type_code, buy_in, entries, prize, bounty, ticket_prize_value)
-                values ('2026-01-19', ?, 'TOURNAMENT', 2.50, 3, 10.00, 1.25, 5.00) returning id
+                insert into game (played_on, room_id, game_type_code, buy_in, entries, prize, bounty)
+                values ('2026-01-19', ?, 'TOURNAMENT', 2.50, 3, 10.00, 1.25) returning id
                 """, Long.class, room);
 
-        // 10.00 + 1.25 + 5.00 - 2.50 * 3
-        assertThat(jdbc.queryForObject("select net from game where id = ?", BigDecimal.class, game))
-                .isEqualByComparingTo("8.75");
+        // 10.00 + 1.25 - 2.50 * 3
+        assertThat(net(game)).isEqualByComparingTo("3.75");
+    }
+
+    @Test
+    void aTicketWonDoesNotCountInNetUntilItIsPlayed() {
+        long room = insertRoom("Winamax", "EUR");
+        long satellite = jdbc.queryForObject("""
+                insert into game (played_on, room_id, game_type_code, buy_in, ticket_prize_value, ticket_description)
+                values ('2026-01-19', ?, 'TOURNAMENT', 10.00, 100.00, 'Main Event ticket') returning id
+                """, Long.class, room);
+
+        assertThat(net(satellite)).isEqualByComparingTo("-10.00");
+    }
+
+    @Test
+    void anEntryPaidWithATicketCostsNoMoney() {
+        long room = insertRoom("Winamax", "EUR");
+        long game = jdbc.queryForObject("""
+                insert into game (played_on, room_id, game_type_code, buy_in, paid_with_ticket, prize)
+                values ('2026-01-19', ?, 'TOURNAMENT', 100.00, true, 120.00) returning id
+                """, Long.class, room);
+
+        assertThat(net(game)).isEqualByComparingTo("120.00");
+    }
+
+    @Test
+    void aTicketCoversOnlyOneEntryReEntriesAreCash() {
+        long room = insertRoom("Winamax", "EUR");
+        long game = jdbc.queryForObject("""
+                insert into game (played_on, room_id, game_type_code, buy_in, entries, paid_with_ticket, prize)
+                values ('2026-01-19', ?, 'TOURNAMENT', 100.00, 3, true, 120.00) returning id
+                """, Long.class, room);
+
+        // 120 - 100 * (3 - 1)
+        assertThat(net(game)).isEqualByComparingTo("-80.00");
     }
 
     @Test
@@ -93,8 +126,7 @@ class InitialSchemaTests {
 
         jdbc.update("update game set prize = 12.30 where id = ?", game);
 
-        assertThat(jdbc.queryForObject("select net from game where id = ?", BigDecimal.class, game))
-                .isEqualByComparingTo("7.30");
+        assertThat(net(game)).isEqualByComparingTo("7.30");
     }
 
     @Test
@@ -283,6 +315,10 @@ class InitialSchemaTests {
     }
 
     // ---- helpers ----
+
+    private BigDecimal net(long game) {
+        return jdbc.queryForObject("select net from game where id = ?", BigDecimal.class, game);
+    }
 
     private List<String> variantCodes(String gameType) {
         return jdbc.queryForList(
