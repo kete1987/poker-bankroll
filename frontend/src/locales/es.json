@@ -22,9 +22,6 @@
     "up": "Disponible",
     "down": "No disponible"
   },
-  "page": {
-    "comingSoon": "Esta sección todavía no está disponible."
-  },
   "gameTypes": {
     "TOURNAMENT": "Torneo",
     "SIT_AND_GO": "Sit & Go / Spin",
@@ -233,6 +230,47 @@
         "done": "Variante borrada"
       }
     }
+  },
+  "import": {
+    "intro": "Carga partidas apuntadas en otro sitio desde un fichero CSV con el formato de la aplicación. Solo se importan partidas, todas como finalizadas.",
+    "format": "Ver el formato",
+    "example": "Descargar un ejemplo",
+    "choose": "Elegir fichero CSV",
+    "chooseAnother": "Elegir otro fichero",
+    "checking": "Comprobando el fichero…",
+    "unreadable": "El fichero no se puede importar",
+    "games": "Partidas a importar",
+    "rows_one": "{{formatted}} fila en el fichero",
+    "rows_other": "{{formatted}} filas en el fichero",
+    "dates": "Del {{from}} al {{to}}",
+    "net": "Neto en {{currency}}",
+    "netGames_one": "{{formatted}} partida",
+    "netGames_other": "{{formatted}} partidas",
+    "newRooms": "Salas que se crearán",
+    "newVariants": "Variantes que se crearán",
+    "duplicates": "Las partidas no se comparan con las ya apuntadas: importar dos veces el mismo fichero las apunta dos veces.",
+    "errors": {
+      "title_one": "{{formatted}} error: no se importa nada hasta que el fichero esté bien",
+      "title_other": "{{formatted}} errores: no se importa nada hasta que el fichero esté bien",
+      "help": "Corrige el fichero y vuelve a elegirlo. Las filas se numeran como en una hoja de cálculo: la cabecera es la fila 1.",
+      "row": "Fila",
+      "column": "Columna",
+      "error": "Error",
+      "more_one": "Y {{formatted}} error más.",
+      "more_other": "Y {{formatted}} errores más."
+    },
+    "submit_one": "Importar {{formatted}} partida",
+    "submit_other": "Importar {{formatted}} partidas",
+    "confirm": {
+      "title": "Importar partidas",
+      "text_one": "Se apuntará {{formatted}} partida de {{file}}.",
+      "text_other": "Se apuntarán {{formatted}} partidas de {{file}}.",
+      "label": "Importar"
+    },
+    "done_one": "{{formatted}} partida importada.",
+    "done_other": "{{formatted}} partidas importadas.",
+    "doneTitle": "Importación terminada",
+    "viewGames": "Ver las partidas"
   },
   "stats": {
     "groupBy": "Agrupar por",

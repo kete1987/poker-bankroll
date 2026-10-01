@@ -42,7 +42,8 @@ jobs:
           printf 'Changed files:\n%s\n' "$changed"
           touches() { if echo "$changed" | grep -qE "$1"; then echo true; else echo false; fi; }
           # frontend/openapi.json is the API contract: a backend test checks it is the one served.
-          echo "backend=$(touches '^(backend/|frontend/openapi\.json$|\.github/workflows/ci\.yml$)')" >> "$GITHUB_OUTPUT"
+          # The example of an import is served by the web app, and a backend test imports it.
+          echo "backend=$(touches '^(backend/|frontend/openapi\.json$|frontend/public/import-example\.csv$|\.github/workflows/ci\.yml$)')" >> "$GITHUB_OUTPUT"
           echo "frontend=$(touches '^(frontend/|\.github/workflows/ci\.yml$)')" >> "$GITHUB_OUTPUT"
 
   backend:

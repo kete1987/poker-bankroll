@@ -33,6 +33,9 @@ export type StatsGroups = Schemas['StatsGroupsResponse'];
 export type StatsGroup = Schemas['Group'];
 export type GroupBy = StatsGroups['groupBy'];
 
+export type GameImport = Schemas['GameImportResponse'];
+export type ImportRowError = Schemas['ImportRowError'];
+
 export type MovementType = Schemas['MovementResponse']['type'];
 export type Movement = Schemas['MovementResponse'];
 export type MovementRequest = Schemas['MovementRequest'];

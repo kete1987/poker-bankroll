@@ -38,7 +38,11 @@ export interface ApiCall {
   /** Path below `/api`, without the query string. */
   path: string;
   query: URLSearchParams;
+  /** The JSON sent, parsed. */
   body: unknown;
+  /** What was sent when it is not JSON text (a file). */
+  rawBody?: BodyInit | null;
+  headers: Headers;
 }
 
 /** A fixed JSON body, or a function of the call that returns one (or a whole `Response`). */
@@ -90,6 +94,8 @@ export function stubApi(handlers: Record<string, ApiHandler>) {
         path: url.pathname.replace(/^\/api/, ''),
         query: url.searchParams,
         body: typeof init?.body === 'string' ? JSON.parse(init.body) : undefined,
+        rawBody: typeof init?.body === 'string' ? undefined : init?.body,
+        headers: new Headers(init?.headers),
       };
       calls.push(call);
       const key = `${call.method} ${call.path}`;

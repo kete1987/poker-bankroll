@@ -134,7 +134,7 @@ class GameImportApiTests extends ApiIntegrationTest {
 
     @Test
     void theExampleOfTheDocumentationIsAValidFile() throws IOException {
-        byte[] example = Files.readAllBytes(Path.of("..", "docs", "import-example.csv"));
+        byte[] example = Files.readAllBytes(Path.of("..", "frontend", "public", "import-example.csv"));
 
         var json = assertThat(importFile(example, true)).hasStatusOk().bodyJson();
 
