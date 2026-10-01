@@ -100,6 +100,12 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - **Room**: poker site account (Winamax, 888poker...) holding money in **one currency**; its games
   and movements are in that currency. Two currencies on the same site are two rooms. The currency
   of a room cannot change once it has games or bankroll movements (database trigger).
+  - A room can have a **logo**: a PNG, JPEG or WebP image of at most 256 kB (no SVG: it can carry
+    scripts), uploaded by the user and stored in the database (table `room_logo`, apart from `room`
+    so that reading rooms never loads images; deleted with its room). The format is detected from
+    the content, not from the declared `Content-Type`. Rooms carry a `logoVersion` (`null` without
+    logo) that changes with every upload; the image is `GET /rooms/{id}/logo?v=<logoVersion>`,
+    cacheable forever under that URL. A logo does not make a room "in use".
 - **Inactive** rooms and variants keep their history and stay in statistics, but take no new games:
   the UI does not offer them and the API rejects creating a game in them, or moving one to them
   (`ROOM_INACTIVE`, `VARIANT_INACTIVE`). A game already there can still be edited.
@@ -203,6 +209,11 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   none is lost.
 - Recording a game or a bankroll movement in a room loads it with `RoomRepository.findToRecordInById`
   (shared row lock), so a simultaneous change of the room's currency waits and is rejected.
+- A body that is not JSON (the logo of a room) is read from the `InputStream` up to its limit plus
+  one byte, never as `@RequestBody byte[]`, which would load whatever is sent; its content is
+  described by hand in `@Operation(requestBody = ...)`.
+- Controller method names are the `operationId`s of the contract: keep them unique across
+  controllers (`getLogo`, not a second `get`), or springdoc renumbers the ones of other endpoints.
 - The OpenAPI spec is the contract, and it is committed as `frontend/openapi.json` (sorted keys,
   without `servers` and the version). The frontend types are generated from that file, so two
   checks keep everything in sync: `OpenApiContractTests` fails when the file is not what the API
@@ -245,12 +256,15 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 
 ### Demo data
 - The Spring profile `demo` (`demo/DemoDataSeeder`) fills an **empty** database on startup with a
-  year of made-up results ending today: four rooms (EUR and USD, one inactive), a user-defined
+  year of made-up results ending today: four rooms (EUR and USD, one inactive, three with a logo), a user-defined
   variant, about 400 games of every type, three games in play and bankroll movements. It does
   nothing when the database already has a room, a game, a movement or a user-defined variant, and
   is never active by default.
 - It creates everything through the services, so it also exercises the rules of the API. When a
   feature adds data worth seeing in the UI, add it to the seeder.
+- The logos of the demo rooms are invented shapes drawn in code (`demo/DemoLogo`): the real logos
+  of poker rooms are trademarks and are never shipped. The PNG is written by hand, because the
+  runtime of the API image has no `java.desktop` (`ImageIO`, `java.awt`).
 - To look at the frontend with data: run the API with the command above and `npm run dev` in
   `frontend/`, then open `http://localhost:5173`.
 

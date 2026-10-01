@@ -3,6 +3,7 @@ package io.github.kete1987.pokerbankroll.demo;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 
 import io.github.kete1987.pokerbankroll.TestcontainersConfiguration;
 import org.junit.jupiter.api.Test;
@@ -62,6 +63,24 @@ class DemoDataSeederTests {
         assertThat(mvc.get().uri("/bankroll/summary")).hasStatusOk().bodyJson()
                 .extractingPath("$.currencies[0].rooms[*].room.name").asArray()
                 .containsExactly("888poker", "Unibet", "Winamax");
+    }
+
+    @Test
+    void someRoomsHaveAnInventedLogo() {
+        assertThat(jdbc.queryForList("""
+                select r.name from room r join room_logo l on l.room_id = r.id
+                where l.content_type = 'image/png' order by r.name
+                """, String.class)).containsExactly("888poker", "Unibet", "Winamax");
+        assertThat(mvc.get().uri("/rooms")).hasStatusOk().bodyJson()
+                .extractingPath("$[?(@.name == 'PokerStars')].logoVersion").asArray().containsOnlyNulls();
+
+        long winamax = jdbc.queryForObject("select id from room where name = 'Winamax'", Long.class);
+        var logo = mvc.get().uri("/rooms/{id}/logo", winamax).exchange();
+        assertThat(logo).hasStatusOk().hasContentType("image/png");
+        // A 64x64 PNG: the signature, then the IHDR chunk starting with width and height.
+        byte[] png = logo.getResponse().getContentAsByteArray();
+        assertThat(Arrays.copyOfRange(png, 0, 8)).containsExactly(0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A);
+        assertThat(Arrays.copyOfRange(png, 12, 24)).containsExactly('I', 'H', 'D', 'R', 0, 0, 0, 64, 0, 0, 0, 64);
     }
 
     @Test

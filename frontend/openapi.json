@@ -661,6 +661,10 @@
             "description" : "The room has games or bankroll movements: it cannot be deleted and its currency cannot change",
             "type" : "boolean"
           },
+          "logoVersion" : {
+            "description" : "Null when the room has no logo. Otherwise an opaque value that changes every time the logo is uploaded: get the image from `/rooms/{id}/logo?v=<logoVersion>`",
+            "type" : [ "string", "null" ]
+          },
           "name" : {
             "type" : "string"
           },
@@ -1590,6 +1594,128 @@
           }
         },
         "summary" : "Update a room",
+        "tags" : [ "Rooms" ]
+      }
+    },
+    "/rooms/{id}/logo" : {
+      "delete" : {
+        "operationId" : "deleteLogo",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Delete the logo of a room",
+        "tags" : [ "Rooms" ]
+      },
+      "get" : {
+        "description" : "The image, with a strong `ETag` (`If-None-Match` is answered with 304). Request it as `?v=<logoVersion of the room>`: that URL never changes its content, so it is served to be cached for a year without revalidation. Without `v`, or with another value, it is revalidated on every use.",
+        "operationId" : "getLogo",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "description" : "The `logoVersion` of the room",
+          "in" : "query",
+          "name" : "v",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "image/jpeg" : {
+                "schema" : {
+                  "format" : "binary",
+                  "type" : "string"
+                }
+              },
+              "image/png" : {
+                "schema" : {
+                  "format" : "binary",
+                  "type" : "string"
+                }
+              },
+              "image/webp" : {
+                "schema" : {
+                  "format" : "binary",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "304" : {
+            "description" : "Not modified"
+          }
+        },
+        "summary" : "Get the logo of a room",
+        "tags" : [ "Rooms" ]
+      },
+      "put" : {
+        "description" : "The body is the image itself: PNG, JPEG or WebP, up to 256 kB. The format is detected from the content and the declared `Content-Type` is ignored. Replaces the logo the room had and returns the room with its new `logoVersion`. Fails with `LOGO_EMPTY` (400), `LOGO_TOO_LARGE` (413) or `LOGO_UNSUPPORTED_TYPE` (415).",
+        "operationId" : "replaceLogo",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "image/jpeg" : {
+              "schema" : {
+                "format" : "binary",
+                "type" : "string"
+              }
+            },
+            "image/png" : {
+              "schema" : {
+                "format" : "binary",
+                "type" : "string"
+              }
+            },
+            "image/webp" : {
+              "schema" : {
+                "format" : "binary",
+                "type" : "string"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RoomResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Set the logo of a room",
         "tags" : [ "Rooms" ]
       }
     },
