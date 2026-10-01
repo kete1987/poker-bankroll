@@ -223,6 +223,39 @@ class InitialSchemaTests {
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
+    @Test
+    void roomCurrencyCanChangeWhileItHasNoGames() {
+        long room = insertRoom("PokerStars", "EUR");
+
+        jdbc.update("update room set currency_code = 'USD' where id = ?", room);
+
+        assertThat(jdbc.queryForObject("select currency_code from room where id = ?", String.class, room))
+                .isEqualTo("USD");
+    }
+
+    @Test
+    void roomCurrencyCannotChangeOnceItHasGames() {
+        long room = insertRoom("Winamax", "EUR");
+        insertGame(room, "TOURNAMENT", "buy_in", "1");
+
+        assertThatThrownBy(() -> jdbc.update("update room set currency_code = 'USD' where id = ?", room))
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("cannot change because it has games");
+        assertThat(jdbc.queryForObject("select currency_code from room where id = ?", String.class, room))
+                .isEqualTo("EUR");
+    }
+
+    @Test
+    void roomWithGamesCanStillBeRenamedOrDeactivated() {
+        long room = insertRoom("Winamax", "EUR");
+        insertGame(room, "TOURNAMENT", "buy_in", "1");
+
+        jdbc.update("update room set name = 'Winamax.es', active = false, currency_code = 'EUR' where id = ?", room);
+
+        assertThat(jdbc.queryForObject("select name from room where id = ?", String.class, room))
+                .isEqualTo("Winamax.es");
+    }
+
     // ---- variant ----
 
     @Test

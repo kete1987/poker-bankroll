@@ -125,6 +125,27 @@ CREATE INDEX game_played_on_idx ON game (played_on);
 CREATE INDEX game_room_played_on_idx ON game (room_id, played_on);
 CREATE INDEX game_type_played_on_idx ON game (game_type_code, played_on);
 
+-- Amounts are stored without their currency: they are in the currency of the room. Changing that
+-- currency would silently relabel every recorded amount, so it is only allowed while the room has
+-- no games (to fix a mistake right after creating it).
+CREATE FUNCTION reject_room_currency_change() RETURNS trigger
+    LANGUAGE plpgsql AS
+$$
+BEGIN
+    IF EXISTS (SELECT 1 FROM game WHERE room_id = OLD.id) THEN
+        RAISE EXCEPTION 'The currency of room % cannot change because it has games', OLD.id
+            USING ERRCODE = 'check_violation', CONSTRAINT = 'room_currency_immutable';
+    END IF;
+    RETURN NEW;
+END
+$$;
+
+CREATE TRIGGER room_currency_immutable
+    BEFORE UPDATE OF currency_code ON room
+    FOR EACH ROW
+    WHEN (OLD.currency_code IS DISTINCT FROM NEW.currency_code)
+    EXECUTE FUNCTION reject_room_currency_change();
+
 -- Application-wide preferences (there are no users).
 CREATE TABLE app_setting (
     key        VARCHAR(50) PRIMARY KEY CHECK (key ~ '^[a-z][a-z0-9_]*$'),

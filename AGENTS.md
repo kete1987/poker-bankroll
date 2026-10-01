@@ -94,7 +94,8 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 
 - **Currency**: ISO 4217 code (`EUR`, `USD`). Belongs to the **room**, not to each game.
 - **Room**: poker site account (Winamax, 888poker...) holding money in **one currency**; its games
-  and movements are in that currency. Two currencies on the same site are two rooms.
+  and movements are in that currency. Two currencies on the same site are two rooms. The currency
+  of a room cannot change once it has games (database trigger).
 - **Game type**: the format — `TOURNAMENT`, `SIT_AND_GO` (shown as "Sit & Go / Spins"; includes
   lottery Sit&Go such as Expresso) or `CASH`. Fixed list (table `game_type`, seeded by migrations):
   the application behaves differently per type.
