@@ -96,6 +96,7 @@ export function VariantsSettings({ variants }: { variants: Variant[] }) {
                           <Switch
                             aria-label={t('settings.variants.activeVariant', { variant: name })}
                             checked={variant.active}
+                            disabled={updateVariant.isPending}
                             onChange={(event) =>
                               void setActive(variant, event.currentTarget.checked)
                             }
@@ -108,6 +109,7 @@ export function VariantsSettings({ variants }: { variants: Variant[] }) {
                                 variant="subtle"
                                 color="gray"
                                 aria-label={t('settings.variants.editVariant', { variant: name })}
+                                disabled={updateVariant.isPending}
                                 onClick={() => setDialog({ kind: 'edit', variant })}
                               >
                                 <IconPencil size={16} stroke={1.5} />
@@ -120,11 +122,17 @@ export function VariantsSettings({ variants }: { variants: Variant[] }) {
                                 <ActionIcon
                                   variant="subtle"
                                   color="red"
-                                  disabled={variant.inUse}
+                                  // Not `disabled`: a disabled button cannot show its tooltip.
+                                  data-disabled={variant.inUse || undefined}
+                                  aria-disabled={variant.inUse}
                                   aria-label={t('settings.variants.deleteVariant', {
                                     variant: name,
                                   })}
-                                  onClick={() => setDialog({ kind: 'delete', variant })}
+                                  onClick={() => {
+                                    if (!variant.inUse) {
+                                      setDialog({ kind: 'delete', variant });
+                                    }
+                                  }}
                                 >
                                   <IconTrash size={16} stroke={1.5} />
                                 </ActionIcon>
@@ -186,20 +194,27 @@ function VariantDialog({ variant, onClose }: { variant?: Variant; onClose: () =>
       setNameError(t('gameForm.errors.required'));
       return;
     }
-    void save.run(async () => {
-      const saved = variant
-        ? await updateVariant.mutateAsync({
-            id: variant.id,
-            variant: { name: name.trim(), active: variant.active },
-          })
-        : await createVariant.mutateAsync({ gameType, name: name.trim() });
-      notifications.show({
-        color: 'teal',
-        title: variant ? t('settings.variants.saved') : t('settings.variants.created'),
-        message: saved.name ?? '',
-      });
-      onClose();
-    });
+    void save.run(
+      async () => {
+        const saved = variant
+          ? await updateVariant.mutateAsync({
+              id: variant.id,
+              variant: { name: name.trim(), active: variant.active },
+            })
+          : await createVariant.mutateAsync({ gameType, name: name.trim() });
+        notifications.show({
+          color: 'teal',
+          title: variant ? t('settings.variants.saved') : t('settings.variants.created'),
+          message: saved.name ?? '',
+        });
+        onClose();
+      },
+      (violations) => {
+        const ofName = violations.find((violation) => violation.field === 'name');
+        setNameError(ofName?.message ?? null);
+        return Boolean(ofName);
+      },
+    );
   }
 
   return (

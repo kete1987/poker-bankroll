@@ -34,6 +34,9 @@ function rowOf(name: string) {
 
 beforeEach(() => {
   vi.mocked(resizeImage).mockReset().mockResolvedValue(RESIZED);
+  // jsdom has no object URLs: the preview of a logo not stored yet gets a fixed one.
+  URL.createObjectURL = vi.fn(() => 'blob:preview');
+  URL.revokeObjectURL = vi.fn();
 });
 
 describe('Settings: rooms', () => {
@@ -54,8 +57,19 @@ describe('Settings: rooms', () => {
     expect(screen.getByRole('switch', { name: 'Winamax is active' })).toBeChecked();
     expect(screen.getByRole('switch', { name: 'Unibet is active' })).not.toBeChecked();
     // A room with history cannot be deleted, only deactivated.
-    expect(screen.getByRole('button', { name: 'Delete Winamax' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Delete PokerStars' })).toBeEnabled();
+    const blocked = screen.getByRole('button', { name: 'Delete Winamax' });
+    expect(blocked).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('button', { name: 'Delete PokerStars' })).toHaveAttribute(
+      'aria-disabled',
+      'false',
+    );
+    // It says why, and does nothing.
+    await userEvent.hover(blocked);
+    expect(
+      await screen.findByText('It has games or movements: deactivate it instead.'),
+    ).toBeInTheDocument();
+    await userEvent.click(blocked);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('activates and deactivates a room from its row', async () => {
@@ -73,7 +87,7 @@ describe('Settings: rooms', () => {
     });
   });
 
-  it('adds a room and keeps it open to set its logo', async () => {
+  it('adds a room without a logo', async () => {
     const created = room({ id: 9, name: '888poker', currencyCode: 'USD', inUse: false });
     const calls = stubSettings({ 'POST /rooms': created });
     renderApp('/settings');
@@ -97,8 +111,78 @@ describe('Settings: rooms', () => {
       active: true,
     });
     expect(await screen.findByText('Room created')).toBeInTheDocument();
-    const edit = within(await screen.findByRole('dialog', { name: 'Edit room' }));
-    expect(edit.getByRole('button', { name: 'Upload logo' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    // No logo was chosen: none is sent.
+    expect(sent(calls, 'PUT')).toHaveLength(0);
+  });
+
+  it('adds a room with a logo, stored once the room exists', async () => {
+    const created = room({ id: 9, name: '888poker', inUse: false, logoVersion: null });
+    const calls = stubSettings({
+      'POST /rooms': created,
+      'PUT /rooms/9/logo': { ...created, logoVersion: 'v1' },
+    });
+    renderApp('/settings');
+    await userEvent.click(await screen.findByRole('button', { name: 'Add room' }));
+    const dialog = within(await screen.findByRole('dialog', { name: 'Add room' }));
+    const logo = within(dialog.getByRole('region', { name: 'Logo' }));
+    await userEvent.type(dialog.getByRole('textbox', { name: 'Name' }), '888poker');
+
+    const original = new File(['a very large image'], 'logo.jpg', { type: 'image/jpeg' });
+    await userEvent.upload(
+      document.querySelector<HTMLInputElement>('input[type="file"]')!,
+      original,
+    );
+
+    // Resized and previewed, but nothing is sent until the room is saved.
+    expect(await logo.findByRole('img', { name: 'Logo of 888poker' })).toHaveAttribute(
+      'src',
+      'blob:preview',
+    );
+    expect(resizeImage).toHaveBeenCalledWith(original);
+    expect(sent(calls, 'POST')).toHaveLength(0);
+    expect(sent(calls, 'PUT')).toHaveLength(0);
+
+    // It can still be taken back, and chosen again.
+    await userEvent.click(logo.getByRole('button', { name: 'Remove logo' }));
+    expect(logo.queryByRole('img', { name: 'Logo of 888poker' })).not.toBeInTheDocument();
+    await userEvent.upload(
+      document.querySelector<HTMLInputElement>('input[type="file"]')!,
+      original,
+    );
+    await logo.findByRole('img', { name: 'Logo of 888poker' });
+
+    await userEvent.click(dialog.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(sent(calls, 'PUT')).toHaveLength(1));
+    expect(sent(calls, 'POST')).toHaveLength(1);
+    expect(sent(calls, 'PUT')[0]?.path).toBe('/rooms/9/logo');
+    expect(await screen.findByText('Room created')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('keeps the new room when its logo cannot be stored, and says so', async () => {
+    const created = room({ id: 9, name: '888poker', inUse: false, logoVersion: null });
+    stubSettings({
+      'POST /rooms': created,
+      'PUT /rooms/9/logo': () => problem(413, 'LOGO_TOO_LARGE', 'The logo is too large.'),
+    });
+    renderApp('/settings');
+    await userEvent.click(await screen.findByRole('button', { name: 'Add room' }));
+    const dialog = within(await screen.findByRole('dialog', { name: 'Add room' }));
+    await userEvent.type(dialog.getByRole('textbox', { name: 'Name' }), '888poker');
+    await userEvent.upload(
+      document.querySelector<HTMLInputElement>('input[type="file"]')!,
+      new File(['image'], 'logo.png', { type: 'image/png' }),
+    );
+    await within(dialog.getByRole('region', { name: 'Logo' })).findByRole('img');
+
+    await userEvent.click(dialog.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('Room created')).toBeInTheDocument();
+    expect(screen.getByText('The logo was not stored')).toBeInTheDocument();
+    expect(screen.getByText('The logo is too large.')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
   it('edits a room; its currency is locked once it has history', async () => {
@@ -137,6 +221,44 @@ describe('Settings: rooms', () => {
     await userEvent.click(dialog.getByRole('button', { name: 'Save' }));
 
     expect(await dialog.findByText('There is already a room called Unibet.')).toBeInTheDocument();
+  });
+
+  it('shows the validation errors of the backend next to their fields', async () => {
+    stubSettings({
+      'PUT /rooms/1': () =>
+        problem(400, 'VALIDATION_FAILED', 'The request contains invalid data.', [
+          { field: 'name', code: 'Size', message: 'Too long' },
+        ]),
+    });
+    renderApp('/settings');
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit Winamax' }));
+    const dialog = within(await screen.findByRole('dialog', { name: 'Edit room' }));
+    await userEvent.click(dialog.getByRole('button', { name: 'Save' }));
+
+    expect(await dialog.findByText('Too long')).toBeInTheDocument();
+    expect(dialog.getByRole('textbox', { name: 'Name' })).toBeInvalid();
+    expect(dialog.queryByText('The request contains invalid data.')).not.toBeInTheDocument();
+  });
+
+  it('does not let a room be edited while its switch is being saved', async () => {
+    let finish: (value: unknown) => void = () => {};
+    const pending = new Promise((resolve) => {
+      finish = resolve;
+    });
+    stubSettings({ 'PUT /rooms/1': () => pending });
+    renderApp('/settings');
+
+    await userEvent.click(await screen.findByRole('switch', { name: 'Winamax is active' }));
+
+    // The dialog would open with the room as it was before the change.
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Edit Winamax' })).toBeDisabled(),
+    );
+    expect(screen.getByRole('switch', { name: 'Unibet is active' })).toBeDisabled();
+
+    finish(room({ id: 1, name: 'Winamax', active: false }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Edit Winamax' })).toBeEnabled());
   });
 
   it('deletes an unused room after asking', async () => {
@@ -312,7 +434,10 @@ describe('Settings: variants', () => {
     });
     renderApp('/settings?tab=variants');
 
-    expect(await screen.findByRole('button', { name: 'Delete Used' })).toBeDisabled();
+    const blocked = await screen.findByRole('button', { name: 'Delete Used' });
+    expect(blocked).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.click(blocked);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Delete Hyper Turbo' }));
     const dialog = within(await screen.findByRole('dialog', { name: 'Delete variant' }));
     await userEvent.click(dialog.getByRole('button', { name: 'Delete' }));

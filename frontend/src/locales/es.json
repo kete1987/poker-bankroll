@@ -207,7 +207,9 @@
       "remove": "Quitar logo",
       "current": "Logo de {{room}}",
       "help": "Cualquier imagen: se reduce a 128 px antes de guardarla.",
-      "unreadable": "No se ha podido leer el fichero como imagen."
+      "unreadable": "No se ha podido leer el fichero como imagen.",
+      "helpNew": "Opcional. Cualquier imagen: se reduce a 128 px y se guarda al guardar la sala.",
+      "notStored": "El logo no se ha guardado"
     },
     "variants": {
       "add": "Añadir variante",

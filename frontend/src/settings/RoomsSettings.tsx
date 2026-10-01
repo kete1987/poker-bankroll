@@ -81,6 +81,8 @@ export function RoomsSettings({ rooms, currencies }: RoomsSettingsProps) {
                     <Switch
                       aria-label={t('settings.rooms.activeRoom', { room: room.name })}
                       checked={room.active}
+                      // Editing meanwhile would save the room as it was before this change.
+                      disabled={updateRoom.isPending}
                       onChange={(event) => void setActive(room, event.currentTarget.checked)}
                     />
                   </Table.Td>
@@ -90,6 +92,7 @@ export function RoomsSettings({ rooms, currencies }: RoomsSettingsProps) {
                         variant="subtle"
                         color="gray"
                         aria-label={t('settings.rooms.editRoom', { room: room.name })}
+                        disabled={updateRoom.isPending}
                         onClick={() => setDialog({ kind: 'edit', room })}
                       >
                         <IconPencil size={16} stroke={1.5} />
@@ -99,9 +102,15 @@ export function RoomsSettings({ rooms, currencies }: RoomsSettingsProps) {
                         <ActionIcon
                           variant="subtle"
                           color="red"
-                          disabled={room.inUse}
+                          // Not `disabled`: a disabled button cannot show its tooltip.
+                          data-disabled={room.inUse || undefined}
+                          aria-disabled={room.inUse}
                           aria-label={t('settings.rooms.deleteRoom', { room: room.name })}
-                          onClick={() => setDialog({ kind: 'delete', room })}
+                          onClick={() => {
+                            if (!room.inUse) {
+                              setDialog({ kind: 'delete', room });
+                            }
+                          }}
                         >
                           <IconTrash size={16} stroke={1.5} />
                         </ActionIcon>
@@ -121,14 +130,21 @@ export function RoomsSettings({ rooms, currencies }: RoomsSettingsProps) {
           room={dialog.kind === 'edit' ? dialog.room : undefined}
           currencies={currencies}
           onClose={() => setDialog(null)}
-          onSaved={(room, created) => {
+          onSaved={(room, created, logoFailure) => {
             notifications.show({
               color: 'teal',
               title: created ? t('settings.rooms.created') : t('settings.rooms.saved'),
               message: room.name,
             });
-            // A new room stays open, now as an existing one, so its logo can be set right away.
-            setDialog(created ? { kind: 'edit', room } : null);
+            if (logoFailure) {
+              // The room is there; its logo can be set again from "Edit".
+              notifications.show({
+                color: 'red',
+                title: t('settings.logo.notStored'),
+                message: logoFailure,
+              });
+            }
+            setDialog(null);
           }}
         />
       )}

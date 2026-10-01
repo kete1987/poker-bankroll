@@ -207,7 +207,9 @@
       "remove": "Remove logo",
       "current": "Logo of {{room}}",
       "help": "Any image: it is reduced to 128 px before it is stored.",
-      "unreadable": "The file could not be read as an image."
+      "unreadable": "The file could not be read as an image.",
+      "helpNew": "Optional. Any image: it is reduced to 128 px and stored when you save the room.",
+      "notStored": "The logo was not stored"
     },
     "variants": {
       "add": "Add variant",
