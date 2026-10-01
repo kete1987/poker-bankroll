@@ -162,6 +162,12 @@ class StatsApiTests extends ApiIntegrationTest {
         assertNumber(summary("?roomId=" + pokerStars), "$.currencies[0].total.games", "1");
         assertNumber(summary("?variantId=" + ko), "$.currencies[0].total.games", "1");
         assertNumber(summary("?q=satellite"), "$.currencies[0].total.games", "1");
+        // Several values of a filter: the games of any of them.
+        assertNumber(summary("?currency=EUR&gameType=SIT_AND_GO,CASH"), "$.currencies[0].total.games", "2");
+        assertNumber(summary("?gameType=TOURNAMENT&roomId=" + winamax + "&roomId=" + pokerStars),
+                "$.currencies[1].total.games", "1");
+        assertThat(JsonPath.<Integer>read(groups("?groupBy=GAME_TYPE&currency=EUR&gameType=SIT_AND_GO,CASH"),
+                "$.currencies[0].groups.length()")).isEqualTo(2);
         assertThat(summary("?from=2027-01-01")).isEqualTo("{\"currencies\":[]}");
     }
 

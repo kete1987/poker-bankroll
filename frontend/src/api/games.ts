@@ -15,9 +15,10 @@ import type {
 export interface GameQuery {
   from?: string;
   to?: string;
-  gameType?: GameType;
-  roomId?: number;
-  variantId?: number;
+  /** Games of any of these types (the same goes for rooms and variants); empty is no filter. */
+  gameType?: GameType[];
+  roomId?: number[];
+  variantId?: number[];
   status?: GameStatus;
   q?: string;
   page?: number;
@@ -29,7 +30,10 @@ export interface GameQuery {
 function toQueryString(query: GameQuery): string {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query)) {
-    if (value !== undefined && value !== '') {
+    if (Array.isArray(value)) {
+      // A list is sent as the parameter repeated once per value.
+      value.forEach((item) => params.append(key, String(item)));
+    } else if (value !== undefined && value !== '') {
       params.set(key, String(value));
     }
   }

@@ -1,6 +1,7 @@
 package io.github.kete1987.pokerbankroll.stats;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -35,10 +36,13 @@ class StatsController {
             @RequestParam(required = false) @Nullable LocalDate from,
             @Parameter(description = "Played on or before this date")
             @RequestParam(required = false) @Nullable LocalDate to,
-            @RequestParam(required = false) @Nullable GameType gameType,
+            @Parameter(description = "One or more game types: games of any of them")
+            @RequestParam(required = false) @Nullable List<GameType> gameType,
             @RequestParam(required = false) @Nullable Modality modality,
-            @RequestParam(required = false) @Nullable Long roomId,
-            @RequestParam(required = false) @Nullable Long variantId,
+            @Parameter(description = "One or more rooms: games in any of them")
+            @RequestParam(required = false) @Nullable List<Long> roomId,
+            @Parameter(description = "One or more variants: games of any of them")
+            @RequestParam(required = false) @Nullable List<Long> variantId,
             @Parameter(description = "Currency of the room, e.g. EUR")
             @RequestParam(required = false) @Nullable String currency,
             @Parameter(description = "Text contained in the name or the notes, ignoring case")
@@ -58,10 +62,13 @@ class StatsController {
             @RequestParam(required = false) @Nullable LocalDate from,
             @Parameter(description = "Played on or before this date")
             @RequestParam(required = false) @Nullable LocalDate to,
-            @RequestParam(required = false) @Nullable GameType gameType,
+            @Parameter(description = "One or more game types: games of any of them")
+            @RequestParam(required = false) @Nullable List<GameType> gameType,
             @RequestParam(required = false) @Nullable Modality modality,
-            @RequestParam(required = false) @Nullable Long roomId,
-            @RequestParam(required = false) @Nullable Long variantId,
+            @Parameter(description = "One or more rooms: games in any of them")
+            @RequestParam(required = false) @Nullable List<Long> roomId,
+            @Parameter(description = "One or more variants: games of any of them")
+            @RequestParam(required = false) @Nullable List<Long> variantId,
             @Parameter(description = "Currency of the room, e.g. EUR")
             @RequestParam(required = false) @Nullable String currency,
             @Parameter(description = "Text contained in the name or the notes, ignoring case")

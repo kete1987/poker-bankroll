@@ -1,4 +1,4 @@
-import { Button, Group, Select, TextInput } from '@mantine/core';
+import { Button, Group, MultiSelect, Select, TextInput } from '@mantine/core';
 import { useDebouncedCallback } from '@mantine/hooks';
 import { IconSearch, IconX } from '@tabler/icons-react';
 import { useState } from 'react';
@@ -47,12 +47,16 @@ export function GameFilters({
     }
   }
 
-  // Variants of the chosen type; of every type, with the type in front, when none is chosen.
+  // Variants of the chosen types; of every type when none is chosen. The type goes in front
+  // unless a single one is chosen, since variants of different types share names (Regular).
+  const singleType = filters.gameTypes.length === 1;
   const variantOptions = variants
-    .filter((variant) => !filters.gameType || variant.gameType === filters.gameType)
+    .filter(
+      (variant) => filters.gameTypes.length === 0 || filters.gameTypes.includes(variant.gameType),
+    )
     .map((variant) => ({
       value: String(variant.id),
-      label: filters.gameType
+      label: singleType
         ? variantLabel(t, variant)
         : `${t(`gameTypes.${variant.gameType}`)} · ${variantLabel(t, variant)}`,
     }));
@@ -94,36 +98,47 @@ export function GameFilters({
           />
         </>
       )}
-      <Select
+      <MultiSelect
         label={t('games.filters.gameType')}
-        w={180}
+        miw={180}
+        maw={360}
         clearable
-        placeholder={t('games.filters.any')}
+        placeholder={filters.gameTypes.length === 0 ? t('games.filters.any') : undefined}
         data={GAME_TYPES.map((type) => ({ value: type, label: t(`gameTypes.${type}`) }))}
-        value={filters.gameType ?? null}
-        // A variant belongs to a type: it is dropped when the type changes.
-        onChange={(value) =>
-          onChange({ gameType: (value as GameType | null) ?? undefined, variantId: undefined })
-        }
+        value={filters.gameTypes}
+        onChange={(values) => {
+          const gameTypes = values as GameType[];
+          // A variant belongs to a type: those of types no longer chosen are dropped.
+          const variantIds =
+            gameTypes.length === 0
+              ? filters.variantIds
+              : filters.variantIds.filter((id) => {
+                  const variant = variants.find((candidate) => candidate.id === id);
+                  return variant !== undefined && gameTypes.includes(variant.gameType);
+                });
+          onChange({ gameTypes, variantIds });
+        }}
       />
-      <Select
+      <MultiSelect
         label={t('games.filters.room')}
-        w={180}
+        miw={180}
+        maw={360}
         clearable
-        placeholder={t('games.filters.any')}
+        placeholder={filters.roomIds.length === 0 ? t('games.filters.any') : undefined}
         data={rooms.map((room) => ({ value: String(room.id), label: room.name }))}
-        value={filters.roomId ? String(filters.roomId) : null}
-        onChange={(value) => onChange({ roomId: value ? Number(value) : undefined })}
+        value={filters.roomIds.map(String)}
+        onChange={(values) => onChange({ roomIds: values.map(Number) })}
       />
-      <Select
+      <MultiSelect
         label={t('games.filters.variant')}
-        w={220}
+        miw={220}
+        maw={420}
         clearable
         searchable
-        placeholder={t('games.filters.any')}
+        placeholder={filters.variantIds.length === 0 ? t('games.filters.any') : undefined}
         data={variantOptions}
-        value={filters.variantId ? String(filters.variantId) : null}
-        onChange={(value) => onChange({ variantId: value ? Number(value) : undefined })}
+        value={filters.variantIds.map(String)}
+        onChange={(values) => onChange({ variantIds: values.map(Number) })}
       />
       <TextInput
         label={t('games.filters.text')}

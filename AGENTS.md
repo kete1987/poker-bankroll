@@ -200,6 +200,9 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   Aggregates are the exception: `/stats/groups` returns every group, because a chart needs the whole
   series and the cumulative net of a page would be meaningless. Its size is bounded by the grouping
   (at most one small row per day played), and `from`/`to` narrow it.
+- A filter that takes several values (`gameType`, `roomId`, `variantId` of the games filters) is a
+  `List` parameter: repeated or comma-separated, its values combined with OR, the filters with each
+  other with AND; empty is no filter.
 - Optional fields omitted in a request take their documented default; `PUT` replaces the whole resource.
 - State changes that are a single user gesture are their own `POST` sub-resource instead of a
   full `PUT` (e.g. `/games/{id}/finish`, `/games/{id}/re-entries`, `/games/{id}/rebuys`); they return
@@ -306,7 +309,8 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   `components/ConfirmDialog` for a plain confirmation; the close button of a modal is labelled
   `actions.close`, so it is not confused with a "Cancel" button.
 - Filters, order and page of a list live in the URL (`games/useGameFilters.ts`): they survive a
-  reload and the back button. Invalid values in the URL are ignored.
+  reload and the back button. Lists are written with commas (`room=1,2`). Invalid values in the
+  URL are ignored.
 - A room is always rendered with `components/RoomLabel`: its logo (or its initial when it has
   none) and its name. It takes the `logoVersion` from the shared list of rooms (`useRooms`).
 - A mutation invalidates every query its data affects (a game changes `games`, `stats` and

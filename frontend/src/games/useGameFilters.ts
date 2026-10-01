@@ -11,9 +11,10 @@ export type SortField = (typeof SORT_FIELDS)[number];
 export interface GameFilters {
   from?: string;
   to?: string;
-  gameType?: GameType;
-  roomId?: number;
-  variantId?: number;
+  /** Several values of a filter select the games of any of them; none is no filter. */
+  gameTypes: GameType[];
+  roomIds: number[];
+  variantIds: number[];
   q?: string;
   /** Zero-based. */
   page: number;
@@ -45,19 +46,29 @@ function positiveInteger(value: string | null): number | undefined {
   return number > 0 && number <= MAX_INTEGER ? number : undefined;
 }
 
+/** The valid values of a comma-separated parameter, each one once and in the order given. */
+function list<T>(value: string | null, parseOne: (text: string) => T | undefined): T[] {
+  const values = (value ?? '')
+    .split(',')
+    .map((text) => parseOne(text.trim()))
+    .filter((item): item is T => item !== undefined);
+  return [...new Set(values)];
+}
+
 function parse(params: URLSearchParams): GameFilters {
   const date = (key: string) => {
     const value = params.get(key);
     return value !== null && isDate(value) ? value : undefined;
   };
-  const gameType = params.get('type');
   const [sortField, direction] = (params.get('sort') ?? '').split(',');
   return {
     from: date('from'),
     to: date('to'),
-    gameType: GAME_TYPES.includes(gameType ?? '') ? (gameType as GameType) : undefined,
-    roomId: positiveInteger(params.get('room')),
-    variantId: positiveInteger(params.get('variant')),
+    gameTypes: list(params.get('type'), (text) =>
+      GAME_TYPES.includes(text) ? (text as GameType) : undefined,
+    ),
+    roomIds: list(params.get('room'), positiveInteger),
+    variantIds: list(params.get('variant'), positiveInteger),
     q: params.get('q')?.trim() || undefined,
     // The page is one-based in the URL, as people count.
     page: (positiveInteger(params.get('page')) ?? 1) - 1,
@@ -77,9 +88,10 @@ function serialize(filters: GameFilters): URLSearchParams {
   };
   set('from', filters.from);
   set('to', filters.to);
-  set('type', filters.gameType);
-  set('room', filters.roomId);
-  set('variant', filters.variantId);
+  // Lists are written with commas: `room=1,2`.
+  set('type', filters.gameTypes.join(','));
+  set('room', filters.roomIds.join(','));
+  set('variant', filters.variantIds.join(','));
   set('q', filters.q);
   // Defaults are left out, so the plain URL is the plain list.
   if (filters.sortField !== 'playedOn' || !filters.sortDescending) {
@@ -116,9 +128,9 @@ export function useGameFilters() {
   const hasFilters = Boolean(
     filters.from ||
     filters.to ||
-    filters.gameType ||
-    filters.roomId ||
-    filters.variantId ||
+    filters.gameTypes.length ||
+    filters.roomIds.length ||
+    filters.variantIds.length ||
     filters.q,
   );
 
@@ -130,9 +142,9 @@ export function toGameQuery(filters: GameFilters): GameQuery {
   return {
     from: filters.from,
     to: filters.to,
-    gameType: filters.gameType,
-    roomId: filters.roomId,
-    variantId: filters.variantId,
+    gameType: filters.gameTypes,
+    roomId: filters.roomIds,
+    variantId: filters.variantIds,
     q: filters.q,
     status: 'FINISHED',
     page: filters.page,
