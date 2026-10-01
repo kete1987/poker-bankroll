@@ -310,7 +310,7 @@
             "type" : [ "string", "null" ]
           },
           "net" : {
-            "description" : "Real money won or lost: prize + bounty - invested",
+            "description" : "Real money won or lost: won - invested",
             "type" : "number"
           },
           "notes" : {
@@ -354,9 +354,13 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "won" : {
+            "description" : "Money won: prize + bounty",
+            "type" : "number"
           }
         },
-        "required" : [ "bounty", "buyIn", "createdAt", "currencyCode", "entries", "gameType", "id", "invested", "modality", "net", "paidWithTicket", "playedOn", "prize", "room", "status", "ticketPrizeValue", "updatedAt" ],
+        "required" : [ "bounty", "buyIn", "createdAt", "currencyCode", "entries", "gameType", "id", "invested", "modality", "net", "paidWithTicket", "playedOn", "prize", "room", "status", "ticketPrizeValue", "updatedAt", "won" ],
         "type" : "object"
       },
       "GameTypeSummary" : {
@@ -1212,7 +1216,7 @@
             "type" : "integer"
           }
         }, {
-          "description" : "`<field>,<asc|desc>` with field one of playedOn, net, buyIn, prize, createdAt",
+          "description" : "`<field>,<asc|desc>` with field one of playedOn, net, buyIn, prize, won, createdAt",
           "in" : "query",
           "name" : "sort",
           "required" : false,

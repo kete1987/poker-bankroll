@@ -19,7 +19,7 @@ final class GameSort {
     /** Newest first; within a day by start time (games without time last), then newest created. */
     static final String DEFAULT = "playedOn,desc";
 
-    private static final Set<String> FIELDS = Set.of("playedOn", "net", "buyIn", "prize", "createdAt");
+    private static final Set<String> FIELDS = Set.of("playedOn", "net", "buyIn", "prize", "won", "createdAt");
 
     private GameSort() {
     }

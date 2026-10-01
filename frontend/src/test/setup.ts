@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import '../i18n';
 
+import { notifications } from '@mantine/notifications';
 import { cleanup } from '@testing-library/react';
 import { afterEach, beforeEach, vi } from 'vitest';
 
@@ -48,6 +49,9 @@ beforeEach(async () => {
 
 afterEach(() => {
   cleanup();
+  // The notifications live outside React: left alone, those of one test fill the queue of the next.
+  notifications.clean();
+  notifications.cleanQueue();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });

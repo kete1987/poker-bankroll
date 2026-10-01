@@ -34,7 +34,9 @@ public record GameResponse(
         boolean paidWithTicket,
         @Schema(description = "Money paid for the entries (an entry paid with a ticket costs nothing)")
         BigDecimal invested,
-        @Schema(description = "Real money won or lost: prize + bounty - invested")
+        @Schema(description = "Money won: prize + bounty")
+        BigDecimal won,
+        @Schema(description = "Real money won or lost: won - invested")
         BigDecimal net,
         @Nullable String notes,
         Instant createdAt,
@@ -68,6 +70,7 @@ public record GameResponse(
                 game.getTicketDescription(),
                 game.isPaidWithTicket(),
                 game.getInvested(),
+                game.getWon(),
                 game.getNet(),
                 game.getNotes(),
                 game.getCreatedAt(),
