@@ -918,10 +918,13 @@ export interface operations {
                 from?: string;
                 /** @description Played on or before this date */
                 to?: string;
-                gameType?: "TOURNAMENT" | "SIT_AND_GO" | "CASH";
+                /** @description One or more game types: games of any of them */
+                gameType?: ("TOURNAMENT" | "SIT_AND_GO" | "CASH")[];
                 modality?: "NLHE" | "PLO";
-                roomId?: number;
-                variantId?: number;
+                /** @description One or more rooms: games in any of them */
+                roomId?: number[];
+                /** @description One or more variants: games of any of them */
+                variantId?: number[];
                 status?: "IN_PLAY" | "FINISHED";
                 /** @description Currency of the room, e.g. EUR */
                 currency?: string;
@@ -1320,10 +1323,13 @@ export interface operations {
                 from?: string;
                 /** @description Played on or before this date */
                 to?: string;
-                gameType?: "TOURNAMENT" | "SIT_AND_GO" | "CASH";
+                /** @description One or more game types: games of any of them */
+                gameType?: ("TOURNAMENT" | "SIT_AND_GO" | "CASH")[];
                 modality?: "NLHE" | "PLO";
-                roomId?: number;
-                variantId?: number;
+                /** @description One or more rooms: games in any of them */
+                roomId?: number[];
+                /** @description One or more variants: games of any of them */
+                variantId?: number[];
                 /** @description Currency of the room, e.g. EUR */
                 currency?: string;
                 /** @description Text contained in the name or the notes, ignoring case */
@@ -1353,10 +1359,13 @@ export interface operations {
                 from?: string;
                 /** @description Played on or before this date */
                 to?: string;
-                gameType?: "TOURNAMENT" | "SIT_AND_GO" | "CASH";
+                /** @description One or more game types: games of any of them */
+                gameType?: ("TOURNAMENT" | "SIT_AND_GO" | "CASH")[];
                 modality?: "NLHE" | "PLO";
-                roomId?: number;
-                variantId?: number;
+                /** @description One or more rooms: games in any of them */
+                roomId?: number[];
+                /** @description One or more variants: games of any of them */
+                variantId?: number[];
                 /** @description Currency of the room, e.g. EUR */
                 currency?: string;
                 /** @description Text contained in the name or the notes, ignoring case */

@@ -32,7 +32,16 @@ function listQueries(calls: ApiCall[]) {
   return calls
     .filter((call) => call.method === 'GET' && call.path === '/games')
     .filter((call) => call.query.get('status') === 'FINISHED')
-    .map((call) => Object.fromEntries(call.query));
+    .map((call) => queryOf(call));
+}
+
+/** The parameters of a request; one sent several times (a list) has its values joined by commas. */
+function queryOf(call: ApiCall): Record<string, string> {
+  const query: Record<string, string> = {};
+  for (const key of new Set(call.query.keys())) {
+    query[key] = call.query.getAll(key).join(',');
+  }
+  return query;
 }
 
 function lastListQuery(calls: ApiCall[]) {
@@ -178,7 +187,7 @@ describe('Games table', () => {
       paging: { page: 1, totalPages: 3, totalItems: 60 },
     });
     renderApp(
-      '/games?from=2026-01-01&to=2026-01-31&type=TOURNAMENT&room=1&variant=10&q=fish&sort=net,asc&page=2',
+      '/games?from=2026-01-01&to=2026-01-31&type=TOURNAMENT,CASH&room=1,3&variant=10&q=fish&sort=net,asc&page=2',
     );
 
     await tableRows();
@@ -187,8 +196,8 @@ describe('Games table', () => {
       status: 'FINISHED',
       from: '2026-01-01',
       to: '2026-01-31',
-      gameType: 'TOURNAMENT',
-      roomId: '1',
+      gameType: 'TOURNAMENT,CASH',
+      roomId: '1,3',
       variantId: '10',
       q: 'fish',
       page: '1',
@@ -196,17 +205,28 @@ describe('Games table', () => {
       sort: 'net,asc',
     });
     expect(screen.getByRole('textbox', { name: 'Search' })).toHaveValue('fish');
-    expect(screen.getByRole('combobox', { name: 'Type' })).toHaveValue('Tournament');
-    expect(screen.getByRole('combobox', { name: 'Room' })).toHaveValue('Winamax');
+    // The values chosen in each multi-select, as its form value.
+    expect(document.querySelector('input[type="hidden"][value="TOURNAMENT,CASH"]')).not.toBeNull();
+    expect(document.querySelector('input[type="hidden"][value="1,3"]')).not.toBeNull();
+    expect(document.querySelector('input[type="hidden"][value="10"]')).not.toBeNull();
     expect(screen.getByRole('combobox', { name: 'Period' })).toHaveValue('Custom');
     expect(screen.getByLabelText('From')).toHaveValue('2026-01-01');
     expect(screen.getByText('60 games')).toBeInTheDocument();
   });
 
+  it('keeps the valid values of a list in the URL, each one once', async () => {
+    const calls = stubGames({ finished: [game({})] });
+    renderApp('/games?type=CASH,BINGO,CASH&room=2,x,2,1');
+
+    await tableRows();
+
+    expect(lastListQuery(calls)).toMatchObject({ gameType: 'CASH', roomId: '2,1' });
+  });
+
   it('ignores what makes no sense in the URL', async () => {
     const calls = stubGames({ finished: [game({})] });
     renderApp(
-      '/games?from=yesterday&to=2026-02-31&type=BINGO&room=abc&variant=99999999999999999999&sort=name,up&page=-3',
+      '/games?from=yesterday&to=2026-02-31&type=BINGO,&room=abc,0&variant=99999999999999999999&sort=name,up&page=-3',
     );
 
     await tableRows();
@@ -256,11 +276,33 @@ describe('Games table', () => {
       }),
     );
 
-    // The variant belongs to the type: changing the type drops it.
+    // Several values of a filter can be chosen: the games of any of them.
     await userEvent.click(screen.getByRole('combobox', { name: 'Type' }));
     await userEvent.click(await screen.findByRole('option', { name: 'Tournament', hidden: true }));
-    await waitFor(() => expect(lastListQuery(calls)).toMatchObject({ gameType: 'TOURNAMENT' }));
-    expect(lastListQuery(calls)).not.toHaveProperty('variantId');
+    await userEvent.click(screen.getByRole('combobox', { name: 'Room' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Winamax', hidden: true }));
+    await waitFor(() =>
+      expect(lastListQuery(calls)).toMatchObject({
+        gameType: 'SIT_AND_GO,TOURNAMENT',
+        roomId: '3,1',
+        variantId: '20',
+      }),
+    );
+    // With several types, variants say which type they are of.
+    await userEvent.click(screen.getByRole('combobox', { name: 'Variant' }));
+    await userEvent.click(
+      await screen.findByRole('option', { name: 'Tournament · KO', hidden: true }),
+    );
+    await waitFor(() => expect(lastListQuery(calls)).toMatchObject({ variantId: '20,10' }));
+
+    // A variant belongs to a type: taking its type out drops it, and keeps the others.
+    await userEvent.click(screen.getByRole('combobox', { name: 'Type' }));
+    await userEvent.click(
+      await screen.findByRole('option', { name: 'Sit & Go / Spin', hidden: true }),
+    );
+    await waitFor(() =>
+      expect(lastListQuery(calls)).toMatchObject({ gameType: 'TOURNAMENT', variantId: '10' }),
+    );
 
     await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
     await waitFor(() =>

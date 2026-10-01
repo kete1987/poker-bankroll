@@ -12,14 +12,18 @@ import io.github.kete1987.pokerbankroll.catalog.Modality;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.jpa.domain.Specification;
 
-/** Criteria to select games; every field is optional and they are combined with AND. */
+/**
+ * Criteria to select games; every field is optional and they are combined with AND. The ones that
+ * take several values (game types, rooms, variants) select the games matching any of them; an
+ * empty list is no filter.
+ */
 public record GameFilter(
         @Nullable LocalDate from,
         @Nullable LocalDate to,
-        @Nullable GameType gameType,
+        @Nullable List<GameType> gameTypes,
         @Nullable Modality modality,
-        @Nullable Long roomId,
-        @Nullable Long variantId,
+        @Nullable List<Long> roomIds,
+        @Nullable List<Long> variantIds,
         @Nullable GameStatus status,
         @Nullable String currencyCode,
         @Nullable String text) {
@@ -35,17 +39,17 @@ public record GameFilter(
             if (to != null) {
                 predicates.add(cb.lessThanOrEqualTo(game.get("playedOn"), to));
             }
-            if (gameType != null) {
-                predicates.add(cb.equal(game.get("gameType"), gameType));
+            if (isGiven(gameTypes)) {
+                predicates.add(game.get("gameType").in(gameTypes));
             }
             if (modality != null) {
                 predicates.add(cb.equal(game.get("modality"), modality));
             }
-            if (roomId != null) {
-                predicates.add(cb.equal(game.get("room").get("id"), roomId));
+            if (isGiven(roomIds)) {
+                predicates.add(game.get("room").get("id").in(roomIds));
             }
-            if (variantId != null) {
-                predicates.add(cb.equal(game.get("variant").get("id"), variantId));
+            if (isGiven(variantIds)) {
+                predicates.add(game.get("variant").get("id").in(variantIds));
             }
             if (status != null) {
                 predicates.add(cb.equal(game.get("status"), status));
@@ -61,6 +65,10 @@ public record GameFilter(
             }
             return cb.and(predicates.toArray(Predicate[]::new));
         };
+    }
+
+    private static boolean isGiven(@Nullable List<?> values) {
+        return values != null && !values.isEmpty();
     }
 
     /** The text is searched literally: % and _ typed by the user are not wildcards. */
