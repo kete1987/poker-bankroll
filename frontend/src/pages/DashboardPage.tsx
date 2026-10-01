@@ -77,7 +77,8 @@ export function DashboardPage() {
     </Group>
   );
 
-  if (stats.isError || bankrollNow.isError || byRoom.isError || byVariant.isError) {
+  const failed = [rooms, stats, bankrollNow, byRoom, byVariant].some((query) => query.isError);
+  if (failed) {
     return (
       <Page title={t('nav.dashboard')}>
         {filterBar}

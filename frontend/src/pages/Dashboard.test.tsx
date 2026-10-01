@@ -406,14 +406,17 @@ describe('Dashboard', () => {
     expect(screen.getByRole('link', { name: 'Go to games' })).toHaveAttribute('href', '/games');
   });
 
-  it('says so when the data cannot be loaded', async () => {
-    stubDashboard({ 'GET /stats/summary': () => problem(500, 'INTERNAL_ERROR', 'Boom') });
-    renderApp('/');
+  it.each(['/stats/summary', '/bankroll/summary', '/stats/groups', '/rooms'])(
+    'says so when %s cannot be loaded',
+    async (path) => {
+      stubDashboard({ [`GET ${path}`]: () => problem(500, 'INTERNAL_ERROR', 'Boom') });
+      renderApp('/');
 
-    expect(
-      await screen.findByText(
-        'The data could not be loaded. Check that the API is available and reload the page.',
-      ),
-    ).toBeInTheDocument();
-  });
+      expect(
+        await screen.findByText(
+          'The data could not be loaded. Check that the API is available and reload the page.',
+        ),
+      ).toBeInTheDocument();
+    },
+  );
 });
