@@ -22,9 +22,6 @@
     "up": "Online",
     "down": "Unavailable"
   },
-  "page": {
-    "comingSoon": "This section is not available yet."
-  },
   "gameTypes": {
     "TOURNAMENT": "Tournament",
     "SIT_AND_GO": "Sit & Go / Spin",
@@ -233,6 +230,47 @@
         "done": "Variant deleted"
       }
     }
+  },
+  "import": {
+    "intro": "Load games recorded somewhere else from a CSV file in the format of the application. Only games are imported, all of them as finished.",
+    "format": "See the format",
+    "example": "Download an example",
+    "choose": "Choose CSV file",
+    "chooseAnother": "Choose another file",
+    "checking": "Checking the file…",
+    "unreadable": "The file cannot be imported",
+    "games": "Games to import",
+    "rows_one": "{{formatted}} row in the file",
+    "rows_other": "{{formatted}} rows in the file",
+    "dates": "From {{from}} to {{to}}",
+    "net": "Net in {{currency}}",
+    "netGames_one": "{{formatted}} game",
+    "netGames_other": "{{formatted}} games",
+    "newRooms": "Rooms that will be created",
+    "newVariants": "Variants that will be created",
+    "duplicates": "Games are not compared with the ones already recorded: importing the same file twice records its games twice.",
+    "errors": {
+      "title_one": "{{formatted}} error: nothing is imported until the file is right",
+      "title_other": "{{formatted}} errors: nothing is imported until the file is right",
+      "help": "Fix the file and choose it again. Rows are numbered as in a spreadsheet: the header is row 1.",
+      "row": "Row",
+      "column": "Column",
+      "error": "Error",
+      "more_one": "And {{formatted}} more error.",
+      "more_other": "And {{formatted}} more errors."
+    },
+    "submit_one": "Import {{formatted}} game",
+    "submit_other": "Import {{formatted}} games",
+    "confirm": {
+      "title": "Import games",
+      "text_one": "{{formatted}} game of {{file}} will be recorded.",
+      "text_other": "{{formatted}} games of {{file}} will be recorded.",
+      "label": "Import"
+    },
+    "done_one": "{{formatted}} game imported.",
+    "done_other": "{{formatted}} games imported.",
+    "doneTitle": "Import finished",
+    "viewGames": "See the games"
   },
   "stats": {
     "groupBy": "Group by",

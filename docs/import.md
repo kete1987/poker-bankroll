@@ -2,7 +2,8 @@
 
 Games recorded somewhere else (a spreadsheet, another tool) can be loaded from a **CSV file** in the
 format described here. The application does not know any other format: convert your data to this
-one first. [`import-example.csv`](import-example.csv) is a file to start from.
+one first. [`import-example.csv`](../frontend/public/import-example.csv) is a file to start from; the *Import*
+section of the application offers it for download.
 
 Only games are imported. Bankroll movements (deposits, withdrawals, bonuses) are entered by hand.
 

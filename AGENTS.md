@@ -225,7 +225,8 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   described by hand in `@Operation(requestBody = ...)`.
 - `POST /imports/games` (`gameimport` package) imports games from a CSV file sent as the body
   (`text/csv`), in the one format of the application, described for users in `docs/import.md`: keep
-  that document and `docs/import-example.csv` (imported by a test) in step with `GameCsv`. A file
+  that document and `frontend/public/import-example.csv` (the example the web app offers, imported
+  by a backend test) in step with `GameCsv`. A file
   that cannot be read as a whole is an error (`IMPORT_*` codes); errors of rows come in the `200`
   response (`errors`, with `imported: false`), each with its row, column, `code` and message.
   It is all or nothing, and `dryRun=true` only checks. Rows are recorded through `GameService`,
@@ -310,9 +311,9 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   language as `Accept-Language` and turns error responses into `ApiError` (`status`, `code`,
   `message`, `errors`). Wrap calls in TanStack Query hooks next to it (see `src/api/health.ts`).
 - UI components come from Mantine; icons from `@tabler/icons-react`; charts through `src/components/Chart.tsx`.
-- Sections of the app are listed once in `src/layout/navigation.ts` (menu and routes); a section
-  starts as `ComingSoonPage` and gets its own page in `src/pages/`. Wrap every page in
-  `components/Page` (heading and browser tab title).
+- Sections of the app are listed once in `src/layout/navigation.ts` (menu and routes), each with
+  its page in `src/pages/` (`routes.tsx`). Wrap every page in `components/Page` (heading and
+  browser tab title).
 - Format every date, number, percentage and amount with `useFormat()` (`src/format/`), never by
   hand: it follows the UI language. Rates come from the API as fractions; `null` is shown as `—`.
 - Routes are declared in `src/routes.tsx`; tests render the real app with `renderApp(url)` from
@@ -352,6 +353,10 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   application, so the ones checked are the ones connected to; the whole download has a deadline
   (`poker-bankroll.logo-fetch.timeout`, 20 s). `poker-bankroll.logo-fetch.allow-private-addresses=true`
   lifts the address check (the tests need it to reach their own web server).
+- The Import section (`pages/ImportPage.tsx`, `api/imports.ts`) sends the chosen CSV file as it
+  is: first with `dryRun=true`, to show what it holds and its errors, and the import is only
+  offered when there are none. After importing, the page is left without file. It does not read
+  or validate the file itself: the format lives in the backend and in `docs/import.md`.
 - A logo is resized in the browser before it is uploaded (`settings/resizeImage.ts`, 128 px at
   most, PNG), so the backend only stores small images. Tests replace that module: canvas does not
   exist in jsdom.
