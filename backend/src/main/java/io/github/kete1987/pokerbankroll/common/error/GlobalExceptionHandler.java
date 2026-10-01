@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
@@ -42,6 +43,18 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     ResponseEntity<Object> handleApiException(ApiException ex, WebRequest request) {
         ErrorCode code = ex.getCode();
         ProblemDetail problem = problem(code, code.status(), ex.getArgs());
+        return handleExceptionInternal(ex, problem, new HttpHeaders(), code.status(), request);
+    }
+
+    /**
+     * Safety net for database constraints not checked beforehand (e.g. two requests racing):
+     * a conflict, not a server error. Services check the expected cases and throw specific codes.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    ResponseEntity<Object> handleDataIntegrityViolation(DataIntegrityViolationException ex, WebRequest request) {
+        log.warn("Database constraint violated: {}", ex.getMostSpecificCause().getMessage());
+        ErrorCode code = ErrorCode.CONFLICT;
+        ProblemDetail problem = problem(code, code.status());
         return handleExceptionInternal(ex, problem, new HttpHeaders(), code.status(), request);
     }
 

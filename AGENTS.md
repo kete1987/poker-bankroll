@@ -156,7 +156,17 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 
 ### Backend code
 - Base package `io.github.kete1987.pokerbankroll`, organised **by feature**
-  (`game`, `room`, `bankroll`, `stats`...), with cross-cutting code in `common`.
+  (`catalog`, `room`, `variant`, `game`, `bankroll`, `stats`...), with cross-cutting code in `common`.
+- A feature has a JPA entity, a Spring Data repository, a `@Service` with the rules (transactional,
+  returns response records) and a thin package-private `@RestController`. Requests and responses are
+  Java records (`XxxRequest`, `XxxResponse`); entities never leave the service.
+- `GameType` and `Modality` are Java enums mirroring their lookup tables (a test keeps them in sync);
+  adding a value needs a migration and the enum constant.
+- Expected business conflicts are checked in the service and thrown as `ApiException` with a specific
+  `ErrorCode` (e.g. `ROOM_IN_USE`); add the code to the enum and its message to both
+  `messages*.properties`. Database constraint violations that slip through become a generic `409 CONFLICT`.
+- "Is this row used by games?" is answered with native queries on `game` (`RoomRepository.isInUse`),
+  exposed to clients as `inUse` so they can offer deactivate instead of delete.
 - Configuration comes from `application.yaml`; override it with standard Spring environment
   variables (`SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`...).
 - Hibernate never changes the schema (`ddl-auto: validate`); Flyway owns it.
@@ -164,8 +174,9 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   parameters. Rules spanning several fields go in a **class-level constraint on the DTO**.
   Do not use cross-parameter constraints on controller methods: Spring MVC 7.0 does not enforce
   them on their own (pinned by `GlobalExceptionHandlerTests#crossParameterOnlyViolationIsNotEnforcedBySpring`).
-- Integration tests use `@Import(TestcontainersConfiguration.class)`; the PostgreSQL image there
-  must match the one in `deploy/docker-compose.yml`.
+- API tests extend `ApiIntegrationTest` (whole application on PostgreSQL through `MockMvcTester`,
+  paths relative to `/api`, test rows deleted after each test): one `XxxApiTests` per feature.
+  The PostgreSQL image in `TestcontainersConfiguration` must match the one in `deploy/docker-compose.yml`.
 
 ### Database
 - Schema changes only through Flyway migrations in `backend/src/main/resources/db/migration/`.
