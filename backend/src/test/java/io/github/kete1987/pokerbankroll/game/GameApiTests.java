@@ -305,6 +305,11 @@ class GameApiTests extends ApiIntegrationTest {
         assertThat(mvc.get().uri("/games")
                 .param("gameType", "TOURNAMENT,SIT_AND_GO").param("roomId", unibet + "," + pokerStars)).hasStatusOk()
                 .bodyJson().extractingPath("$.items[*].name").asArray().containsExactly("expresso unibet");
+        // A blank value is no filter.
+        assertThat(mvc.get().uri("/games").param("roomId", "").param("gameType", "").param("variantId", ""))
+                .hasStatusOk().bodyJson().extractingPath("$.totalItems").isEqualTo(3);
+        assertThat(mvc.get().uri("/stats/summary").param("roomId", "").param("currency", "USD"))
+                .hasStatusOk().bodyJson().extractingPath("$.currencies[0].inPlay.games").isEqualTo(1);
         assertThat(mvc.get().uri("/games").param("gameType", "TOURNAMENT,BINGO")).hasStatus(HttpStatus.BAD_REQUEST);
         assertThat(mvc.get().uri("/games").param("roomId", "1,abc")).hasStatus(HttpStatus.BAD_REQUEST);
     }

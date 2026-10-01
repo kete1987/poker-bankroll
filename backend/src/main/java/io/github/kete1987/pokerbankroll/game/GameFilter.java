@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 import jakarta.persistence.criteria.Predicate;
 
@@ -29,6 +30,17 @@ public record GameFilter(
         @Nullable String text) {
 
     private static final char ESCAPE = '\\';
+
+    /** A blank parameter ({@code roomId=}) arrives as a list holding a null: it is no value. */
+    public GameFilter {
+        gameTypes = withoutNulls(gameTypes);
+        roomIds = withoutNulls(roomIds);
+        variantIds = withoutNulls(variantIds);
+    }
+
+    private static <T> @Nullable List<T> withoutNulls(@Nullable List<T> values) {
+        return values == null ? null : values.stream().filter(Objects::nonNull).toList();
+    }
 
     public Specification<Game> toSpecification() {
         return (game, query, cb) -> {
