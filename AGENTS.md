@@ -143,6 +143,11 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - **Average buy-in**: mean of `buy_in` over the games, not a mean of per-type means.
 - Statistics (`stats` package) share one set of figures (`StatsFigures`) built from sums by
   `GameTotals`; rates and ROI are fractions with 4 decimals (`0.3496`), formatted by the frontend.
+  `/stats/summary` gives them overall and per game type, `/stats/groups?groupBy=` per period (`DAY`,
+  `WEEK` from Monday, `MONTH`, `YEAR`), `GAME_TYPE`, `VARIANT`, `ROOM`, `MODALITY` or `BUY_IN`; both
+  take the filters of the games list. Periods carry the **cumulative net**, which starts from zero
+  at the beginning of the filtered range. A new grouping is a `GroupBy` constant plus its `Grouping`
+  in `StatsService`.
 - **Bankroll movement**: `DEPOSIT`, `WITHDRAWAL`, `BONUS`, `ADJUSTMENT` (reconciles with the
   real balance shown by the room).
 - **Room balance** = sum of its movements + sum of the net of its games.
@@ -171,6 +176,9 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - Lists that can grow are paginated with `page` (zero-based) and `size`, and return a
   `PageResponse` (`items`, `page`, `size`, `totalItems`, `totalPages`). Sorting uses
   `sort=<field>,<asc|desc>` with a whitelist of fields and always a total order (see `game/GameSort`).
+  Aggregates are the exception: `/stats/groups` returns every group, because a chart needs the whole
+  series and the cumulative net of a page would be meaningless. Its size is bounded by the grouping
+  (at most one small row per day played), and `from`/`to` narrow it.
 - Optional fields omitted in a request take their documented default; `PUT` replaces the whole resource.
 - State changes that are a single user gesture are their own `POST` sub-resource instead of a
   full `PUT` (e.g. `/games/{id}/finish`, `/games/{id}/re-entries`, `/games/{id}/rebuys`); they return

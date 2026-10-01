@@ -45,4 +45,28 @@ class StatsController {
             @RequestParam(required = false) @Nullable String q) {
         return service.summary(new GameFilter(from, to, gameType, modality, roomId, variantId, null, currency, q));
     }
+
+    @GetMapping("/groups")
+    @Operation(summary = "Results of the finished games per group, for each currency",
+            description = "Groups by period (day, week, month, year), game type, variant, room, modality or "
+                    + "buy-in, with the same figures as the summary. Takes the filters of the games list, so "
+                    + "e.g. `groupBy=MONTH&gameType=TOURNAMENT` gives the tournaments per month. "
+                    + "Periods without games are not returned.")
+    StatsGroupsResponse groups(
+            @RequestParam GroupBy groupBy,
+            @Parameter(description = "Played on or after this date")
+            @RequestParam(required = false) @Nullable LocalDate from,
+            @Parameter(description = "Played on or before this date")
+            @RequestParam(required = false) @Nullable LocalDate to,
+            @RequestParam(required = false) @Nullable GameType gameType,
+            @RequestParam(required = false) @Nullable Modality modality,
+            @RequestParam(required = false) @Nullable Long roomId,
+            @RequestParam(required = false) @Nullable Long variantId,
+            @Parameter(description = "Currency of the room, e.g. EUR")
+            @RequestParam(required = false) @Nullable String currency,
+            @Parameter(description = "Text contained in the name or the notes, ignoring case")
+            @RequestParam(required = false) @Nullable String q) {
+        GameFilter filter = new GameFilter(from, to, gameType, modality, roomId, variantId, null, currency, q);
+        return service.groups(filter, groupBy);
+    }
 }
