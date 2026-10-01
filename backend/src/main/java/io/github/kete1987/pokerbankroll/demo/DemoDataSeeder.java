@@ -34,8 +34,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Profile {@code demo}: fills an empty database with a year of made-up results, to look at the
- * application without recording anything. It does nothing when there is already a room, a game or
- * a bankroll movement. Everything goes through the services, so it follows the rules of the API.
+ * application without recording anything. It does nothing when there is already a room, a game, a
+ * bankroll movement or a user-defined variant. Everything goes through the services, so it follows the rules of the API.
  * The same day always gives the same data.
  */
 @Component
@@ -76,6 +76,7 @@ public class DemoDataSeeder implements ApplicationRunner {
         long rows = jdbc.sql("""
                 select (select count(*) from room) + (select count(*) from game)
                      + (select count(*) from bankroll_movement)
+                     + (select count(*) from variant where name is not null)
                 """).query(Long.class).single();
         if (rows > 0) {
             log.info("Demo data not loaded: the database already has data");

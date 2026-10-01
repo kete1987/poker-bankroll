@@ -247,7 +247,8 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - The Spring profile `demo` (`demo/DemoDataSeeder`) fills an **empty** database on startup with a
   year of made-up results ending today: four rooms (EUR and USD, one inactive), a user-defined
   variant, about 400 games of every type, three games in play and bankroll movements. It does
-  nothing when the database already has a room, a game or a movement, and is never active by default.
+  nothing when the database already has a room, a game, a movement or a user-defined variant, and
+  is never active by default.
 - It creates everything through the services, so it also exercises the rules of the API. When a
   feature adds data worth seeing in the UI, add it to the seeder.
 - To look at the frontend with data: run the API with the command above and `npm run dev` in
