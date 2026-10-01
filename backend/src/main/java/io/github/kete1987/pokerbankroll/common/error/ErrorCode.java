@@ -34,6 +34,12 @@ public enum ErrorCode {
     LOGO_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE),
     /** The content is not a PNG, JPEG or WebP image, whatever the declared content type. */
     LOGO_UNSUPPORTED_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE),
+    /** Not an http or https URL. */
+    LOGO_URL_INVALID(HttpStatus.BAD_REQUEST),
+    /** The URL points to this machine or to a private network, which is never fetched. */
+    LOGO_URL_NOT_PUBLIC(HttpStatus.BAD_REQUEST),
+    /** The image could not be downloaded: unknown host, timeout, an error of the other server. */
+    LOGO_URL_UNREACHABLE(HttpStatus.BAD_GATEWAY),
 
     // Variants
     VARIANT_NAME_TAKEN(HttpStatus.CONFLICT),

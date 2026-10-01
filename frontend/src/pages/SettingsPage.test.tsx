@@ -335,6 +335,88 @@ describe('Settings: rooms', () => {
     expect(logo.getByRole('button', { name: 'Remove logo' })).toBeInTheDocument();
   });
 
+  it('loads a logo from a URL through the backend', async () => {
+    const downloaded = new Blob(['a large image'], { type: 'image/jpeg' });
+    const calls = stubSettings({
+      'POST /rooms/logo-fetch': () =>
+        new Response(downloaded, { headers: { 'Content-Type': 'image/jpeg' } }),
+      'PUT /rooms/1/logo': room({ id: 1, name: 'Winamax', logoVersion: 'v2' }),
+    });
+    renderApp('/settings');
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit Winamax' }));
+    const dialog = within(await screen.findByRole('dialog', { name: 'Edit room' }));
+    const logo = within(dialog.getByRole('region', { name: 'Logo' }));
+    expect(logo.getByRole('button', { name: 'Load' })).toBeDisabled();
+
+    await userEvent.type(
+      logo.getByRole('textbox', { name: 'Or load it from a URL' }),
+      ' https://example.com/logo.jpg{Enter}',
+    );
+
+    await waitFor(() => expect(sent(calls, 'PUT')).toHaveLength(1));
+    expect(sent(calls, 'POST')[0]).toMatchObject({
+      path: '/rooms/logo-fetch',
+      body: { url: 'https://example.com/logo.jpg' },
+    });
+    // What was downloaded is resized like a file, and Enter did not save the room.
+    expect(vi.mocked(resizeImage).mock.calls[0]?.[0]).toBeInstanceOf(Blob);
+    expect(sent(calls, 'PUT')[0]?.path).toBe('/rooms/1/logo');
+    expect(await logo.findByRole('img', { name: 'Logo of Winamax' })).toBeInTheDocument();
+    expect(logo.getByRole('textbox', { name: 'Or load it from a URL' })).toHaveValue('');
+    expect(screen.getByRole('dialog', { name: 'Edit room' })).toBeInTheDocument();
+  });
+
+  it('says why an image could not be loaded from a URL', async () => {
+    stubSettings({
+      'POST /rooms/logo-fetch': () =>
+        problem(400, 'LOGO_URL_NOT_PUBLIC', 'Only images on the public internet can be loaded.'),
+    });
+    renderApp('/settings');
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit Winamax' }));
+    const dialog = within(await screen.findByRole('dialog', { name: 'Edit room' }));
+    const logo = within(dialog.getByRole('region', { name: 'Logo' }));
+
+    await userEvent.type(
+      logo.getByRole('textbox', { name: 'Or load it from a URL' }),
+      'http://192.168.1.1/logo.png',
+    );
+    await userEvent.click(logo.getByRole('button', { name: 'Load' }));
+
+    expect(
+      await logo.findByText('Only images on the public internet can be loaded.'),
+    ).toBeInTheDocument();
+    expect(resizeImage).not.toHaveBeenCalled();
+  });
+
+  it('gives a new room a logo loaded from a URL, stored when the room is saved', async () => {
+    const created = room({ id: 9, name: '888poker', inUse: false, logoVersion: null });
+    const calls = stubSettings({
+      'POST /rooms/logo-fetch': () =>
+        new Response(new Blob(['image']), { headers: { 'Content-Type': 'image/png' } }),
+      'POST /rooms': created,
+      'PUT /rooms/9/logo': { ...created, logoVersion: 'v1' },
+    });
+    renderApp('/settings');
+    await userEvent.click(await screen.findByRole('button', { name: 'Add room' }));
+    const dialog = within(await screen.findByRole('dialog', { name: 'Add room' }));
+    const logo = within(dialog.getByRole('region', { name: 'Logo' }));
+    await userEvent.type(dialog.getByRole('textbox', { name: 'Name' }), '888poker');
+
+    await userEvent.type(
+      logo.getByRole('textbox', { name: 'Or load it from a URL' }),
+      'https://example.com/logo.png',
+    );
+    await userEvent.click(logo.getByRole('button', { name: 'Load' }));
+
+    await logo.findByRole('img', { name: 'Logo of 888poker' });
+    // Downloaded and previewed; the room does not exist yet.
+    expect(sent(calls, 'POST').map((call) => call.path)).toEqual(['/rooms/logo-fetch']);
+
+    await userEvent.click(dialog.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(sent(calls, 'PUT')).toHaveLength(1));
+    expect(sent(calls, 'PUT')[0]?.path).toBe('/rooms/9/logo');
+  });
+
   it('removes a logo', async () => {
     const calls = stubSettings({
       'DELETE /rooms/3/logo': () => new Response(null, { status: 204 }),

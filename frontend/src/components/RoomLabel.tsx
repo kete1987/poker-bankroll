@@ -27,6 +27,8 @@ export function RoomLabel({ room }: RoomLabelProps) {
         // The name is right next to it: the image adds nothing for a screen reader.
         alt=""
         imageProps={{ loading: 'lazy' }}
+        // A logo is shown whole, not cropped to the square: many are wider than tall.
+        styles={{ image: { objectFit: 'contain' } }}
       >
         {room.name.trim().charAt(0).toUpperCase()}
       </Avatar>

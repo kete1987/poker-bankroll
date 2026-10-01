@@ -206,10 +206,12 @@
       "change": "Change logo",
       "remove": "Remove logo",
       "current": "Logo of {{room}}",
-      "help": "Any image: it is reduced to 128 px before it is stored.",
+      "help": "Any image, from a file or a URL: it is reduced to 128 px before it is stored.",
       "unreadable": "The file could not be read as an image.",
-      "helpNew": "Optional. Any image: it is reduced to 128 px and stored when you save the room.",
-      "notStored": "The logo was not stored"
+      "helpNew": "Optional. Any image, from a file or a URL: it is reduced to 128 px and stored when you save the room.",
+      "notStored": "The logo was not stored",
+      "url": "Or load it from a URL",
+      "load": "Load"
     },
     "variants": {
       "add": "Add variant",
