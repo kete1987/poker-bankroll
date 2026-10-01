@@ -26,9 +26,9 @@ public enum ErrorCode {
 
     // Rooms
     ROOM_NAME_TAKEN(HttpStatus.CONFLICT),
-    /** The room has games: it cannot be deleted, only deactivated. */
+    /** The room has games or bankroll movements: it cannot be deleted, only deactivated. */
     ROOM_IN_USE(HttpStatus.CONFLICT),
-    /** The room has games: its currency cannot change. */
+    /** The room has games or bankroll movements: its currency cannot change. */
     ROOM_CURRENCY_LOCKED(HttpStatus.CONFLICT),
 
     // Variants

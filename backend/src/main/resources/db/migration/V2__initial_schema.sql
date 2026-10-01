@@ -141,15 +141,41 @@ CREATE INDEX game_in_play_idx ON game (played_on) WHERE status = 'IN_PLAY';
 CREATE INDEX game_room_played_on_idx ON game (room_id, played_on);
 CREATE INDEX game_type_played_on_idx ON game (game_type_code, played_on);
 
+-- Money put into or taken out of the poker bankroll, apart from the games. It belongs to a room
+-- (and is in its currency) or, without a room, to the bankroll of a currency as a whole.
+CREATE TABLE bankroll_movement (
+    id            BIGINT        GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    occurred_on   DATE          NOT NULL,
+    type          VARCHAR(20)   NOT NULL
+                  CHECK (type IN ('DEPOSIT', 'WITHDRAWAL', 'BONUS', 'ADJUSTMENT')),
+    room_id       BIGINT        REFERENCES room (id),
+    currency_code VARCHAR(3)    REFERENCES currency (code),
+    -- Positive: the type gives the direction. Only an adjustment can be negative.
+    amount        NUMERIC(12,2) NOT NULL,
+    notes         TEXT,
+    -- Effect on the bankroll.
+    signed_amount NUMERIC(12,2) GENERATED ALWAYS AS (
+                      CASE WHEN type = 'WITHDRAWAL' THEN -amount ELSE amount END
+                  ) STORED,
+    created_at    TIMESTAMPTZ   NOT NULL DEFAULT now(),
+    updated_at    TIMESTAMPTZ   NOT NULL DEFAULT now(),
+    CONSTRAINT bankroll_movement_room_xor_currency CHECK (num_nonnulls(room_id, currency_code) = 1),
+    CONSTRAINT bankroll_movement_amount_sign CHECK (amount <> 0 AND (amount > 0 OR type = 'ADJUSTMENT'))
+);
+
+CREATE INDEX bankroll_movement_occurred_on_idx ON bankroll_movement (occurred_on);
+CREATE INDEX bankroll_movement_room_idx ON bankroll_movement (room_id);
+
 -- Amounts are stored without their currency: they are in the currency of the room. Changing that
 -- currency would silently relabel every recorded amount, so it is only allowed while the room has
--- no games (to fix a mistake right after creating it).
+-- no games or bankroll movements (to fix a mistake right after creating it).
 CREATE FUNCTION reject_room_currency_change() RETURNS trigger
     LANGUAGE plpgsql AS
 $$
 BEGIN
-    IF EXISTS (SELECT 1 FROM game WHERE room_id = OLD.id) THEN
-        RAISE EXCEPTION 'The currency of room % cannot change because it has games', OLD.id
+    IF EXISTS (SELECT 1 FROM game WHERE room_id = OLD.id)
+        OR EXISTS (SELECT 1 FROM bankroll_movement WHERE room_id = OLD.id) THEN
+        RAISE EXCEPTION 'The currency of room % cannot change because it has games or bankroll movements', OLD.id
             USING ERRCODE = 'check_violation', CONSTRAINT = 'room_currency_immutable';
     END IF;
     RETURN NEW;
