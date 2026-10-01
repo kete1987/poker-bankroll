@@ -31,6 +31,7 @@ class InitialSchemaTests {
     @AfterEach
     void deleteTestData() {
         jdbc.update("delete from game");
+        jdbc.update("delete from bankroll_movement");
         jdbc.update("delete from room");
         jdbc.update("delete from variant where name is not null");
     }
@@ -338,7 +339,77 @@ class InitialSchemaTests {
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
+    // ---- bankroll movement ----
+
+    @Test
+    void signedAmountIsNegativeForAWithdrawal() {
+        long room = insertRoom("Winamax", "EUR");
+
+        assertThat(signedAmount(insertMovement("DEPOSIT", room, null, "100"))).isEqualByComparingTo("100");
+        assertThat(signedAmount(insertMovement("WITHDRAWAL", room, null, "30"))).isEqualByComparingTo("-30");
+        assertThat(signedAmount(insertMovement("BONUS", room, null, "2.50"))).isEqualByComparingTo("2.50");
+        assertThat(signedAmount(insertMovement("ADJUSTMENT", room, null, "-4"))).isEqualByComparingTo("-4");
+    }
+
+    @Test
+    void aMovementHasEitherARoomOrACurrency() {
+        long room = insertRoom("Winamax", "EUR");
+
+        insertMovement("DEPOSIT", null, "EUR", "100");
+        assertThatThrownBy(() -> insertMovement("DEPOSIT", null, null, "100"))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> insertMovement("DEPOSIT", room, "EUR", "100"))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> insertMovement("DEPOSIT", null, "XXX", "100"))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void movementAmountsArePositiveExceptAdjustments() {
+        long room = insertRoom("Winamax", "EUR");
+
+        for (String type : List.of("DEPOSIT", "WITHDRAWAL", "BONUS")) {
+            assertThatThrownBy(() -> insertMovement(type, room, null, "-1"))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+        }
+        assertThatThrownBy(() -> insertMovement("ADJUSTMENT", room, null, "0"))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> insertMovement("TRANSFER", room, null, "1"))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void roomCurrencyCannotChangeOnceItHasMovements() {
+        long room = insertRoom("Winamax", "EUR");
+        insertMovement("DEPOSIT", room, null, "100");
+
+        assertThatThrownBy(() -> jdbc.update("update room set currency_code = 'USD' where id = ?", room))
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("cannot change because it has games or bankroll movements");
+    }
+
+    @Test
+    void aRoomWithMovementsCannotBeDeleted() {
+        long room = insertRoom("Winamax", "EUR");
+        insertMovement("DEPOSIT", room, null, "100");
+
+        assertThatThrownBy(() -> jdbc.update("delete from room where id = ?", room))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
     // ---- helpers ----
+
+    private long insertMovement(String type, Long room, String currency, String amount) {
+        return jdbc.queryForObject("""
+                insert into bankroll_movement (occurred_on, type, room_id, currency_code, amount)
+                values ('2026-01-19', ?, ?, ?, ?::numeric) returning id
+                """, Long.class, type, room, currency, amount);
+    }
+
+    private BigDecimal signedAmount(long movement) {
+        return jdbc.queryForObject(
+                "select signed_amount from bankroll_movement where id = ?", BigDecimal.class, movement);
+    }
 
     private BigDecimal net(long game) {
         return jdbc.queryForObject("select net from game where id = ?", BigDecimal.class, game);

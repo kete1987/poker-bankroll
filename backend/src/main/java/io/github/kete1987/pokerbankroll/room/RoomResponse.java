@@ -9,7 +9,7 @@ public record RoomResponse(
         String name,
         String currencyCode,
         boolean active,
-        @Schema(description = "The room has games: it cannot be deleted and its currency cannot change")
+        @Schema(description = "The room has games or bankroll movements: it cannot be deleted and its currency cannot change")
         boolean inUse,
         Instant createdAt,
         Instant updatedAt) {

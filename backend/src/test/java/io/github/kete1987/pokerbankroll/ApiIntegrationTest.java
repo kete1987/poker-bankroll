@@ -29,6 +29,7 @@ public abstract class ApiIntegrationTest {
     @AfterEach
     void restoreDatabase() {
         jdbc.update("delete from game");
+        jdbc.update("delete from bankroll_movement");
         jdbc.update("delete from room");
         jdbc.update("delete from variant where code is null");
         jdbc.update("update variant set active = true");
