@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { Game, GamePage } from '../api/types';
 import { rangeOf } from '../games/period';
-import { game, page, ROOMS, VARIANTS } from '../test/fixtures';
+import { game, page, room, ROOMS, VARIANTS } from '../test/fixtures';
 import { problem, renderApp, stubApi, type ApiCall } from '../test/renderApp';
 
 const KO = { id: 10, code: 'KO', name: null };
@@ -133,6 +133,33 @@ describe('Games table', () => {
     expect(cash).toHaveTextContent('Cash');
     expect(cash).toHaveTextContent('€1.40');
     expect(cash).toHaveTextContent('-€0.60');
+  });
+
+  it('shows the logo of the rooms that have one, and their initial otherwise', async () => {
+    stubApi({
+      'GET /rooms': [
+        room({ id: 1, name: 'Winamax', logoVersion: 'k3x 9' }),
+        room({ id: 2, name: 'PokerStars', currencyCode: 'USD', logoVersion: null }),
+      ],
+      'GET /variants': VARIANTS,
+      'GET /games': (call: ApiCall) =>
+        call.query.get('status') === 'IN_PLAY'
+          ? page([])
+          : page([
+              game({ id: 1, room: { id: 1, name: 'Winamax' } }),
+              game({ id: 2, room: { id: 2, name: 'PokerStars' }, currencyCode: 'USD' }),
+            ]),
+    });
+    renderApp('/games');
+
+    const [withLogo, withoutLogo] = await tableRows();
+
+    // The version is part of the address, so the image can be cached for good.
+    await waitFor(() =>
+      expect(withLogo!.querySelector('img')).toHaveAttribute('src', '/api/rooms/1/logo?v=k3x%209'),
+    );
+    expect(withoutLogo!.querySelector('img')).toBeNull();
+    expect(withoutLogo).toHaveTextContent('PPokerStars');
   });
 
   it('says so when there are no games, or none for the filters', async () => {

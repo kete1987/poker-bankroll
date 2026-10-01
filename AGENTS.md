@@ -307,8 +307,8 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   `actions.close`, so it is not confused with a "Cancel" button.
 - Filters, order and page of a list live in the URL (`games/useGameFilters.ts`): they survive a
   reload and the back button. Invalid values in the URL are ignored.
-- A room is always rendered with `components/RoomLabel` (logo placeholder + name), the single
-  place where the logo of F-10 will appear.
+- A room is always rendered with `components/RoomLabel`: its logo (or its initial when it has
+  none) and its name. It takes the `logoVersion` from the shared list of rooms (`useRooms`).
 - A mutation invalidates every query its data affects (a game changes `games`, `stats` and
   `bankroll`): see `api/games.ts`.
 - The light/dark and language choices are stored in `localStorage` under `poker-bankroll.*` keys.

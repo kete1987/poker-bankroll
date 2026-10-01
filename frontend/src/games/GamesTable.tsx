@@ -88,7 +88,7 @@ export function GamesTable({
                 <GameName game={game} />
               </Table.Td>
               <Table.Td>
-                <RoomLabel name={game.room.name} />
+                <RoomLabel room={game.room} />
               </Table.Td>
               <Table.Td ta="right">
                 <GameBuyIn game={game} />
