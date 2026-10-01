@@ -227,14 +227,14 @@ export function StatsPage() {
             <Title order={3} size="h4" mt="md">
               {t(`stats.table.title.${drawn}`)}
             </Title>
-            {/* The key takes the table back to its first page when what it lists changes. */}
             <PeriodTable
-              key={`${drawn}/${currencyCode}/${groups.length}`}
               rows={rows}
               total={total}
               totalNetByGameType={netByGameType(totalByGameType)}
               currencyCode={currencyCode}
               periodLabel={t(`stats.granularity.${drawn}`)}
+              page={filters.page}
+              onPageChange={(page) => update({ page })}
             />
           </>
         )}

@@ -21,6 +21,8 @@ export interface StatsFilters extends GameScope {
   /** Chosen by the user; otherwise it follows the length of the period. */
   granularity?: Granularity;
   chart: ChartMode;
+  /** Page of the table of periods, zero-based. */
+  page: number;
 }
 
 const GAME_TYPES: readonly GameType[] = ['TOURNAMENT', 'SIT_AND_GO', 'CASH'];
@@ -50,6 +52,8 @@ function parse(params: URLSearchParams): StatsFilters {
     currency: params.get('currency')?.trim().toUpperCase() || undefined,
     granularity: parseOneOf(params.get('group')?.toUpperCase() ?? null, GRANULARITIES),
     chart: params.get('chart') === 'period' ? 'period' : 'cumulative',
+    // The page is one-based in the URL, as people count.
+    page: (parsePositiveInteger(params.get('page')) ?? 1) - 1,
   };
 }
 
@@ -87,6 +91,9 @@ function serialize(filters: StatsFilters): URLSearchParams {
   if (filters.chart === 'period') {
     params.set('chart', 'period');
   }
+  if (filters.page > 0) {
+    params.set('page', String(filters.page + 1));
+  }
   return params;
 }
 
@@ -97,7 +104,16 @@ export function useStatsFilters() {
 
   const update = useCallback(
     (changes: Partial<StatsFilters>) => {
-      setParams((current) => serialize({ ...parse(current), ...changes }), { replace: true });
+      // The kind of chart does not change what the table lists; anything else takes it back to
+      // its first page.
+      const keepsPage = Object.keys(changes).every((key) => key === 'chart' || key === 'page');
+      setParams(
+        (current) => {
+          const now = parse(current);
+          return serialize({ ...now, page: keepsPage ? now.page : 0, ...changes });
+        },
+        { replace: true },
+      );
     },
     [setParams],
   );

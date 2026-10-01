@@ -323,6 +323,47 @@ describe('Statistics page', () => {
     expect(table.getAllByRole('rowheader').at(-1)).toHaveTextContent('Total');
   });
 
+  it('takes the page of the table from the URL and goes back to the first when a filter changes', async () => {
+    const days = Array.from({ length: 40 }, (_, index) =>
+      new Date(Date.UTC(2026, 0, index + 1)).toISOString().slice(0, 10),
+    );
+    stubStats({
+      'GET /stats/groups': {
+        groupBy: 'DAY',
+        currencies: [
+          {
+            currencyCode: 'EUR',
+            groups: days.map((period, index) => ({
+              key: { period },
+              figures: figures({ games: 1, net: 1 }),
+              cumulativeNet: index + 1,
+              byGameType: [{ gameType: 'TOURNAMENT', figures: figures({ games: 1, net: 1 }) }],
+            })),
+          },
+        ],
+      },
+    });
+    renderApp('/stats?group=day&page=2');
+
+    const table = within(await screen.findByRole('table'));
+    expect(table.getAllByRole('rowheader')).toHaveLength(10);
+    expect(screen.getByRole('button', { name: 'Page 2' })).toHaveAttribute('aria-current', 'page');
+
+    // The kind of chart does not move the table...
+    await userEvent.click(screen.getByRole('radio', { name: 'Per period' }));
+    expect(screen.getByRole('button', { name: 'Page 2' })).toHaveAttribute('aria-current', 'page');
+
+    // ...but another filter lists other periods.
+    await userEvent.click(screen.getByRole('combobox', { name: 'Room' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Winamax', hidden: true }));
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Page 1' })).toHaveAttribute(
+        'aria-current',
+        'page',
+      ),
+    );
+  });
+
   it('filters by type, room and variant', async () => {
     const calls = stubStats();
     renderApp('/stats');

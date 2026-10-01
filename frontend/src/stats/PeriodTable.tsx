@@ -1,5 +1,4 @@
 import { Group, Pagination, Stack, Table, Text } from '@mantine/core';
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { GameType, StatsFigures } from '../api/types';
@@ -22,6 +21,9 @@ interface PeriodTableProps {
   currencyCode: string;
   /** Heading of the first column: what a row is. */
   periodLabel: string;
+  /** Zero-based; a page past the end shows the last one. */
+  page: number;
+  onPageChange: (page: number) => void;
 }
 
 const GAME_TYPES: readonly GameType[] = ['TOURNAMENT', 'SIT_AND_GO', 'CASH'];
@@ -38,13 +40,14 @@ export function PeriodTable({
   totalNetByGameType,
   currencyCode,
   periodLabel,
+  page,
+  onPageChange,
 }: PeriodTableProps) {
   const { t } = useTranslation();
   const format = useFormat();
-  const [page, setPage] = useState(1);
   const pageCount = Math.ceil(rows.length / PAGE_SIZE);
-  // The rows can shrink under the page (another filter): stay within them.
-  const current = Math.min(page, Math.max(pageCount, 1));
+  // The page comes from the URL and the rows can shrink under it: stay within them.
+  const current = Math.min(page + 1, Math.max(pageCount, 1));
   const shown = rows.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
 
   // Only the game types that were played, so a filter by type leaves no empty columns.
@@ -129,7 +132,7 @@ export function PeriodTable({
           <Pagination
             total={pageCount}
             value={current}
-            onChange={setPage}
+            onChange={(chosen) => onPageChange(chosen - 1)}
             getControlProps={(control) => ({ 'aria-label': t(`games.list.pages.${control}`) })}
             getItemProps={(item) => ({ 'aria-label': t('games.list.pages.page', { page: item }) })}
           />
