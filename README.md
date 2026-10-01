@@ -3,7 +3,7 @@
 **English** | [Español](README.es.md)
 
 Self-hosted poker bankroll manager. Record the results of your tournaments, Sit&Go,
-Expresso and cash games, keep track of the real balance in each poker room, and see how
+spins and cash games, keep track of the real balance in each poker room, and see how
 your results evolve over time.
 
 > **Status: work in progress.** Nothing is runnable yet. Follow the
@@ -21,8 +21,8 @@ here is results and bankroll management.
 
 ## Planned features (v0.1)
 
-- Quick entry of games: tournaments (re-entries, bounties, ticket prizes), Sit&Go,
-  Expresso (with multiplier) and cash games
+- Quick entry of games: tournaments (re-entries, bounties, ticket prizes), Sit&Go and spins
+  (Expresso...) and cash games, in No-Limit Hold'em or PLO
 - Dashboard with net result, ROI and ITM, broken down by game type
 - Daily and monthly results, net evolution chart
 - Bankroll per room: deposits, withdrawals, bonuses and reconciliation with the real balance
