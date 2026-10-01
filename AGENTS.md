@@ -133,9 +133,16 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
     whatever their origin (won in a satellite, gift from the room...), so the sum of net is always
     the cash result of the games and equals their effect on the room balance.
   - Cash games are one sitting: one entry, no bounty or ticket fields (enforced by the database).
-- **ITM** (in the money): `prize > 0` or `ticket_prize_value > 0`. "With prize" also counts bounties.
+- **ITM** (in the money): `prize > 0` or `ticket_prize_value > 0`. **With prize** also counts
+  bounties (ITM or `bounty > 0`). Neither applies to cash games, nor does the average buy-in: in
+  totals mixing types they are computed on the other games only.
+- **Winning game**: `net > 0` (any type).
 - **Invested** = money paid for entries: `buy_in × (entries − (paid_with_ticket ? 1 : 0))`.
-- **ROI** = net / invested.
+- **Won** = `prize + bounty`. Tickets won are reported apart, never added to money.
+- **ROI** = net / invested (unknown when nothing was invested).
+- **Average buy-in**: mean of `buy_in` over the games, not a mean of per-type means.
+- Statistics (`stats` package) share one set of figures (`StatsFigures`) built from sums by
+  `GameTotals`; rates and ROI are fractions with 4 decimals (`0.3496`), formatted by the frontend.
 - **Bankroll movement**: `DEPOSIT`, `WITHDRAWAL`, `BONUS`, `ADJUSTMENT` (reconciles with the
   real balance shown by the room).
 - **Room balance** = sum of its movements + sum of the net of its games.

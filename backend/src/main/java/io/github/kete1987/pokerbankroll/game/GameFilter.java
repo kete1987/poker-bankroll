@@ -26,7 +26,7 @@ public record GameFilter(
 
     private static final char ESCAPE = '\\';
 
-    Specification<Game> toSpecification() {
+    public Specification<Game> toSpecification() {
         return (game, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (from != null) {
