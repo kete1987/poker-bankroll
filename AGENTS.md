@@ -164,6 +164,8 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   result, negative when losing.
   - **Result** = net of the games (those in play included) + bonuses.
   - **Bankroll** = deposited − withdrawn + adjustments + result, per room and per currency.
+  - `GET /bankroll/summary` with dates gives the figures of that period (the result is what was won
+    or lost in it); without them, the bankroll as it is now.
 - **Bankroll movement**: `DEPOSIT` (money set aside for poker; the first one is the initial
   bankroll), `WITHDRAWAL`, `BONUS` (poker money not coming from a game: rakeback, promotions) or
   `ADJUSTMENT` (manual correction). The amount is positive and the type gives its direction; only
@@ -311,6 +313,8 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - Filters, order and page of a list live in the URL (`games/useGameFilters.ts`): they survive a
   reload and the back button. Lists are written with commas (`room=1,2`). Invalid values in the
   URL are ignored.
+- A period is chosen with `components/PeriodFilter` (`components/period.ts` has the predefined
+  ranges). A screen shows one currency at a time: amounts in different currencies are never added.
 - A room is always rendered with `components/RoomLabel`: its logo (or its initial when it has
   none) and its name. It takes the `logoVersion` from the shared list of rooms (`useRooms`).
 - A mutation invalidates every query its data affects (a game changes `games`, `stats` and

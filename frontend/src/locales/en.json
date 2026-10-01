@@ -51,6 +51,53 @@
     "TRIPLE_OR_NOTHING_DEMENTE": "Triple or Nothing Demente",
     "HEADS_UP": "Heads-up"
   },
+  "dashboard": {
+    "currency": "Currency",
+    "empty": "There is nothing to show yet.",
+    "goToGames": "Go to games",
+    "noGames": "No finished games in this period.",
+    "noVariant": "No variant",
+    "total": "Total",
+    "results": "Results",
+    "ticketsWon": "Tickets won: {{value}} (not counted as money).",
+    "inPlay_one": "{{count}} game in play, {{invested}} invested.",
+    "inPlay_other": "{{count}} games in play, {{invested}} invested.",
+    "breakdown": {
+      "label": "Break the results down",
+      "type": "By type",
+      "variant": "By variant"
+    },
+    "cards": {
+      "net": "Net",
+      "netDetail": "{{won}} won · {{invested}} invested",
+      "roi": "ROI",
+      "games_one": "{{formatted}} game",
+      "games_other": "{{formatted}} games",
+      "itm": "ITM in tournaments",
+      "itmDetail_one": "{{inTheMoney}} of {{formatted}} tournament",
+      "itmDetail_other": "{{inTheMoney}} of {{formatted}} tournaments",
+      "bankroll": "Bankroll"
+    },
+    "columns": {
+      "games": "Played",
+      "withPrize": "With prize",
+      "withPrizeRate": "% with prize",
+      "averageBuyIn": "Avg. buy-in",
+      "inTheMoney": "ITM",
+      "inTheMoneyRate": "% ITM",
+      "invested": "Invested",
+      "won": "Won",
+      "net": "Net",
+      "roi": "ROI"
+    },
+    "bankroll": {
+      "title": "Bankroll per room",
+      "room": "Room",
+      "now": "Bankroll now",
+      "withoutRoom": "No room",
+      "periodNet": "Net of the period"
+    }
+  },
   "games": {
     "add": "Add game",
     "loadError": "The data could not be loaded. Check that the API is available and reload the page.",
@@ -91,25 +138,6 @@
       "editGame": "Edit {{game}}",
       "deleteGame": "Delete {{game}}"
     },
-    "filters": {
-      "period": "Period",
-      "from": "From",
-      "to": "To",
-      "gameType": "Type",
-      "room": "Room",
-      "variant": "Variant",
-      "text": "Search",
-      "textPlaceholder": "Name or notes",
-      "any": "All",
-      "clear": "Clear filters"
-    },
-    "periods": {
-      "all": "All time",
-      "thisMonth": "This month",
-      "lastMonth": "Last month",
-      "thisYear": "This year",
-      "custom": "Custom"
-    },
     "list": {
       "empty": "There are no finished games yet.",
       "noMatches": "No game matches these filters.",
@@ -149,6 +177,25 @@
       "confirm": "Delete {{game}} of {{date}} in {{room}}? This cannot be undone.",
       "confirmLabel": "Delete",
       "done": "Game deleted"
+    }
+  },
+  "filters": {
+    "period": "Period",
+    "from": "From",
+    "to": "To",
+    "gameType": "Type",
+    "room": "Room",
+    "variant": "Variant",
+    "text": "Search",
+    "textPlaceholder": "Name or notes",
+    "any": "All",
+    "clear": "Clear filters",
+    "periods": {
+      "all": "All time",
+      "thisMonth": "This month",
+      "lastMonth": "Last month",
+      "thisYear": "This year",
+      "custom": "Custom"
     }
   },
   "gameForm": {

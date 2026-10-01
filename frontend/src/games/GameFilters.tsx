@@ -1,4 +1,4 @@
-import { Button, Group, MultiSelect, Select, TextInput } from '@mantine/core';
+import { Button, Group, MultiSelect, TextInput } from '@mantine/core';
 import { useDebouncedCallback } from '@mantine/hooks';
 import { IconSearch, IconX } from '@tabler/icons-react';
 import { useState } from 'react';
@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { GameType, Room, Variant } from '../api/types';
 import { variantLabel } from './labels';
-import { PERIODS, periodOf, rangeOf, type Period } from './period';
+import { PeriodFilter } from '../components/PeriodFilter';
 import type { GameFilters as Filters } from './useGameFilters';
 
 const GAME_TYPES: readonly GameType[] = ['TOURNAMENT', 'SIT_AND_GO', 'CASH'];
@@ -30,10 +30,7 @@ export function GameFilters({
   onClear,
 }: GameFiltersProps) {
   const { t } = useTranslation();
-  const period = periodOf(filters);
-  // "Custom" is also a choice in itself: it shows the two dates before any is typed.
-  const [customChosen, setCustomChosen] = useState(false);
-  const showDates = period === 'custom' || customChosen;
+  const [cleared, setCleared] = useState(0);
 
   // The text is searched a moment after the last key, not on every one.
   const [text, setText] = useState(filters.q ?? '');
@@ -63,47 +60,18 @@ export function GameFilters({
 
   return (
     <Group gap="sm" align="flex-end">
-      <Select
-        label={t('games.filters.period')}
-        w={170}
-        allowDeselect={false}
-        data={PERIODS.map((value) => ({ value, label: t(`games.periods.${value}`) }))}
-        value={showDates ? 'custom' : period}
-        onChange={(value) => {
-          const chosen = value as Period;
-          setCustomChosen(chosen === 'custom');
-          if (chosen !== 'custom') {
-            const range = rangeOf(chosen);
-            onChange({ from: range.from, to: range.to });
-          }
-        }}
+      {/* The key resets "Custom" when the filters are cleared. */}
+      <PeriodFilter
+        key={cleared}
+        range={{ from: filters.from, to: filters.to }}
+        onChange={(range) => onChange({ from: range.from, to: range.to })}
       />
-      {showDates && (
-        <>
-          <TextInput
-            type="date"
-            label={t('games.filters.from')}
-            w={160}
-            value={filters.from ?? ''}
-            max={filters.to}
-            onChange={(event) => onChange({ from: event.currentTarget.value || undefined })}
-          />
-          <TextInput
-            type="date"
-            label={t('games.filters.to')}
-            w={160}
-            value={filters.to ?? ''}
-            min={filters.from}
-            onChange={(event) => onChange({ to: event.currentTarget.value || undefined })}
-          />
-        </>
-      )}
       <MultiSelect
-        label={t('games.filters.gameType')}
+        label={t('filters.gameType')}
         miw={180}
         maw={360}
         clearable
-        placeholder={filters.gameTypes.length === 0 ? t('games.filters.any') : undefined}
+        placeholder={filters.gameTypes.length === 0 ? t('filters.any') : undefined}
         data={GAME_TYPES.map((type) => ({ value: type, label: t(`gameTypes.${type}`) }))}
         value={filters.gameTypes}
         onChange={(values) => {
@@ -120,29 +88,29 @@ export function GameFilters({
         }}
       />
       <MultiSelect
-        label={t('games.filters.room')}
+        label={t('filters.room')}
         miw={180}
         maw={360}
         clearable
-        placeholder={filters.roomIds.length === 0 ? t('games.filters.any') : undefined}
+        placeholder={filters.roomIds.length === 0 ? t('filters.any') : undefined}
         data={rooms.map((room) => ({ value: String(room.id), label: room.name }))}
         value={filters.roomIds.map(String)}
         onChange={(values) => onChange({ roomIds: values.map(Number) })}
       />
       <MultiSelect
-        label={t('games.filters.variant')}
+        label={t('filters.variant')}
         miw={220}
         maw={420}
         clearable
         searchable
-        placeholder={filters.variantIds.length === 0 ? t('games.filters.any') : undefined}
+        placeholder={filters.variantIds.length === 0 ? t('filters.any') : undefined}
         data={variantOptions}
         value={filters.variantIds.map(String)}
         onChange={(values) => onChange({ variantIds: values.map(Number) })}
       />
       <TextInput
-        label={t('games.filters.text')}
-        placeholder={t('games.filters.textPlaceholder')}
+        label={t('filters.text')}
+        placeholder={t('filters.textPlaceholder')}
         w={220}
         leftSection={<IconSearch size={16} />}
         value={text}
@@ -160,11 +128,11 @@ export function GameFilters({
             // A search still waiting to be sent would bring its text back after clearing.
             search.cancel();
             setText('');
-            setCustomChosen(false);
+            setCleared((count) => count + 1);
             onClear();
           }}
         >
-          {t('games.filters.clear')}
+          {t('filters.clear')}
         </Button>
       )}
     </Group>

@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { apiFetch } from './client';
+import { toQueryString } from './query';
 import type {
   FinishGameRequest,
   Game,
@@ -25,19 +26,6 @@ export interface GameQuery {
   size?: number;
   /** `<field>,<asc|desc>` with field one of playedOn, net, buyIn, prize, won, createdAt. */
   sort?: string;
-}
-
-function toQueryString(query: GameQuery): string {
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(query)) {
-    if (Array.isArray(value)) {
-      // A list is sent as the parameter repeated once per value.
-      value.forEach((item) => params.append(key, String(item)));
-    } else if (value !== undefined && value !== '') {
-      params.set(key, String(value));
-    }
-  }
-  return params.toString();
 }
 
 /** One page of games. While another page or filter loads, the previous one stays on screen. */

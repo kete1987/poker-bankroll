@@ -2,6 +2,7 @@ package io.github.kete1987.pokerbankroll.bankroll;
 
 import java.net.URI;
 import java.time.LocalDate;
+import java.util.List;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -46,8 +47,16 @@ class BankrollController {
             description = "bankroll = deposited - withdrawn + adjustments + result, with result = net of the "
                     + "games + bonuses. It is not the balance of the room account: with no movements recorded "
                     + "it is just the result, negative when losing.")
-    BankrollSummaryResponse summary() {
-        return service.summary();
+    BankrollSummaryResponse summary(
+            @Parameter(description = "Only movements and games on or after this date: with dates, the "
+                    + "figures are those of the period (what the bankroll changed, what was won or lost)")
+            @RequestParam(required = false) @Nullable LocalDate from,
+            @Parameter(description = "Only movements and games on or before this date")
+            @RequestParam(required = false) @Nullable LocalDate to,
+            @Parameter(description = "One or more rooms: only they are listed and added up, without the "
+                    + "movements that belong to no room")
+            @RequestParam(required = false) @Nullable List<Long> roomId) {
+        return service.summary(from, to, roomId);
     }
 
     @GetMapping("/movements")

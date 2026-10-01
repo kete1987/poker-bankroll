@@ -51,6 +51,53 @@
     "TRIPLE_OR_NOTHING_DEMENTE": "Triple or Nothing Demente",
     "HEADS_UP": "Heads-up"
   },
+  "dashboard": {
+    "currency": "Moneda",
+    "empty": "Todavía no hay nada que mostrar.",
+    "goToGames": "Ir a partidas",
+    "noGames": "No hay partidas finalizadas en este periodo.",
+    "noVariant": "Sin variante",
+    "total": "Total",
+    "results": "Resultados",
+    "ticketsWon": "Tickets ganados: {{value}} (no cuentan como dinero).",
+    "inPlay_one": "{{count}} partida en juego, {{invested}} invertidos.",
+    "inPlay_other": "{{count}} partidas en juego, {{invested}} invertidos.",
+    "breakdown": {
+      "label": "Desglosar los resultados",
+      "type": "Por tipo",
+      "variant": "Por variante"
+    },
+    "cards": {
+      "net": "Neto",
+      "netDetail": "{{won}} ganados · {{invested}} invertidos",
+      "roi": "ROI",
+      "games_one": "{{formatted}} partida",
+      "games_other": "{{formatted}} partidas",
+      "itm": "ITM en torneos",
+      "itmDetail_one": "{{inTheMoney}} de {{formatted}} torneo",
+      "itmDetail_other": "{{inTheMoney}} de {{formatted}} torneos",
+      "bankroll": "Bankroll"
+    },
+    "columns": {
+      "games": "Jugadas",
+      "withPrize": "Con premio",
+      "withPrizeRate": "% premiados",
+      "averageBuyIn": "Buy-in medio",
+      "inTheMoney": "ITM",
+      "inTheMoneyRate": "% ITM",
+      "invested": "Invertido",
+      "won": "Ganado",
+      "net": "Neto",
+      "roi": "ROI"
+    },
+    "bankroll": {
+      "title": "Bankroll por sala",
+      "room": "Sala",
+      "now": "Bankroll actual",
+      "withoutRoom": "Sin sala",
+      "periodNet": "Neto del periodo"
+    }
+  },
   "games": {
     "add": "Añadir partida",
     "loadError": "No se han podido cargar los datos. Comprueba que la API está disponible y recarga la página.",
@@ -91,25 +138,6 @@
       "editGame": "Editar {{game}}",
       "deleteGame": "Borrar {{game}}"
     },
-    "filters": {
-      "period": "Periodo",
-      "from": "Desde",
-      "to": "Hasta",
-      "gameType": "Tipo",
-      "room": "Sala",
-      "variant": "Variante",
-      "text": "Buscar",
-      "textPlaceholder": "Nombre o notas",
-      "any": "Todos",
-      "clear": "Limpiar filtros"
-    },
-    "periods": {
-      "all": "Todo",
-      "thisMonth": "Este mes",
-      "lastMonth": "Mes pasado",
-      "thisYear": "Este año",
-      "custom": "Personalizado"
-    },
     "list": {
       "empty": "Todavía no hay partidas finalizadas.",
       "noMatches": "Ninguna partida coincide con estos filtros.",
@@ -149,6 +177,25 @@
       "confirm": "¿Borrar {{game}} del {{date}} en {{room}}? No se puede deshacer.",
       "confirmLabel": "Borrar",
       "done": "Partida borrada"
+    }
+  },
+  "filters": {
+    "period": "Periodo",
+    "from": "Desde",
+    "to": "Hasta",
+    "gameType": "Tipo",
+    "room": "Sala",
+    "variant": "Variante",
+    "text": "Buscar",
+    "textPlaceholder": "Nombre o notas",
+    "any": "Todos",
+    "clear": "Limpiar filtros",
+    "periods": {
+      "all": "Todo",
+      "thisMonth": "Este mes",
+      "lastMonth": "Mes pasado",
+      "thisYear": "Este año",
+      "custom": "Personalizado"
     }
   },
   "gameForm": {

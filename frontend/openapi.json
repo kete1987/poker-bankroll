@@ -1080,6 +1080,37 @@
       "get" : {
         "description" : "bankroll = deposited - withdrawn + adjustments + result, with result = net of the games + bonuses. It is not the balance of the room account: with no movements recorded it is just the result, negative when losing.",
         "operationId" : "summary_1",
+        "parameters" : [ {
+          "description" : "Only movements and games on or after this date: with dates, the figures are those of the period (what the bankroll changed, what was won or lost)",
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Only movements and games on or before this date",
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "One or more rooms: only they are listed and added up, without the movements that belong to no room",
+          "in" : "query",
+          "name" : "roomId",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        } ],
         "responses" : {
           "200" : {
             "content" : {

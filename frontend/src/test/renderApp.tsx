@@ -53,12 +53,24 @@ export function problem(status: number, code: string, detail: string, errors: un
 }
 
 /**
- * Stubs `fetch` with one handler per `"METHOD /path"` (the health check answers UP unless
- * overridden; anything else is a 404). Returns the calls made, to assert on what was sent.
+ * Stubs `fetch` with one handler per `"METHOD /path"`. The health check answers UP and the data
+ * every screen loads is empty unless overridden; anything else is a 404. Returns the calls made, to assert on what was sent.
  */
 export function stubApi(handlers: Record<string, ApiHandler>) {
   const calls: ApiCall[] = [];
-  const all: Record<string, ApiHandler> = { 'GET /actuator/health': { status: 'UP' }, ...handlers };
+  const all: Record<string, ApiHandler> = {
+    'GET /actuator/health': { status: 'UP' },
+    // What every screen asks for, empty unless the test says otherwise.
+    'GET /rooms': [],
+    'GET /variants': [],
+    'GET /stats/summary': { currencies: [] },
+    'GET /stats/groups': (call: ApiCall) => ({
+      groupBy: call.query.get('groupBy'),
+      currencies: [],
+    }),
+    'GET /bankroll/summary': { currencies: [] },
+    ...handlers,
+  };
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {

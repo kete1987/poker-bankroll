@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
 import type { Game, GamePage } from '../api/types';
-import { rangeOf } from '../games/period';
+import { rangeOf } from '../components/period';
 import { game, page, room, ROOMS, VARIANTS } from '../test/fixtures';
 import { problem, renderApp, stubApi, type ApiCall } from '../test/renderApp';
 
