@@ -47,7 +47,14 @@ public enum ErrorCode {
     VARIANT_INACTIVE(HttpStatus.CONFLICT),
     /** The variant belongs to another game type. */
     VARIANT_GAME_TYPE_MISMATCH(HttpStatus.BAD_REQUEST),
-    INVALID_SORT(HttpStatus.BAD_REQUEST);
+    INVALID_SORT(HttpStatus.BAD_REQUEST),
+    /** Finishing, re-entering and rebuying are only possible while the game is in play. */
+    GAME_NOT_IN_PLAY(HttpStatus.CONFLICT),
+    /** Cash games have no re-entries: more money at the table is a rebuy. */
+    RE_ENTRY_NOT_FOR_CASH_GAMES(HttpStatus.CONFLICT),
+    REBUY_ONLY_FOR_CASH_GAMES(HttpStatus.CONFLICT),
+    /** A cash game finishes with a prize only: no bounties or tickets. */
+    CASH_GAME_RESULT(HttpStatus.BAD_REQUEST);
 
     private final HttpStatus status;
 

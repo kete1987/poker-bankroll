@@ -20,6 +20,8 @@ public record GameResponse(
         GameType gameType,
         Modality modality,
         @Nullable VariantRef variant,
+        @Schema(description = "IN_PLAY while the result is not known yet; its buy-in already counts in net")
+        GameStatus status,
         @Nullable String name,
         @Schema(description = "Currency of every amount of this game (the one of its room)")
         String currencyCode,
@@ -55,6 +57,7 @@ public record GameResponse(
                 game.getGameType(),
                 game.getModality(),
                 variant == null ? null : new VariantRef(variant.getId(), variant.getCode(), variant.getName()),
+                game.getStatus(),
                 game.getName(),
                 game.getRoom().getCurrencyCode(),
                 game.getBuyIn(),

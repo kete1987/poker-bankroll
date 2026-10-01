@@ -11,8 +11,6 @@ import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import jakarta.validation.Payload;
 
-import io.github.kete1987.pokerbankroll.catalog.GameType;
-
 /** A ticket description only makes sense when a ticket was won ({@code ticketPrizeValue > 0}). */
 @Documented
 @Target(ElementType.TYPE)
@@ -26,16 +24,17 @@ public @interface TicketDescriptionNeedsValue {
 
     Class<? extends Payload>[] payload() default {};
 
-    class Validator implements ConstraintValidator<TicketDescriptionNeedsValue, GameRequest> {
+    class Validator implements ConstraintValidator<TicketDescriptionNeedsValue, TicketPrize> {
 
         @Override
-        public boolean isValid(GameRequest game, ConstraintValidatorContext context) {
+        public boolean isValid(TicketPrize request, ConstraintValidatorContext context) {
             // Cash games allow no ticket field at all: CashGameFields reports the description there.
-            if (game.gameType() == GameType.CASH) {
+            if (request.isCashGame()) {
                 return true;
             }
-            boolean hasDescription = game.ticketDescription() != null && !game.ticketDescription().isBlank();
-            if (!hasDescription || game.ticketPrizeValueOrZero().signum() > 0) {
+            String description = request.ticketDescription();
+            boolean hasDescription = description != null && !description.isBlank();
+            if (!hasDescription || request.ticketPrizeValueOrZero().signum() > 0) {
                 return true;
             }
             context.disableDefaultConstraintViolation();

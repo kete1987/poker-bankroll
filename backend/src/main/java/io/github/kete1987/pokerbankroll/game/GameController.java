@@ -53,6 +53,7 @@ class GameController {
             @RequestParam(required = false) @Nullable Modality modality,
             @RequestParam(required = false) @Nullable Long roomId,
             @RequestParam(required = false) @Nullable Long variantId,
+            @RequestParam(required = false) @Nullable GameStatus status,
             @Parameter(description = "Currency of the room, e.g. EUR")
             @RequestParam(required = false) @Nullable String currency,
             @Parameter(description = "Text contained in the name or the notes, ignoring case")
@@ -62,7 +63,7 @@ class GameController {
             @RequestParam(defaultValue = "50") @Min(1) @Max(MAX_PAGE_SIZE) int size,
             @Parameter(description = "`<field>,<asc|desc>` with field one of playedOn, net, buyIn, prize, createdAt")
             @RequestParam(defaultValue = GameSort.DEFAULT) String sort) {
-        GameFilter filter = new GameFilter(from, to, gameType, modality, roomId, variantId, currency, q);
+        GameFilter filter = new GameFilter(from, to, gameType, modality, roomId, variantId, status, currency, q);
         return service.list(filter, page, size, GameSort.parse(sort));
     }
 
@@ -73,7 +74,9 @@ class GameController {
     }
 
     @PostMapping
-    @Operation(summary = "Record a game")
+    @Operation(summary = "Record a game",
+            description = "With only the required fields the game is recorded as in play; "
+                    + "send a result (or `status: FINISHED`) to record it finished.")
     ResponseEntity<GameResponse> create(@Valid @RequestBody GameRequest request) {
         GameResponse game = service.create(request);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").build(game.id());
@@ -84,6 +87,27 @@ class GameController {
     @Operation(summary = "Update a game", description = "Replaces every field; omitted optional fields take their default.")
     GameResponse update(@PathVariable long id, @Valid @RequestBody GameRequest request) {
         return service.update(id, request);
+    }
+
+    @PostMapping("/{id}/finish")
+    @Operation(summary = "Finish a game in play",
+            description = "Sets its result; with no body (or an empty one) nothing was won.")
+    GameResponse finish(@PathVariable long id,
+            @Valid @RequestBody(required = false) @Nullable FinishGameRequest result) {
+        return service.finish(id, result == null ? FinishGameRequest.NOTHING_WON : result);
+    }
+
+    @PostMapping("/{id}/re-entries")
+    @Operation(summary = "Add a re-entry to a tournament or Sit&Go in play",
+            description = "Adds one entry, paid in cash.")
+    GameResponse addReEntry(@PathVariable long id) {
+        return service.addReEntry(id);
+    }
+
+    @PostMapping("/{id}/rebuys")
+    @Operation(summary = "Add a rebuy to a cash game in play", description = "Adds the amount to the buy-in.")
+    GameResponse addRebuy(@PathVariable long id, @Valid @RequestBody RebuyRequest rebuy) {
+        return service.addRebuy(id, rebuy);
     }
 
     @DeleteMapping("/{id}")
