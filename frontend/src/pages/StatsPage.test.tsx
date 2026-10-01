@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -33,7 +33,7 @@ const SUMMARY: StatsSummary = {
   currencies: [
     {
       currencyCode: 'EUR',
-      total: figures({ games: 12, net: 25.5 }),
+      total: figures({ games: 12, net: 25.5, invested: 51, roi: 0.5 }),
       byGameType: [],
       inPlay: { games: 0, invested: 0 },
     },
@@ -106,6 +106,10 @@ function queriesTo(calls: ApiCall[], path: string) {
     });
 }
 
+function card(name: string) {
+  return within(screen.getByRole('region', { name }));
+}
+
 /** What the chart was asked to draw. */
 async function chartOption() {
   const chart = await screen.findByTestId('chart');
@@ -148,14 +152,19 @@ describe('Statistics page', () => {
     expect(screen.getByRole('combobox', { name: 'Currency' })).toHaveValue('EUR');
   });
 
-  it('sums the period up, with its best and worst week', async () => {
+  it('sums the period up in cards, with its best and worst week', async () => {
     stubStats();
     renderApp('/stats');
     await chartOption();
 
-    expect(screen.getByTestId('net-summary')).toHaveTextContent(
-      '+€25.50 in 12 games · Best week: Week of 02/02/2026 (+€20.00) · Worst week: Week of 26/01/2026 (-€4.50)',
-    );
+    expect(card('Net of the period').getByText('+€25.50')).toBeInTheDocument();
+    expect(card('Net of the period').getByText('12 games')).toBeInTheDocument();
+    expect(card('ROI').getByText('50.00%')).toBeInTheDocument();
+    expect(card('ROI').getByText('€51.00 invested')).toBeInTheDocument();
+    expect(card('Best week').getByText('+€20.00')).toBeInTheDocument();
+    expect(card('Best week').getByText('Week of 02/02/2026')).toBeInTheDocument();
+    expect(card('Worst week').getByText('-€4.50')).toBeInTheDocument();
+    expect(card('Worst week').getByText('Week of 26/01/2026')).toBeInTheDocument();
   });
 
   it('follows the length of the period unless a cut is chosen', async () => {
@@ -178,7 +187,36 @@ describe('Statistics page', () => {
         'March 2026',
       ]),
     );
-    expect(screen.getByTestId('net-summary')).toHaveTextContent('Best month: March 2026 (+€20.00)');
+    expect(card('Best month').getByText('March 2026')).toBeInTheDocument();
+  });
+
+  it('keeps naming the data on screen by its own cut while another one loads', async () => {
+    let releaseMonths: () => void = () => {};
+    const monthsCanLoad = new Promise<void>((resolve) => {
+      releaseMonths = resolve;
+    });
+    stubStats({
+      'GET /stats/groups': async (call: ApiCall) => {
+        const groupBy = call.query.get('groupBy') ?? '';
+        if (groupBy === 'MONTH') {
+          await monthsCanLoad;
+        }
+        return groups(groupBy);
+      },
+    });
+    renderApp('/stats');
+    await chartOption();
+
+    await userEvent.click(screen.getByRole('combobox', { name: 'Group by' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Month', hidden: true }));
+
+    // The weeks are still there, as weeks.
+    expect((await chartOption()).xAxis.data).toEqual(['19/01/2026', '26/01/2026', '02/02/2026']);
+    expect(card('Best week').getByText('Week of 02/02/2026')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Best month' })).not.toBeInTheDocument();
+
+    releaseMonths();
+    expect(await screen.findByRole('region', { name: 'Best month' })).toBeInTheDocument();
   });
 
   it('filters by type, room and variant', async () => {
@@ -224,8 +262,8 @@ describe('Statistics page', () => {
     expect(screen.getByRole('combobox', { name: 'Currency' })).toHaveValue('USD');
     expect(option.series[0]?.data).toEqual([-10]);
     // A single point has no best or worst.
-    expect(screen.getByTestId('net-summary')).toHaveTextContent('-US$10.00 in 2 games');
-    expect(screen.getByTestId('net-summary')).not.toHaveTextContent('Best');
+    expect(card('Net of the period').getByText('-US$10.00')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: /Best/ })).not.toBeInTheDocument();
   });
 
   it('says so when the period has no games', async () => {

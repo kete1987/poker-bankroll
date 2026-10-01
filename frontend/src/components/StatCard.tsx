@@ -11,7 +11,7 @@ interface StatCardProps {
   children?: ReactNode;
 }
 
-/** One headline figure of the dashboard, with what explains it underneath. */
+/** One headline figure, with what explains it underneath. */
 export function StatCard({ label, value, tone, children }: StatCardProps) {
   return (
     <Card withBorder padding="md" component="section" aria-label={label}>

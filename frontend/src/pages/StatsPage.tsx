@@ -1,4 +1,4 @@
-import { Alert, Group, Loader, Select, Stack, Text, Title } from '@mantine/core';
+import { Alert, Group, Loader, Select, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 
 import { useRooms } from '../api/rooms';
@@ -7,6 +7,7 @@ import type { StatsGroup } from '../api/types';
 import { useVariants } from '../api/variants';
 import { Page } from '../components/Page';
 import { PeriodFilter } from '../components/PeriodFilter';
+import { StatCard } from '../components/StatCard';
 import { useFormat } from '../format/useFormat';
 import { ScopeFilters } from '../games/ScopeFilters';
 import { NetEvolutionChart, type NetPoint } from '../stats/NetEvolutionChart';
@@ -17,6 +18,10 @@ import {
   useStatsFilters,
   type Granularity,
 } from '../stats/useStatsFilters';
+
+function toneOf(amount: number): 'positive' | 'negative' | undefined {
+  return amount > 0 ? 'positive' : amount < 0 ? 'negative' : undefined;
+}
 
 /** Statistics over time, for one currency: for now, the evolution of the net. */
 export function StatsPage() {
@@ -80,19 +85,20 @@ export function StatsPage() {
     overTime.data.currencies.find((currency) => currency.currencyCode === currencyCode)?.groups ??
     [];
 
+  // While another cut is loading the previous data stays on screen: it is named by its own cut,
+  // not by the one just chosen.
+  const drawn = GRANULARITIES.find((value) => value === overTime.data.groupBy) ?? granularity;
   const labelOf = (period: string) =>
-    granularity === 'MONTH'
+    drawn === 'MONTH'
       ? format.month(period)
-      : granularity === 'WEEK'
+      : drawn === 'WEEK'
         ? t('stats.weekOf', { date: format.date(period) })
         : format.date(period);
   const points: NetPoint[] = groups.map((group) => ({
     label: labelOf(group.key.period ?? ''),
     // A week is named by its Monday: on the axis the date is enough.
     axisLabel:
-      granularity === 'WEEK'
-        ? format.date(group.key.period ?? '')
-        : labelOf(group.key.period ?? ''),
+      drawn === 'WEEK' ? format.date(group.key.period ?? '') : labelOf(group.key.period ?? ''),
     games: group.figures.games,
     net: group.figures.net,
     cumulativeNet: group.cumulativeNet ?? 0,
@@ -139,28 +145,43 @@ export function StatsPage() {
           <Text c="dimmed">{t('dashboard.noGames')}</Text>
         ) : (
           <>
-            <NetEvolutionChart points={points} currencyCode={currencyCode} />
-            <Text size="sm" data-testid="net-summary">
-              {t('stats.net.summary', {
-                net: format.signedMoney(total.net, currencyCode),
-                count: total.games,
-                formatted: format.number(total.games),
-              })}
+            <SimpleGrid cols={{ base: 1, xs: 2, lg: 4 }}>
+              <StatCard
+                label={t('stats.net.cards.net')}
+                value={format.signedMoney(total.net, currencyCode)}
+                tone={toneOf(total.net)}
+              >
+                {t('dashboard.cards.games', {
+                  count: total.games,
+                  formatted: format.number(total.games),
+                })}
+              </StatCard>
+              <StatCard label={t('dashboard.cards.roi')} value={format.percent(total.roi)}>
+                {t('stats.net.cards.invested', {
+                  invested: format.money(total.invested, currencyCode),
+                })}
+              </StatCard>
+              {/* With a single point there is nothing to compare. */}
               {best && worst && points.length > 1 && (
                 <>
-                  {' · '}
-                  {t(`stats.net.best.${granularity}`, {
-                    label: best.label,
-                    net: format.signedMoney(best.net, currencyCode),
-                  })}
-                  {' · '}
-                  {t(`stats.net.worst.${granularity}`, {
-                    label: worst.label,
-                    net: format.signedMoney(worst.net, currencyCode),
-                  })}
+                  <StatCard
+                    label={t(`stats.net.cards.best.${drawn}`)}
+                    value={format.signedMoney(best.net, currencyCode)}
+                    tone={toneOf(best.net)}
+                  >
+                    {best.label}
+                  </StatCard>
+                  <StatCard
+                    label={t(`stats.net.cards.worst.${drawn}`)}
+                    value={format.signedMoney(worst.net, currencyCode)}
+                    tone={toneOf(worst.net)}
+                  >
+                    {worst.label}
+                  </StatCard>
                 </>
               )}
-            </Text>
+            </SimpleGrid>
+            <NetEvolutionChart points={points} currencyCode={currencyCode} />
           </>
         )}
       </Stack>

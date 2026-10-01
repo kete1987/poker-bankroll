@@ -112,17 +112,19 @@
       "tooltipGames_one": "{{count}} game",
       "tooltipGames_other": "{{count}} games",
       "tooltipCumulative": "Cumulative",
-      "summary_one": "{{net}} in {{formatted}} game",
-      "summary_other": "{{net}} in {{formatted}} games",
-      "best": {
-        "DAY": "Best day: {{label}} ({{net}})",
-        "WEEK": "Best week: {{label}} ({{net}})",
-        "MONTH": "Best month: {{label}} ({{net}})"
-      },
-      "worst": {
-        "DAY": "Worst day: {{label}} ({{net}})",
-        "WEEK": "Worst week: {{label}} ({{net}})",
-        "MONTH": "Worst month: {{label}} ({{net}})"
+      "cards": {
+        "net": "Net of the period",
+        "invested": "{{invested}} invested",
+        "best": {
+          "DAY": "Best day",
+          "WEEK": "Best week",
+          "MONTH": "Best month"
+        },
+        "worst": {
+          "DAY": "Worst day",
+          "WEEK": "Worst week",
+          "MONTH": "Worst month"
+        }
       }
     }
   },

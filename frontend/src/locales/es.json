@@ -112,17 +112,19 @@
       "tooltipGames_one": "{{count}} partida",
       "tooltipGames_other": "{{count}} partidas",
       "tooltipCumulative": "Acumulado",
-      "summary_one": "{{net}} en {{formatted}} partida",
-      "summary_other": "{{net}} en {{formatted}} partidas",
-      "best": {
-        "DAY": "Mejor día: {{label}} ({{net}})",
-        "WEEK": "Mejor semana: {{label}} ({{net}})",
-        "MONTH": "Mejor mes: {{label}} ({{net}})"
-      },
-      "worst": {
-        "DAY": "Peor día: {{label}} ({{net}})",
-        "WEEK": "Peor semana: {{label}} ({{net}})",
-        "MONTH": "Peor mes: {{label}} ({{net}})"
+      "cards": {
+        "net": "Neto del periodo",
+        "invested": "{{invested}} invertidos",
+        "best": {
+          "DAY": "Mejor día",
+          "WEEK": "Mejor semana",
+          "MONTH": "Mejor mes"
+        },
+        "worst": {
+          "DAY": "Peor día",
+          "WEEK": "Peor semana",
+          "MONTH": "Peor mes"
+        }
       }
     }
   },
