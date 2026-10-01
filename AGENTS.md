@@ -273,6 +273,11 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   language as `Accept-Language` and turns error responses into `ApiError` (`status`, `code`,
   `message`, `errors`). Wrap calls in TanStack Query hooks next to it (see `src/api/health.ts`).
 - UI components come from Mantine; icons from `@tabler/icons-react`; charts through `src/components/Chart.tsx`.
+- Sections of the app are listed once in `src/layout/navigation.ts` (menu and routes); a section
+  starts as `ComingSoonPage` and gets its own page in `src/pages/`. Wrap every page in
+  `components/Page` (heading and browser tab title).
+- Format every date, number, percentage and amount with `useFormat()` (`src/format/`), never by
+  hand: it follows the UI language. Rates come from the API as fractions; `null` is shown as `—`.
 - Routes are declared in `src/routes.tsx`; tests render the real app with `renderApp(url)` from
   `src/test/renderApp.tsx` and stub `fetch` (`stubFetchJson`).
 - The light/dark and language choices are stored in `localStorage` under `poker-bankroll.*` keys.

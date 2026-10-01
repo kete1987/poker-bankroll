@@ -6,13 +6,72 @@ import { LANGUAGE_STORAGE_KEY } from './i18n';
 import { renderApp, stubFetchJson } from './test/renderApp';
 
 describe('App', () => {
-  it('renders the home page in English by default', async () => {
+  it('opens on the dashboard, in English by default', async () => {
     stubFetchJson({ status: 'UP' });
     renderApp();
 
+    expect(await screen.findByRole('heading', { name: 'Dashboard', level: 2 })).toBeInTheDocument();
+    expect(document.title).toBe('Dashboard · poker-bankroll');
+  });
+
+  it('offers every section in the menu and marks the current one', async () => {
+    stubFetchJson({ status: 'UP' });
+    renderApp('/games');
+
+    const menu = screen.getByRole('navigation', { name: 'Sections' });
     expect(
-      await screen.findByRole('heading', { name: 'Welcome to poker-bankroll' }),
-    ).toBeInTheDocument();
+      within(menu)
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual(['Dashboard', 'Games', 'Bankroll', 'Statistics', 'Import', 'Settings']);
+    expect(within(menu).getByRole('link', { name: 'Games' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(within(menu).getByRole('link', { name: 'Dashboard' })).not.toHaveAttribute(
+      'aria-current',
+    );
+  });
+
+  it('navigates between sections', async () => {
+    stubFetchJson({ status: 'UP' });
+    renderApp();
+    const menu = screen.getByRole('navigation', { name: 'Sections' });
+
+    await userEvent.click(within(menu).getByRole('link', { name: 'Bankroll' }));
+
+    expect(await screen.findByRole('heading', { name: 'Bankroll', level: 2 })).toBeInTheDocument();
+    expect(within(menu).getByRole('link', { name: 'Bankroll' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(document.title).toBe('Bankroll · poker-bankroll');
+  });
+
+  it.each(['/games', '/bankroll', '/stats', '/import', '/settings'])(
+    'has a page at %s',
+    async (path) => {
+      stubFetchJson({ status: 'UP' });
+      renderApp(path);
+
+      expect(await screen.findByRole('heading', { level: 2 })).not.toHaveTextContent(
+        'Page not found',
+      );
+    },
+  );
+
+  it('has a button to open the menu on narrow screens', async () => {
+    stubFetchJson({ status: 'UP' });
+    renderApp();
+
+    const burger = screen.getByRole('button', { name: 'Open or close the menu' });
+    expect(burger).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.click(burger);
+    expect(burger).toHaveAttribute('aria-expanded', 'true');
+
+    // Choosing a section closes it again.
+    await userEvent.click(screen.getByRole('link', { name: 'Games' }));
+    expect(burger).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('shows the API as online when the backend is healthy', async () => {
@@ -56,11 +115,12 @@ describe('App', () => {
 
     await userEvent.click(await screen.findByText('ES'));
 
-    expect(
-      await screen.findByRole('heading', { name: 'Bienvenido a poker-bankroll' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Panel', level: 2 })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Partidas' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Estadísticas' })).toBeInTheDocument();
     expect(localStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe('es');
     expect(document.documentElement.lang).toBe('es');
+    expect(document.title).toBe('Panel · poker-bankroll');
   });
 
   it('toggles the color scheme', async () => {
@@ -83,5 +143,9 @@ describe('App', () => {
     renderApp('/does-not-exist');
 
     expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to the dashboard' })).toHaveAttribute(
+      'href',
+      '/',
+    );
   });
 });
