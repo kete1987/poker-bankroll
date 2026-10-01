@@ -173,6 +173,25 @@ class GameApiTests extends ApiIntegrationTest {
     }
 
     @Test
+    void cannotRecordAGameInAnInactiveRoomOrWithAnInactiveVariant() {
+        long ko = builtInVariantId("TOURNAMENT", "KO");
+        jdbc.update("update variant set active = false where id = ?", ko);
+        assertThat(postJson("/games", """
+                {"playedOn": "2026-01-19", "roomId": %d, "gameType": "TOURNAMENT", "variantId": %d, "buyIn": 1}"""
+                .formatted(winamax, ko)))
+                .hasStatus(HttpStatus.CONFLICT)
+                .bodyJson().extractingPath("$.code").isEqualTo("VARIANT_INACTIVE");
+
+        jdbc.update("update room set active = false where id = ?", winamax);
+        var json = assertThat(postJson("/games", game("2026-01-19", "Game")))
+                .hasStatus(HttpStatus.CONFLICT).bodyJson();
+        json.extractingPath("$.code").isEqualTo("ROOM_INACTIVE");
+        json.extractingPath("$.detail").asString().contains("Winamax");
+
+        assertThat(jdbc.queryForObject("select count(*) from game", Integer.class)).isZero();
+    }
+
+    @Test
     void rejectsMalformedValues() {
         assertThat(postJson("/games", """
                 {"playedOn": "19/01/2026", "roomId": %d, "gameType": "TOURNAMENT", "buyIn": 1}"""
@@ -329,6 +348,42 @@ class GameApiTests extends ApiIntegrationTest {
         json.extractingPath("$.notes").isNull();
         json.extractingPath("$.net").isEqualTo(11.5);
         assertThat(jdbc.queryForObject("select net from game where id = ?", String.class, id)).isEqualTo("11.50");
+    }
+
+    @Test
+    void aGameCanStillBeEditedAfterItsRoomAndVariantWereDeactivated() {
+        long ko = builtInVariantId("TOURNAMENT", "KO");
+        long id = create("""
+                {"playedOn": "2026-01-19", "roomId": %d, "gameType": "TOURNAMENT", "variantId": %d, "buyIn": 1}"""
+                .formatted(winamax, ko));
+        jdbc.update("update room set active = false where id = ?", winamax);
+        jdbc.update("update variant set active = false where id = ?", ko);
+
+        var json = assertThat(putJson("/games/" + id, """
+                {"playedOn": "2026-01-19", "roomId": %d, "gameType": "TOURNAMENT", "variantId": %d,
+                 "buyIn": 1, "prize": 7}""".formatted(winamax, ko))).hasStatusOk().bodyJson();
+
+        json.extractingPath("$.net").isEqualTo(6.0);
+        json.extractingPath("$.variant.code").isEqualTo("KO");
+    }
+
+    @Test
+    void aGameCannotBeMovedToAnInactiveRoomOrVariant() {
+        long ko = builtInVariantId("TOURNAMENT", "KO");
+        long id = create(game("2026-01-19", "Game"));
+        jdbc.update("update room set active = false where id = ?", pokerStars);
+        jdbc.update("update variant set active = false where id = ?", ko);
+
+        assertThat(putJson("/games/" + id, """
+                {"playedOn": "2026-01-19", "roomId": %d, "gameType": "TOURNAMENT", "buyIn": 1}"""
+                .formatted(pokerStars)))
+                .hasStatus(HttpStatus.CONFLICT)
+                .bodyJson().extractingPath("$.code").isEqualTo("ROOM_INACTIVE");
+        assertThat(putJson("/games/" + id, """
+                {"playedOn": "2026-01-19", "roomId": %d, "gameType": "TOURNAMENT", "variantId": %d, "buyIn": 1}"""
+                .formatted(winamax, ko)))
+                .hasStatus(HttpStatus.CONFLICT)
+                .bodyJson().extractingPath("$.code").isEqualTo("VARIANT_INACTIVE");
     }
 
     @Test

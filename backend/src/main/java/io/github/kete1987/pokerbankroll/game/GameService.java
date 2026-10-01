@@ -61,11 +61,9 @@ public class GameService {
 
     /** Copies the request into the game; rules within the request itself are already validated. */
     private void apply(GameRequest request, Game game) {
-        Room room = rooms.findById(request.roomId())
-                .orElseThrow(() -> new ApiException(ErrorCode.UNKNOWN_ROOM, String.valueOf(request.roomId())));
-        game.setRoom(room);
+        game.setRoom(roomOf(request, game.getRoom()));
         game.setGameType(request.gameType());
-        game.setVariant(variantOf(request));
+        game.setVariant(variantOf(request, game.getVariant()));
         game.setModality(request.modalityOrDefault());
         game.setPlayedOn(request.playedOn());
         game.setPlayedAt(request.playedAt());
@@ -80,7 +78,22 @@ public class GameService {
         game.setNotes(blankToNull(request.notes()));
     }
 
-    private @Nullable Variant variantOf(GameRequest request) {
+    /**
+     * Inactive rooms keep their history but take no new games: a game can stay in its room after
+     * the room was deactivated, but cannot be created in, or moved to, an inactive one.
+     */
+    private Room roomOf(GameRequest request, @Nullable Room current) {
+        Room room = rooms.findById(request.roomId())
+                .orElseThrow(() -> new ApiException(ErrorCode.UNKNOWN_ROOM, String.valueOf(request.roomId())));
+        boolean unchanged = current != null && current.getId().equals(room.getId());
+        if (!room.isActive() && !unchanged) {
+            throw new ApiException(ErrorCode.ROOM_INACTIVE, room.getName());
+        }
+        return room;
+    }
+
+    /** Same rule as rooms: an inactive variant can be kept by a game, but not newly chosen. */
+    private @Nullable Variant variantOf(GameRequest request, @Nullable Variant current) {
         if (request.variantId() == null) {
             return null;
         }
@@ -88,6 +101,10 @@ public class GameService {
                 .orElseThrow(() -> new ApiException(ErrorCode.UNKNOWN_VARIANT, String.valueOf(request.variantId())));
         if (variant.getGameType() != request.gameType()) {
             throw new ApiException(ErrorCode.VARIANT_GAME_TYPE_MISMATCH);
+        }
+        boolean unchanged = current != null && current.getId().equals(variant.getId());
+        if (!variant.isActive() && !unchanged) {
+            throw new ApiException(ErrorCode.VARIANT_INACTIVE);
         }
         return variant;
     }

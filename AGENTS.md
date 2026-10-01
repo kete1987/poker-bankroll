@@ -96,6 +96,9 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - **Room**: poker site account (Winamax, 888poker...) holding money in **one currency**; its games
   and movements are in that currency. Two currencies on the same site are two rooms. The currency
   of a room cannot change once it has games (database trigger).
+- **Inactive** rooms and variants keep their history and stay in statistics, but take no new games:
+  the UI does not offer them and the API rejects creating a game in them, or moving one to them
+  (`ROOM_INACTIVE`, `VARIANT_INACTIVE`). A game already there can still be edited.
 - **Game type**: the format — `TOURNAMENT`, `SIT_AND_GO` (shown as "Sit & Go / Spins"; includes
   lottery Sit&Go such as Expresso) or `CASH`. Fixed list (table `game_type`, seeded by migrations):
   the application behaves differently per type.
