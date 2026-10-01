@@ -27,15 +27,13 @@ import type {
   Variant,
 } from '../api/types';
 import { useFormat } from '../format/useFormat';
+import { amountOrNull, type Amount } from './amount';
 import { loadGameDefaults, saveGameDefaults, todayIso } from './gameDefaults';
 import { variantLabel } from './labels';
 
 const GAME_TYPES: readonly GameType[] = ['TOURNAMENT', 'SIT_AND_GO', 'CASH'];
 const MODALITIES: readonly Modality[] = ['NLHE', 'PLO'];
 const STATUSES: readonly GameStatus[] = ['IN_PLAY', 'FINISHED'];
-
-/** Number inputs hold a number, or an empty string while nothing is typed. */
-type Amount = number | '';
 
 interface GameFormValues {
   gameType: GameType;
@@ -60,6 +58,8 @@ interface GameFormValues {
 interface GameFormProps {
   rooms: Room[];
   variants: Variant[];
+  /** The game being edited; a new one is recorded when absent. */
+  game?: Game;
   /** Saves the game; rejects with an `ApiError` when the backend refuses it. */
   onSave: (game: GameRequest) => Promise<Game>;
   /** Called after a save; `addAnother` when the form stays open for the next game. */
@@ -71,7 +71,7 @@ interface GameFormProps {
  * Form to record a game. It starts with today, the room and type used last, and the fields of
  * that type; a game is recorded in play unless it is marked as finished, which shows its result.
  */
-export function GameForm({ rooms, variants, onSave, onSaved, onCancel }: GameFormProps) {
+export function GameForm({ rooms, variants, game, onSave, onSaved, onCancel }: GameFormProps) {
   const { t } = useTranslation();
   const format = useFormat();
   const buyInRef = useRef<HTMLInputElement>(null);
@@ -79,14 +79,15 @@ export function GameForm({ rooms, variants, onSave, onSaved, onCancel }: GameFor
   const [saving, setSaving] = useState<'save' | 'another' | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
 
-  const activeRooms = rooms.filter((room) => room.active);
+  // Inactive rooms take no new games, but a game stays in the room it was recorded in.
+  const activeRooms = rooms.filter((room) => room.active || room.id === game?.room.id);
 
   const form = useForm<GameFormValues>({
-    initialValues: initialValues(activeRooms),
+    initialValues: game ? valuesOf(game) : initialValues(activeRooms),
     validate: {
       roomId: (value) => (value ? null : t('gameForm.errors.required')),
       playedOn: (value) => (value ? null : t('gameForm.errors.required')),
-      buyIn: (value) => (value === '' ? t('gameForm.errors.required') : null),
+      buyIn: (value) => (amountOrNull(value) === null ? t('gameForm.errors.required') : null),
       ticketPrizeValue: (value, values) =>
         showsTicketWon(values) && !(Number(value) > 0) ? t('gameForm.errors.ticketValue') : null,
     },
@@ -98,7 +99,11 @@ export function GameForm({ rooms, variants, onSave, onSaved, onCancel }: GameFor
   const currency = room?.currencyCode;
 
   const variantOptions = variants
-    .filter((variant) => variant.gameType === values.gameType && variant.active)
+    .filter(
+      (variant) =>
+        variant.gameType === values.gameType &&
+        (variant.active || variant.id === game?.variant?.id),
+    )
     .map((variant) => ({ value: String(variant.id), label: variantLabel(t, variant) }));
 
   const amountProps = {
@@ -126,12 +131,14 @@ export function GameForm({ rooms, variants, onSave, onSaved, onCancel }: GameFor
     setFailure(null);
     setSaving(addAnother ? 'another' : 'save');
     try {
-      const game = await onSave(toRequest(form.values));
-      saveGameDefaults({
-        roomId: game.room.id,
-        gameType: game.gameType,
-        status: form.values.status,
-      });
+      const saved = await onSave(toRequest(form.values));
+      if (!game) {
+        saveGameDefaults({
+          roomId: saved.room.id,
+          gameType: saved.gameType,
+          status: form.values.status,
+        });
+      }
       if (addAnother) {
         // The next game is usually like this one: keep where and what, clear its result.
         form.setValues({
@@ -150,7 +157,7 @@ export function GameForm({ rooms, variants, onSave, onSaved, onCancel }: GameFor
         buyInRef.current?.focus();
         buyInRef.current?.select();
       }
-      onSaved(game, addAnother);
+      onSaved(saved, addAnother);
     } catch (error) {
       if (error instanceof ApiError) {
         const fieldErrors = error.errors.filter(
@@ -192,7 +199,7 @@ export function GameForm({ rooms, variants, onSave, onSaved, onCancel }: GameFor
       }}
       onKeyDown={(event) => {
         // Ctrl/Cmd + Enter: save and go on with the next game.
-        if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+        if (!game && event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
           event.preventDefault();
           void submit(true);
         }
@@ -368,15 +375,17 @@ export function GameForm({ rooms, variants, onSave, onSaved, onCancel }: GameFor
           <Button variant="subtle" color="gray" onClick={onCancel} disabled={saving !== null}>
             {t('gameForm.cancel')}
           </Button>
-          <Button
-            variant="default"
-            onClick={() => void submit(true)}
-            loading={saving === 'another'}
-            disabled={saving === 'save'}
-            title={t('gameForm.saveAndAddAnotherHint')}
-          >
-            {t('gameForm.saveAndAddAnother')}
-          </Button>
+          {!game && (
+            <Button
+              variant="default"
+              onClick={() => void submit(true)}
+              loading={saving === 'another'}
+              disabled={saving === 'save'}
+              title={t('gameForm.saveAndAddAnotherHint')}
+            >
+              {t('gameForm.saveAndAddAnother')}
+            </Button>
+          )}
           <Button type="submit" loading={saving === 'save'} disabled={saving === 'another'}>
             {t('gameForm.save')}
           </Button>
@@ -417,6 +426,29 @@ function initialValues(activeRooms: Room[]): GameFormValues {
   };
 }
 
+function valuesOf(game: Game): GameFormValues {
+  return {
+    gameType: game.gameType,
+    roomId: String(game.room.id),
+    playedOn: game.playedOn,
+    playedAt: game.playedAt?.slice(0, 5) ?? '',
+    variantId: game.variant ? String(game.variant.id) : null,
+    modality: game.modality,
+    name: game.name ?? '',
+    buyIn: game.buyIn,
+    entries: game.entries,
+    paidWithTicket: game.paidWithTicket,
+    status: game.status,
+    // Nothing won is shown as an empty field, like when it is typed.
+    prize: game.prize === 0 ? '' : game.prize,
+    bounty: game.bounty === 0 ? '' : game.bounty,
+    wonTicket: game.ticketPrizeValue > 0,
+    ticketPrizeValue: game.ticketPrizeValue === 0 ? '' : game.ticketPrizeValue,
+    ticketDescription: game.ticketDescription ?? '',
+    notes: game.notes ?? '',
+  };
+}
+
 /** Only what applies to the type and status is sent; the backend fills in the defaults. */
 function toRequest(values: GameFormValues): GameRequest {
   const isCash = values.gameType === 'CASH';
@@ -431,8 +463,8 @@ function toRequest(values: GameFormValues): GameRequest {
     variantId: values.variantId ? Number(values.variantId) : null,
     status: values.status,
     name: values.name.trim() || null,
-    buyIn: Number(values.buyIn),
-    entries: isCash || values.entries === '' ? null : values.entries,
+    buyIn: amountOrNull(values.buyIn) ?? 0,
+    entries: isCash ? null : amountOrNull(values.entries),
     paidWithTicket: !isCash && values.paidWithTicket,
     prize: isFinished ? amountOrNull(values.prize) : null,
     bounty: isFinished && !isCash ? amountOrNull(values.bounty) : null,
@@ -440,8 +472,4 @@ function toRequest(values: GameFormValues): GameRequest {
     ticketDescription: wonTicket ? values.ticketDescription.trim() || null : null,
     notes: values.notes.trim() || null,
   };
-}
-
-function amountOrNull(value: Amount): number | null {
-  return value === '' ? null : value;
 }

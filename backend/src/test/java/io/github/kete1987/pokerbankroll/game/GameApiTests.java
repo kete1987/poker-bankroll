@@ -72,6 +72,7 @@ class GameApiTests extends ApiIntegrationTest {
         json.extractingPath("$.name").isEqualTo("Kill The Fish");
         json.extractingPath("$.entries").isEqualTo(3);
         json.extractingPath("$.invested").isEqualTo(7.5);
+        json.extractingPath("$.won").isEqualTo(11.25);
         json.extractingPath("$.net").isEqualTo(3.75);
         json.extractingPath("$.notes").isEqualTo("final table");
     }
@@ -316,6 +317,21 @@ class GameApiTests extends ApiIntegrationTest {
         assertThat(mvc.get().uri("/games").param("sort", "net,asc")).hasStatusOk()
                 .bodyJson().extractingPath("$.items[*].name").asArray()
                 .containsExactly("loss", "break even", "big win");
+    }
+
+    @Test
+    void sortsByWhatWasWonBountiesIncluded() {
+        create(game("2026-01-19", "prize only").replace("}", ", \"prize\": 10}"));
+        create(game("2026-01-20", "mostly bounties").replace("}", ", \"prize\": 2, \"bounty\": 15}"));
+        create(game("2026-01-21", "nothing"));
+
+        assertThat(mvc.get().uri("/games").param("sort", "won,desc")).hasStatusOk()
+                .bodyJson().extractingPath("$.items[*].name").asArray()
+                .containsExactly("mostly bounties", "prize only", "nothing");
+        // By prize alone the order is another.
+        assertThat(mvc.get().uri("/games").param("sort", "prize,desc")).hasStatusOk()
+                .bodyJson().extractingPath("$.items[*].name").asArray()
+                .containsExactly("prize only", "mostly bounties", "nothing");
     }
 
     @Test

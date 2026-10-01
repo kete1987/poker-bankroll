@@ -59,16 +59,96 @@
       "inPlay": "Está en juego: finalízala cuando sepas el resultado.",
       "finished": "Neto: {{net}}"
     },
-    "recent": {
-      "title": "Últimas partidas añadidas",
-      "empty": "Todavía no hay partidas. Añade la primera."
-    },
     "columns": {
       "date": "Fecha",
       "game": "Partida",
       "room": "Sala",
       "buyIn": "Buy-in",
-      "net": "Neto"
+      "prize": "Ganado",
+      "net": "Neto",
+      "invested": "Invertido",
+      "actions": "Acciones"
+    },
+    "edit": "Editar partida",
+    "notes": "Notas: {{notes}}",
+    "paidWithTicket": "Una entrada pagada con ticket",
+    "ticketWon": "Ticket ganado: {{value}}",
+    "prizePart": "Premio {{amount}}",
+    "bountyPart": "Bounties {{amount}}",
+    "inPlay": {
+      "title_one": "{{count}} partida en juego",
+      "title_other": "{{count}} partidas en juego",
+      "truncated_one": "Solo se muestra la más reciente.",
+      "truncated_other": "Solo se muestran las {{count}} más recientes."
+    },
+    "actions": {
+      "finish": "Finalizar",
+      "reEntry": "Reentrada",
+      "rebuy": "Recompra",
+      "finishGame": "Finalizar {{game}}",
+      "reEntryGame": "Añadir una reentrada a {{game}}",
+      "rebuyGame": "Añadir una recompra a {{game}}",
+      "editGame": "Editar {{game}}",
+      "deleteGame": "Borrar {{game}}"
+    },
+    "filters": {
+      "period": "Periodo",
+      "from": "Desde",
+      "to": "Hasta",
+      "gameType": "Tipo",
+      "room": "Sala",
+      "variant": "Variante",
+      "text": "Buscar",
+      "textPlaceholder": "Nombre o notas",
+      "any": "Todos",
+      "clear": "Limpiar filtros"
+    },
+    "periods": {
+      "all": "Todo",
+      "thisMonth": "Este mes",
+      "lastMonth": "Mes pasado",
+      "thisYear": "Este año",
+      "custom": "Personalizado"
+    },
+    "list": {
+      "empty": "Todavía no hay partidas finalizadas.",
+      "noMatches": "Ninguna partida coincide con estos filtros.",
+      "total_one": "{{formatted}} partida",
+      "total_other": "{{formatted}} partidas",
+      "pages": {
+        "first": "Primera página",
+        "previous": "Página anterior",
+        "next": "Página siguiente",
+        "last": "Última página",
+        "page": "Página {{page}}"
+      }
+    },
+    "finish": {
+      "title": "Finalizar partida",
+      "description": "{{game}}: {{invested}} invertidos.",
+      "cashHelp": "Con lo que te levantaste de la mesa; 0 si lo perdiste todo.",
+      "done": "Partida finalizada"
+    },
+    "rebuy": {
+      "title": "Añadir recompra",
+      "description": "Hasta ahora has llevado {{amount}} a la mesa.",
+      "amount": "Importe de la recompra",
+      "amountRequired": "Indica un importe mayor que cero",
+      "done": "Recompra añadida",
+      "total": "Llevado a la mesa: {{amount}}"
+    },
+    "reEntry": {
+      "title": "Añadir reentrada",
+      "confirm": "¿Añadir una entrada más de {{amount}} a {{game}}?",
+      "done": "Reentrada añadida",
+      "total_one": "{{count}} entrada",
+      "total_other": "{{count}} entradas"
+    },
+    "delete": {
+      "title": "Borrar partida",
+      "confirm": "¿Borrar {{game}} del {{date}} en {{room}}? No se puede deshacer.",
+      "confirmLabel": "Borrar",
+      "done": "Partida borrada"
     }
   },
   "gameForm": {
@@ -109,6 +189,13 @@
       "notSaved": "La partida no se ha guardado",
       "unexpected": "Se ha producido un error inesperado. Inténtalo de nuevo."
     }
+  },
+  "actions": {
+    "cancel": "Cancelar",
+    "close": "Cerrar"
+  },
+  "errors": {
+    "unexpected": "Se ha producido un error inesperado. Inténtalo de nuevo."
   },
   "notFound": {
     "title": "Página no encontrada",

@@ -1,5 +1,7 @@
 import type { TFunction } from 'i18next';
 
+import type { Game } from '../api/types';
+
 /** Built-in variant codes that have a translation (`variants.<CODE>` in the locale files). */
 const TRANSLATED_VARIANTS = [
   'REGULAR',
@@ -33,4 +35,14 @@ export function variantLabel(
     return isTranslated(variant.code) ? t(`variants.${variant.code}`) : variant.code;
   }
   return variant.name ?? '';
+}
+
+/** One line that says which game it is, e.g. to confirm an action on it. */
+export function describeGame(t: TFunction, game: Game): string {
+  return (
+    game.name ??
+    [t(`gameTypes.${game.gameType}`), game.variant && variantLabel(t, game.variant)]
+      .filter(Boolean)
+      .join(' · ')
+  );
 }
