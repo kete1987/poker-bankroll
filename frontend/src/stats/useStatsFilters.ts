@@ -11,12 +11,16 @@ import type { GameScope } from '../games/ScopeFilters';
 export const GRANULARITIES = ['DAY', 'WEEK', 'MONTH'] as const;
 export type Granularity = (typeof GRANULARITIES)[number];
 
+/** What the chart draws: the net added up over time, or the net of each period. */
+export type ChartMode = 'cumulative' | 'period';
+
 export interface StatsFilters extends GameScope {
   range: DateRange;
   /** The currency shown, when the URL names one. */
   currency?: string;
   /** Chosen by the user; otherwise it follows the length of the period. */
   granularity?: Granularity;
+  chart: ChartMode;
 }
 
 const GAME_TYPES: readonly GameType[] = ['TOURNAMENT', 'SIT_AND_GO', 'CASH'];
@@ -45,6 +49,7 @@ function parse(params: URLSearchParams): StatsFilters {
     variantIds: parseList(params.get('variant'), parsePositiveInteger),
     currency: params.get('currency')?.trim().toUpperCase() || undefined,
     granularity: parseOneOf(params.get('group')?.toUpperCase() ?? null, GRANULARITIES),
+    chart: params.get('chart') === 'period' ? 'period' : 'cumulative',
   };
 }
 
@@ -78,6 +83,9 @@ function serialize(filters: StatsFilters): URLSearchParams {
   }
   if (filters.granularity) {
     params.set('group', filters.granularity.toLowerCase());
+  }
+  if (filters.chart === 'period') {
+    params.set('chart', 'period');
   }
   return params;
 }

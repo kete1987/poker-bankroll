@@ -1,9 +1,19 @@
-import { Alert, Group, Loader, Select, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import {
+  Alert,
+  Group,
+  Loader,
+  SegmentedControl,
+  Select,
+  SimpleGrid,
+  Stack,
+  Text,
+  Title,
+} from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 
 import { useRooms } from '../api/rooms';
 import { useStatsOverTime } from '../api/stats';
-import type { StatsGroup } from '../api/types';
+import type { GameType, StatsFigures, StatsGroup } from '../api/types';
 import { useVariants } from '../api/variants';
 import { Page } from '../components/Page';
 import { PeriodFilter } from '../components/PeriodFilter';
@@ -11,11 +21,13 @@ import { StatCard } from '../components/StatCard';
 import { useFormat } from '../format/useFormat';
 import { ScopeFilters } from '../games/ScopeFilters';
 import { NetEvolutionChart, type NetPoint } from '../stats/NetEvolutionChart';
+import { PeriodTable, type PeriodRow } from '../stats/PeriodTable';
 import {
   GRANULARITIES,
   granularityFor,
   toStatsQuery,
   useStatsFilters,
+  type ChartMode,
   type Granularity,
 } from '../stats/useStatsFilters';
 
@@ -23,7 +35,17 @@ function toneOf(amount: number): 'positive' | 'negative' | undefined {
   return amount > 0 ? 'positive' : amount < 0 ? 'negative' : undefined;
 }
 
-/** Statistics over time, for one currency: for now, the evolution of the net. */
+/** The net of each game type, by type. */
+function netByGameType(
+  summaries: { gameType: GameType; figures: StatsFigures }[],
+): Partial<Record<GameType, number>> {
+  return Object.fromEntries(summaries.map((summary) => [summary.gameType, summary.figures.net]));
+}
+
+/**
+ * Statistics over time, for one currency: the net as a chart (added up, or period by period) and
+ * the results of each period in a table.
+ */
 export function StatsPage() {
   const { t } = useTranslation();
   const format = useFormat();
@@ -78,9 +100,9 @@ export function StatsPage() {
     .map((currency) => currency.currencyCode);
   const currencyCode =
     filters.currency && currencies.includes(filters.currency) ? filters.currency : currencies[0];
-  const total = summary.currencies.find(
-    (currency) => currency.currencyCode === currencyCode,
-  )?.total;
+  const ofCurrency = summary.currencies.find((currency) => currency.currencyCode === currencyCode);
+  const total = ofCurrency?.total;
+  const totalByGameType = ofCurrency?.byGameType ?? [];
   const groups: StatsGroup[] =
     overTime.currencies.find((currency) => currency.currencyCode === currencyCode)?.groups ?? [];
 
@@ -102,6 +124,15 @@ export function StatsPage() {
     net: group.figures.net,
     cumulativeNet: group.cumulativeNet ?? 0,
   }));
+  // The table reads from the newest period back.
+  const rows: PeriodRow[] = groups
+    .map((group) => ({
+      key: group.key.period ?? '',
+      label: labelOf(group.key.period ?? ''),
+      figures: group.figures,
+      netByGameType: netByGameType(group.byGameType ?? []),
+    }))
+    .reverse();
   // The best and the worst are picked, not added up: every amount comes from the backend.
   const best = points.reduce<NetPoint | undefined>(
     (found, point) => (!found || point.net > found.net ? point : found),
@@ -137,9 +168,21 @@ export function StatsPage() {
       </Group>
 
       <Stack gap="xs">
-        <Title order={3} size="h4">
-          {t('stats.net.title')}
-        </Title>
+        <Group justify="space-between" align="flex-end">
+          <Title order={3} size="h4">
+            {t('stats.net.title')}
+          </Title>
+          <SegmentedControl
+            size="xs"
+            aria-label={t('stats.chart.label')}
+            data={[
+              { value: 'cumulative', label: t('stats.chart.cumulative') },
+              { value: 'period', label: t('stats.chart.period') },
+            ]}
+            value={filters.chart}
+            onChange={(value) => update({ chart: value as ChartMode })}
+          />
+        </Group>
         {!currencyCode || !total || points.length === 0 ? (
           <Text c="dimmed">{t('dashboard.noGames')}</Text>
         ) : (
@@ -180,7 +223,19 @@ export function StatsPage() {
                 </>
               )}
             </SimpleGrid>
-            <NetEvolutionChart points={points} currencyCode={currencyCode} />
+            <NetEvolutionChart points={points} currencyCode={currencyCode} mode={filters.chart} />
+            <Title order={3} size="h4" mt="md">
+              {t(`stats.table.title.${drawn}`)}
+            </Title>
+            {/* The key takes the table back to its first page when what it lists changes. */}
+            <PeriodTable
+              key={`${drawn}/${currencyCode}/${groups.length}`}
+              rows={rows}
+              total={total}
+              totalNetByGameType={netByGameType(totalByGameType)}
+              currencyCode={currencyCode}
+              periodLabel={t(`stats.granularity.${drawn}`)}
+            />
           </>
         )}
       </Stack>

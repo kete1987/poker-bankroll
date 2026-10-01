@@ -33,8 +33,11 @@ const SUMMARY: StatsSummary = {
   currencies: [
     {
       currencyCode: 'EUR',
-      total: figures({ games: 12, net: 25.5, invested: 51, roi: 0.5 }),
-      byGameType: [],
+      total: figures({ games: 12, net: 25.5, invested: 51, won: 76.5, roi: 0.5 }),
+      byGameType: [
+        { gameType: 'TOURNAMENT', figures: figures({ games: 9, net: 30 }) },
+        { gameType: 'SIT_AND_GO', figures: figures({ games: 3, net: -4.5 }) },
+      ],
       inPlay: { games: 0, invested: 0 },
     },
     {
@@ -63,10 +66,17 @@ function groups(groupBy: string): StatsGroups {
         currencyCode: 'EUR',
         groups: periods.map((period, index) => {
           cumulativeNet += NETS[index] ?? 0;
+          const net = NETS[index] ?? 0;
           return {
             key: { period },
-            figures: figures({ games: index + 3, net: NETS[index] ?? 0 }),
+            figures: figures({ games: index + 3, net, invested: 10, won: 10 + net, roi: net / 10 }),
             cumulativeNet,
+            byGameType: [
+              {
+                gameType: index === 1 ? ('SIT_AND_GO' as const) : ('TOURNAMENT' as const),
+                figures: figures({ games: index + 3, net }),
+              },
+            ],
           };
         }),
       },
@@ -145,6 +155,7 @@ describe('Statistics page', () => {
     const thisYear = rangeOf('thisYear');
     expect(queriesTo(calls, '/stats/groups').at(-1)).toEqual({
       groupBy: 'WEEK',
+      byGameType: 'true',
       from: thisYear.from,
       to: thisYear.to,
     });
@@ -219,6 +230,99 @@ describe('Statistics page', () => {
     expect(await screen.findByRole('region', { name: 'Best month' })).toBeInTheDocument();
   });
 
+  it('draws the net of each period as bars when asked', async () => {
+    stubStats();
+    renderApp('/stats');
+    expect((await chartOption()).series[0]).toMatchObject({ type: 'line' });
+
+    await userEvent.click(screen.getByRole('radio', { name: 'Per period' }));
+
+    await waitFor(async () =>
+      expect((await chartOption()).series[0]).toMatchObject({ type: 'bar' }),
+    );
+    const bars = (await chartOption()).series[0]?.data as unknown as { value: number }[];
+    expect(bars.map((bar) => bar.value)).toEqual([10, -4.5, 20]);
+  });
+
+  it('takes the kind of chart from the URL', async () => {
+    stubStats();
+    renderApp('/stats?chart=period');
+
+    expect((await chartOption()).series[0]).toMatchObject({ type: 'bar' });
+    expect(screen.getByRole('radio', { name: 'Per period' })).toBeChecked();
+  });
+
+  it('lists the results of each period, newest first, with the net of each game type', async () => {
+    stubStats();
+    renderApp('/stats');
+
+    const table = within(await screen.findByRole('table'));
+    expect(screen.getByRole('heading', { name: 'Results per week' })).toBeInTheDocument();
+    // Cash was not played: it has no column.
+    expect(table.getAllByRole('columnheader').map((header) => header.textContent)).toEqual([
+      'Week',
+      'Played',
+      'Tournament',
+      'Sit & Go / Spin',
+      'Invested',
+      'Won',
+      'Net',
+      'ROI',
+    ]);
+    const rows = table.getAllByRole('row').slice(1);
+    expect(rows.map((row) => within(row).getAllByRole('rowheader')[0]?.textContent)).toEqual([
+      'Week of 02/02/2026',
+      'Week of 26/01/2026',
+      'Week of 19/01/2026',
+      'Total',
+    ]);
+    expect(rows[0]).toHaveTextContent(
+      ['5', '+€20.00', '—', '€10.00', '€30.00', '+€20.00', '200.00%'].join(''),
+    );
+    // A week with only Sit & Go: a dash under Tournament.
+    expect(rows[1]).toHaveTextContent(
+      ['4', '—', '-€4.50', '€10.00', '€5.50', '-€4.50', '-45.00%'].join(''),
+    );
+    expect(rows[3]).toHaveTextContent(
+      ['12', '+€30.00', '-€4.50', '€51.00', '€76.50', '+€25.50', '50.00%'].join(''),
+    );
+  });
+
+  it('pages the table when there are many periods', async () => {
+    const days = Array.from({ length: 40 }, (_, index) => {
+      const day = String(index + 1).padStart(2, '0');
+      return index < 31 ? `2026-01-${day}` : `2026-02-${String(index - 30).padStart(2, '0')}`;
+    });
+    stubStats({
+      'GET /stats/groups': {
+        groupBy: 'DAY',
+        currencies: [
+          {
+            currencyCode: 'EUR',
+            groups: days.map((period, index) => ({
+              key: { period },
+              figures: figures({ games: 1, net: 1 }),
+              cumulativeNet: index + 1,
+              byGameType: [{ gameType: 'TOURNAMENT', figures: figures({ games: 1, net: 1 }) }],
+            })),
+          },
+        ],
+      },
+    });
+    renderApp('/stats?group=day');
+
+    const table = within(await screen.findByRole('table'));
+    // 31 periods and the total.
+    expect(table.getAllByRole('rowheader')).toHaveLength(32);
+    expect(table.getAllByRole('rowheader')[0]).toHaveTextContent('09/02/2026');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Page 2' }));
+
+    expect(table.getAllByRole('rowheader')).toHaveLength(10);
+    expect(table.getAllByRole('rowheader')[0]).toHaveTextContent('09/01/2026');
+    expect(table.getAllByRole('rowheader').at(-1)).toHaveTextContent('Total');
+  });
+
   it('filters by type, room and variant', async () => {
     const calls = stubStats();
     renderApp('/stats');
@@ -254,6 +358,7 @@ describe('Statistics page', () => {
 
     expect(queriesTo(calls, '/stats/groups').at(-1)).toEqual({
       groupBy: 'DAY',
+      byGameType: 'true',
       gameType: 'CASH,SIT_AND_GO',
       roomId: '1',
       variantId: '20',

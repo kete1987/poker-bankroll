@@ -245,6 +245,32 @@ class StatsApiTests extends ApiIntegrationTest {
     }
 
     @Test
+    void breaksEachGroupDownByGameTypeWhenAsked() {
+        recordSampleGames();
+
+        String json = groups("?groupBy=MONTH&currency=EUR&byGameType=true");
+
+        String month = "$.currencies[0].groups[0]";
+        assertNumber(json, month + ".figures.games", "6");
+        // In catalog order, only the types with games.
+        assertThat(JsonPath.<Object>read(json, month + ".byGameType[*].gameType"))
+                .hasToString("[\"TOURNAMENT\",\"SIT_AND_GO\",\"CASH\"]");
+        assertNumber(json, month + ".byGameType[0].figures.games", "4");
+        assertNumber(json, month + ".byGameType[0].figures.net", "0");
+        assertNumber(json, month + ".byGameType[1].figures.net", "1");
+        assertNumber(json, month + ".byGameType[2].figures.net", "1.5");
+
+        String days = groups("?groupBy=DAY&currency=EUR&byGameType=true");
+        assertThat(JsonPath.<Object>read(days, "$.currencies[0].groups[0].byGameType[*].gameType"))
+                .hasToString("[\"TOURNAMENT\"]");
+        assertThat(JsonPath.<Object>read(days, "$.currencies[0].groups[2].byGameType[*].gameType"))
+                .hasToString("[\"SIT_AND_GO\"]");
+        // Not sent unless asked for.
+        assertThat(JsonPath.<Object>read(groups("?groupBy=MONTH&currency=EUR"),
+                "$.currencies[0].groups[0].byGameType")).isNull();
+    }
+
+    @Test
     void groupsByGameTypeLikeTheSummary() {
         recordSampleGames();
 

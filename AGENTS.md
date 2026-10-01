@@ -155,7 +155,8 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   `GameTotals`; rates and ROI are fractions with 4 decimals (`0.3496`), formatted by the frontend.
   `/stats/summary` gives them overall and per game type, `/stats/groups?groupBy=` per period (`DAY`,
   `WEEK` from Monday, `MONTH`, `YEAR`), `GAME_TYPE`, `VARIANT`, `ROOM`, `MODALITY` or `BUY_IN`; both
-  take the filters of the games list. Periods carry the **cumulative net**, which starts from zero
+  take the filters of the games list. With `byGameType=true` each group is also broken down by
+  game type. Periods carry the **cumulative net**, which starts from zero
   at the beginning of the filtered range. A new grouping is a `GroupBy` constant plus its `Grouping`
   in `StatsService`.
 - **Bankroll**: the money set aside for poker and what was won or lost with it. It is **not the

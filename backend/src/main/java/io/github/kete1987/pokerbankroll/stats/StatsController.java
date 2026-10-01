@@ -58,6 +58,8 @@ class StatsController {
                     + "Periods without games are not returned.")
     StatsGroupsResponse groups(
             @RequestParam GroupBy groupBy,
+            @Parameter(description = "Also break each group down by game type")
+            @RequestParam(defaultValue = "false") boolean byGameType,
             @Parameter(description = "Played on or after this date")
             @RequestParam(required = false) @Nullable LocalDate from,
             @Parameter(description = "Played on or before this date")
@@ -74,6 +76,6 @@ class StatsController {
             @Parameter(description = "Text contained in the name or the notes, ignoring case")
             @RequestParam(required = false) @Nullable String q) {
         GameFilter filter = new GameFilter(from, to, gameType, modality, roomId, variantId, null, currency, q);
-        return service.groups(filter, groupBy);
+        return service.groups(filter, groupBy, byGameType);
     }
 }
