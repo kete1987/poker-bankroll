@@ -189,6 +189,20 @@ class GameImportApiTests extends ApiIntegrationTest {
     }
 
     @Test
+    void aCurrencyThatDoesNotExistOnlySpoilsItsOwnRow() {
+        var json = assertThat(importCsv(HEADER + ",currency",
+                "2026-01-19,PokerStars,TOURNAMENT,5,XXX",
+                "2026-01-20,PokerStars,TOURNAMENT,5,USD",
+                "2026-01-21,PokerStars,TOURNAMENT,5,")).hasStatusOk().bodyJson();
+
+        json.extractingPath("$.games").isEqualTo(2);
+        json.extractingPath("$.errorCount").isEqualTo(1);
+        json.extractingPath("$.errors[0].row").isEqualTo(2);
+        json.extractingPath("$.errors[0].code").isEqualTo("UNKNOWN_CURRENCY");
+        json.extractingPath("$.newRooms[0].currencyCode").isEqualTo("USD");
+    }
+
+    @Test
     void findsBuiltInVariantsByCodeAndTheOnesOfTheUserByName() {
         long expresso = builtInVariantId("SIT_AND_GO", "EXPRESSO");
         long hyper = insertCustomVariant("SIT_AND_GO", "Hyper Turbo");

@@ -125,8 +125,9 @@ public class GameImportService {
         private final Locale locale;
         private final Map<String, KnownRoom> roomsByName = new HashMap<>();
         private final Map<String, Long> variantsByKey = new HashMap<>();
-        /** For rooms that do not exist: the first currency a row gives for them. */
+        /** For rooms that do not exist: the first currency that exists among those their rows give. */
         private final Map<String, String> currencyOfNewRooms = new HashMap<>();
+        private final Map<String, Boolean> knownCurrencies = new HashMap<>();
 
         private final List<ImportedRoom> newRooms = new ArrayList<>();
         private final List<ImportedVariant> newVariants = new ArrayList<>();
@@ -155,7 +156,7 @@ public class GameImportService {
             for (Row row : rows) {
                 String room = row.get(GameCsv.ROOM);
                 String currency = row.get(GameCsv.CURRENCY);
-                if (room != null && currency != null && !roomsByName.containsKey(key(room))) {
+                if (room != null && currency != null && !roomsByName.containsKey(key(room)) && exists(currency)) {
                     currencyOfNewRooms.putIfAbsent(key(room), currency.toUpperCase(Locale.ROOT));
                 }
             }
@@ -225,6 +226,10 @@ public class GameImportService {
         /** The room of the row, created if it does not exist; nothing when the row cannot have one. */
         private @Nullable KnownRoom room(Row row, String name) {
             String currency = row.get(GameCsv.CURRENCY);
+            if (currency != null && !exists(currency)) {
+                apiError(row, GameCsv.CURRENCY, new ApiException(ErrorCode.UNKNOWN_CURRENCY, currency));
+                return null;
+            }
             KnownRoom room = roomsByName.get(key(name));
             if (room == null) {
                 String currencyCode = currencyOfNewRooms.get(key(name));
@@ -244,11 +249,11 @@ public class GameImportService {
             return room;
         }
 
+        private boolean exists(String currency) {
+            return knownCurrencies.computeIfAbsent(currency.toUpperCase(Locale.ROOT), currencies::existsById);
+        }
+
         private @Nullable KnownRoom createRoom(Row row, String name, String currencyCode) {
-            if (!currencies.existsById(currencyCode)) {
-                apiError(row, GameCsv.CURRENCY, new ApiException(ErrorCode.UNKNOWN_CURRENCY, currencyCode));
-                return null;
-            }
             RoomRequest request = new RoomRequest(name, currencyCode, true);
             Set<ConstraintViolation<RoomRequest>> violations = validator.validate(request);
             if (!violations.isEmpty()) {
