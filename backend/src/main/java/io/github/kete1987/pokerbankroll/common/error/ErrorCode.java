@@ -30,6 +30,10 @@ public enum ErrorCode {
     ROOM_IN_USE(HttpStatus.CONFLICT),
     /** The room has games or bankroll movements: its currency cannot change. */
     ROOM_CURRENCY_LOCKED(HttpStatus.CONFLICT),
+    LOGO_EMPTY(HttpStatus.BAD_REQUEST),
+    LOGO_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE),
+    /** The content is not a PNG, JPEG or WebP image, whatever the declared content type. */
+    LOGO_UNSUPPORTED_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE),
 
     // Variants
     VARIANT_NAME_TAKEN(HttpStatus.CONFLICT),

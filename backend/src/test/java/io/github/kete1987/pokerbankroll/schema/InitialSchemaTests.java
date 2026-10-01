@@ -32,6 +32,7 @@ class InitialSchemaTests {
     void deleteTestData() {
         jdbc.update("delete from game");
         jdbc.update("delete from bankroll_movement");
+        // Their logos go with them.
         jdbc.update("delete from room");
         jdbc.update("delete from variant where name is not null");
     }
@@ -313,6 +314,56 @@ class InitialSchemaTests {
                 .isEqualTo("Winamax.es");
     }
 
+    // ---- room logo ----
+
+    @Test
+    void aRoomHasAtMostOneLogoOfAnAcceptedType() {
+        long room = insertRoom("Winamax", "EUR");
+
+        insertLogo(room, "image/png", 10, 10);
+        assertThat(jdbc.queryForObject("select updated_at is not null from room_logo where room_id = ?",
+                Boolean.class, room)).isTrue();
+
+        assertThatThrownBy(() -> insertLogo(room, "image/jpeg", 10, 10))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        for (String type : List.of("image/jpeg", "image/webp")) {
+            jdbc.update("update room_logo set content_type = ? where room_id = ?", type, room);
+        }
+        for (String type : List.of("image/svg+xml", "image/gif", "text/plain")) {
+            assertThatThrownBy(() -> jdbc.update("update room_logo set content_type = ? where room_id = ?", type, room))
+                    .as(type)
+                    .isInstanceOf(DataIntegrityViolationException.class);
+        }
+        assertThatThrownBy(() -> insertLogo(room + 1000, "image/png", 10, 10))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void logoSizeIsTheOneOfItsContentUpTo256Kilobytes() {
+        long room = insertRoom("Winamax", "EUR");
+
+        insertLogo(room, "image/png", 262_144, 262_144);
+
+        long other = insertRoom("888poker", "EUR");
+        assertThatThrownBy(() -> insertLogo(other, "image/png", 262_145, 262_145))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> insertLogo(other, "image/png", 0, 0))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        // A size that is not the one of the content, e.g. to get past the limit.
+        assertThatThrownBy(() -> insertLogo(other, "image/png", 262_145, 100))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void deletingARoomDeletesItsLogo() {
+        long room = insertRoom("Winamax", "EUR");
+        insertLogo(room, "image/png", 10, 10);
+
+        jdbc.update("delete from room where id = ?", room);
+
+        assertThat(jdbc.queryForObject("select count(*) from room_logo", Integer.class)).isZero();
+    }
+
     // ---- variant ----
 
     @Test
@@ -428,6 +479,12 @@ class InitialSchemaTests {
     private long insertRoom(String name, String currency) {
         return jdbc.queryForObject(
                 "insert into room (name, currency_code) values (?, ?) returning id", Long.class, name, currency);
+    }
+
+    /** Inserts a logo of {@code contentLength} bytes that says it has {@code sizeBytes}. */
+    private void insertLogo(long room, String contentType, int contentLength, int sizeBytes) {
+        jdbc.update("insert into room_logo (room_id, content, content_type, size_bytes) values (?, ?, ?, ?)",
+                room, new byte[contentLength], contentType, sizeBytes);
     }
 
     /** Inserts a game with a buy-in of 1 (unless {@code column} is buy_in) and one extra column set. */

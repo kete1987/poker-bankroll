@@ -236,6 +236,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rooms/{id}/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the logo of a room
+         * @description The image, with a strong `ETag` (`If-None-Match` is answered with 304). Request it as `?v=<logoVersion of the room>`: that URL never changes its content, so it is served to be cached for a year without revalidation. Without `v`, or with another value, it is revalidated on every use.
+         */
+        get: operations["getLogo"];
+        /**
+         * Set the logo of a room
+         * @description The body is the image itself: PNG, JPEG or WebP, up to 256 kB. The format is detected from the content and the declared `Content-Type` is ignored. Replaces the logo the room had and returns the room with its new `logoVersion`. Fails with `LOGO_EMPTY` (400), `LOGO_TOO_LARGE` (413) or `LOGO_UNSUPPORTED_TYPE` (415).
+         */
+        put: operations["replaceLogo"];
+        post?: never;
+        /** Delete the logo of a room */
+        delete: operations["deleteLogo"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/stats/groups": {
         parameters: {
             query?: never;
@@ -619,6 +644,8 @@ export interface components {
             id: number;
             /** @description The room has games or bankroll movements: it cannot be deleted and its currency cannot change */
             inUse: boolean;
+            /** @description Null when the room has no logo. Otherwise an opaque value that changes every time the logo is uploaded: get the image from `/rooms/{id}/logo?v=<logoVersion>` */
+            logoVersion?: string | null;
             name: string;
             /** Format: date-time */
             updatedAt: string;
@@ -1184,6 +1211,88 @@ export interface operations {
         };
     };
     delete_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getLogo: {
+        parameters: {
+            query?: {
+                /** @description The `logoVersion` of the room */
+                v?: string;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
+                    "image/png": string;
+                    "image/webp": string;
+                };
+            };
+            /** @description Not modified */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    replaceLogo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "image/jpeg": string;
+                "image/png": string;
+                "image/webp": string;
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomResponse"];
+                };
+            };
+        };
+    };
+    deleteLogo: {
         parameters: {
             query?: never;
             header?: never;

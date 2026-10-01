@@ -48,6 +48,18 @@ CREATE TABLE room (
 
 CREATE UNIQUE INDEX room_name_key ON room (lower(name));
 
+-- Optional image shown next to the name of a room. Apart from room, so that reading rooms never
+-- loads images. The limits are the ones of the API: a small raster image, no SVG (it can carry scripts).
+CREATE TABLE room_logo (
+    room_id      BIGINT      PRIMARY KEY REFERENCES room (id) ON DELETE CASCADE,
+    content      BYTEA       NOT NULL,
+    content_type VARCHAR(20) NOT NULL CHECK (content_type IN ('image/png', 'image/jpeg', 'image/webp')),
+    size_bytes   INTEGER     NOT NULL CHECK (size_bytes > 0 AND size_bytes <= 262144), -- 256 kB
+    -- Changes with every upload: clients use it as the version of the image.
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT room_logo_size_matches_content CHECK (size_bytes = octet_length(content))
+);
+
 -- Sub-type within a game type. Known variants have a code (translated by the frontend);
 -- variants created by the user have a free-text name instead.
 CREATE TABLE variant (

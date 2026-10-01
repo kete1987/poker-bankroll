@@ -17,6 +17,7 @@ import io.github.kete1987.pokerbankroll.catalog.Modality;
 import io.github.kete1987.pokerbankroll.game.GameRequest;
 import io.github.kete1987.pokerbankroll.game.GameService;
 import io.github.kete1987.pokerbankroll.game.GameStatus;
+import io.github.kete1987.pokerbankroll.room.RoomLogoService;
 import io.github.kete1987.pokerbankroll.room.RoomRequest;
 import io.github.kete1987.pokerbankroll.room.RoomService;
 import io.github.kete1987.pokerbankroll.variant.VariantCreateRequest;
@@ -48,6 +49,7 @@ public class DemoDataSeeder implements ApplicationRunner {
     private static final long SEED = 20260119L;
 
     private final RoomService rooms;
+    private final RoomLogoService logos;
     private final VariantService variants;
     private final GameService games;
     private final BankrollService bankroll;
@@ -61,9 +63,10 @@ public class DemoDataSeeder implements ApplicationRunner {
     private long unibet;
     private int gameCount;
 
-    DemoDataSeeder(RoomService rooms, VariantService variants, GameService games, BankrollService bankroll,
-            JdbcClient jdbc) {
+    DemoDataSeeder(RoomService rooms, RoomLogoService logos, VariantService variants, GameService games,
+            BankrollService bankroll, JdbcClient jdbc) {
         this.rooms = rooms;
+        this.logos = logos;
         this.variants = variants;
         this.games = games;
         this.bankroll = bankroll;
@@ -107,6 +110,10 @@ public class DemoDataSeeder implements ApplicationRunner {
         tripleEight = rooms.create(new RoomRequest("888poker", "EUR", true)).id();
         pokerStars = rooms.create(new RoomRequest("PokerStars", "USD", true)).id();
         unibet = rooms.create(new RoomRequest("Unibet", "EUR", true)).id();
+        // PokerStars stays without a logo, to see both cases.
+        logos.replace(winamax, DemoLogo.png(DemoLogo.Shape.CIRCLE, 0x0B7285, 0xFFFFFF));
+        logos.replace(tripleEight, DemoLogo.png(DemoLogo.Shape.DIAMOND, 0x5F3DC4, 0xFFD43B));
+        logos.replace(unibet, DemoLogo.png(DemoLogo.Shape.RING, 0x495057, 0xFFA94D));
 
         for (VariantResponse variant : variants.list(null, null)) {
             if (variant.code() != null) {
