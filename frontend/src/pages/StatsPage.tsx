@@ -2,7 +2,7 @@ import { Alert, Group, Loader, Select, SimpleGrid, Stack, Text, Title } from '@m
 import { useTranslation } from 'react-i18next';
 
 import { useRooms } from '../api/rooms';
-import { useStatsGroups, useStatsSummary } from '../api/stats';
+import { useStatsOverTime } from '../api/stats';
 import type { StatsGroup } from '../api/types';
 import { useVariants } from '../api/variants';
 import { Page } from '../components/Page';
@@ -33,8 +33,7 @@ export function StatsPage() {
 
   const rooms = useRooms();
   const variants = useVariants();
-  const summary = useStatsSummary(query);
-  const overTime = useStatsGroups(granularity, query);
+  const stats = useStatsOverTime(granularity, query);
 
   const filterBar = (
     <>
@@ -50,7 +49,7 @@ export function StatsPage() {
     </>
   );
 
-  if ([rooms, variants, summary, overTime].some((request) => request.isError)) {
+  if ([rooms, variants, stats].some((request) => request.isError)) {
     return (
       <Page title={t('nav.stats')}>
         <Group gap="sm" align="flex-end">
@@ -60,7 +59,7 @@ export function StatsPage() {
       </Page>
     );
   }
-  if (!summary.data || !overTime.data) {
+  if (!stats.data) {
     return (
       <Page title={t('nav.stats')}>
         <Group gap="sm" align="flex-end">
@@ -73,21 +72,21 @@ export function StatsPage() {
 
   // Amounts in different currencies are never added up: one currency at a time, by default the
   // one with most games in the period.
-  const currencies = [...summary.data.currencies]
+  const { summary, groups: overTime } = stats.data;
+  const currencies = [...summary.currencies]
     .sort((a, b) => b.total.games - a.total.games || a.currencyCode.localeCompare(b.currencyCode))
     .map((currency) => currency.currencyCode);
   const currencyCode =
     filters.currency && currencies.includes(filters.currency) ? filters.currency : currencies[0];
-  const total = summary.data.currencies.find(
+  const total = summary.currencies.find(
     (currency) => currency.currencyCode === currencyCode,
   )?.total;
   const groups: StatsGroup[] =
-    overTime.data.currencies.find((currency) => currency.currencyCode === currencyCode)?.groups ??
-    [];
+    overTime.currencies.find((currency) => currency.currencyCode === currencyCode)?.groups ?? [];
 
   // While another cut is loading the previous data stays on screen: it is named by its own cut,
   // not by the one just chosen.
-  const drawn = GRANULARITIES.find((value) => value === overTime.data.groupBy) ?? granularity;
+  const drawn = GRANULARITIES.find((value) => value === overTime.groupBy) ?? granularity;
   const labelOf = (period: string) =>
     drawn === 'MONTH'
       ? format.month(period)

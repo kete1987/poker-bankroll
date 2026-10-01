@@ -33,3 +33,21 @@ export function useStatsGroups(groupBy: GroupBy, query: StatsQuery, enabled = tr
     enabled,
   });
 }
+
+/**
+ * The summary and the groups of the same games, as one piece of data: both arrive together, so
+ * a screen never shows the totals of one filter next to the groups of another.
+ */
+export function useStatsOverTime(groupBy: GroupBy, query: StatsQuery) {
+  return useQuery({
+    queryKey: ['stats', 'overTime', groupBy, query],
+    queryFn: async () => {
+      const [summary, groups] = await Promise.all([
+        apiFetch<StatsSummary>(`/stats/summary?${toQueryString(query)}`),
+        apiFetch<StatsGroups>(`/stats/groups?${toQueryString({ groupBy, ...query })}`),
+      ]);
+      return { summary, groups };
+    },
+    placeholderData: keepPreviousData,
+  });
+}
