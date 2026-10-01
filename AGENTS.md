@@ -213,6 +213,11 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - Every change to a game loads it with `GameRepository.findForUpdateById` (row lock), so simultaneous
   requests on the same game (a double click, a re-entry racing a finish) run one after another and
   none is lost.
+- `GET /games/names?q=&gameType=&limit=` suggests names of recorded games while one is typed: those
+  containing `q` (ignoring case, literally; nothing below 2 characters), most used first. Names that
+  differ only in case or surrounding spaces are one, written as in its most recent game, whose
+  buy-in (with its `currencyCode`), variant and modality come with it. It is a plain list bounded by `limit` (8, at most 20),
+  not a `PageResponse`.
 - Recording a game or a bankroll movement in a room loads it with `RoomRepository.findToRecordInById`
   (shared row lock), so a simultaneous change of the room's currency waits and is rejected.
 - A body that is not JSON (the logo of a room) is read from the `InputStream` up to its limit plus
@@ -316,6 +321,12 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   URL are ignored.
 - Type, room and variant are chosen with `games/ScopeFilters`, and anything read from the URL goes
   through `components/urlParams` (invalid values are dropped there).
+- The name of a game is an `Autocomplete` fed by `useGameNames` (debounced, from 2 characters, for
+  the type of the form). Picking a name fills the buy-in, variant and modality of a **new** game,
+  except the ones the user has set by hand in that form (`setByHand` in `games/GameForm.tsx`: give
+  such a field its props with `filledByName`); a game being edited only takes the name. The buy-in
+  is only filled when it is in the currency of the chosen room, and is emptied again if the room
+  then changes to another currency.
 - Charts are built as an ECharts option passed to `components/Chart` (register there the ECharts
   components a new chart needs). Colouring a line by value needs closed ranges in `visualMap`.
   Tests replace `Chart` with a stub and assert on the option (see `pages/StatsPage.test.tsx`).

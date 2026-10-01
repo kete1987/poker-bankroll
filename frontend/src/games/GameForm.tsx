@@ -1,5 +1,6 @@
 import {
   Alert,
+  Autocomplete,
   Button,
   Checkbox,
   Group,
@@ -13,12 +14,15 @@ import {
   TextInput,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
+import { useDebouncedValue } from '@mantine/hooks';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { ApiError } from '../api/client';
+import { MIN_NAME_SEARCH_LENGTH, useGameNames } from '../api/games';
 import type {
   Game,
+  GameName,
   GameRequest,
   GameStatus,
   GameType,
@@ -34,6 +38,12 @@ import { variantLabel } from './labels';
 const GAME_TYPES: readonly GameType[] = ['TOURNAMENT', 'SIT_AND_GO', 'CASH'];
 const MODALITIES: readonly Modality[] = ['NLHE', 'PLO'];
 const STATUSES: readonly GameStatus[] = ['IN_PLAY', 'FINISHED'];
+
+/** How long typing must pause before names are asked for. */
+const NAME_SEARCH_DELAY_MS = 250;
+
+/** The fields that picking a suggested name fills in, unless the user has set them. */
+type FilledByName = 'buyIn' | 'variantId' | 'modality';
 
 interface GameFormValues {
   gameType: GameType;
@@ -76,6 +86,10 @@ export function GameForm({ rooms, variants, game, onSave, onSaved, onCancel }: G
   const format = useFormat();
   const buyInRef = useRef<HTMLInputElement>(null);
   const submitting = useRef(false);
+  // What the user has set by hand in this form: a suggested name never replaces it.
+  const setByHand = useRef(new Set<FilledByName>());
+  // Currency of the buy-in a suggested name filled in, while it is still that one.
+  const suggestedBuyInCurrency = useRef<string | null>(null);
   const [saving, setSaving] = useState<'save' | 'another' | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
 
@@ -105,6 +119,78 @@ export function GameForm({ rooms, variants, game, onSave, onSaved, onCancel }: G
         (variant.active || variant.id === game?.variant?.id),
     )
     .map((variant) => ({ value: String(variant.id), label: variantLabel(t, variant) }));
+
+  // Names are suggested from the second character, for the type of the form, once typing pauses;
+  // none for the name a game being edited already has.
+  const [nameSearch] = useDebouncedValue(values.name.trim(), NAME_SEARCH_DELAY_MS);
+  const searchesName =
+    nameSearch.length >= MIN_NAME_SEARCH_LENGTH && nameSearch !== (game?.name ?? '');
+  const names = useGameNames(searchesName ? nameSearch : '', values.gameType);
+  // Those of the previous search stay while the next one loads, but not after the type changes.
+  const suggestions = searchesName
+    ? (names.data ?? []).filter((suggestion) => suggestion.gameType === values.gameType)
+    : [];
+
+  /** Input props of a field that a suggested name can fill in, noting when the user sets it. */
+  function filledByName(field: FilledByName) {
+    const props = form.getInputProps(field);
+    return {
+      ...props,
+      onChange: (value: unknown) => {
+        setByHand.current.add(field);
+        if (field === 'buyIn') {
+          suggestedBuyInCurrency.current = null;
+        }
+        props.onChange(value);
+      },
+    };
+  }
+
+  /**
+   * A suggested name was picked: a new game takes the buy-in, variant and modality of the last
+   * game with that name, except what the user has already set. An edited game only takes the name.
+   * The buy-in is only taken when that game was in the currency of the chosen room: 50 dollars
+   * are not 50 euros.
+   */
+  function fillFromName(name: string) {
+    const suggestion = suggestions.find((candidate) => candidate.name === name);
+    if (!suggestion || game) {
+      return;
+    }
+    const filled: Partial<GameFormValues> = {};
+    if (!setByHand.current.has('buyIn')) {
+      if (suggestion.currencyCode === currency) {
+        filled.buyIn = suggestion.buyIn;
+        suggestedBuyInCurrency.current = suggestion.currencyCode;
+        form.clearFieldError('buyIn');
+      } else if (suggestedBuyInCurrency.current !== null) {
+        // The buy-in of the name picked before does not belong to this one.
+        filled.buyIn = '';
+        suggestedBuyInCurrency.current = null;
+      }
+    }
+    if (!setByHand.current.has('modality')) {
+      filled.modality = suggestion.modality;
+    }
+    if (!setByHand.current.has('variantId')) {
+      const variantId = suggestion.variant ? String(suggestion.variant.id) : null;
+      // A variant that is no longer offered (inactive) is not chosen: the game is left without
+      // one, not with the variant of a name picked before.
+      const offered = variantOptions.some((option) => option.value === variantId);
+      filled.variantId = offered ? variantId : null;
+    }
+    form.setValues(filled);
+  }
+
+  /** What tells a suggested name apart: the buy-in and the variant of its last game. */
+  function nameHint(suggestion: GameName): string {
+    return [
+      format.money(suggestion.buyIn, suggestion.currencyCode),
+      suggestion.variant && variantLabel(t, suggestion.variant),
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  }
 
   const amountProps = {
     min: 0,
@@ -154,6 +240,9 @@ export function GameForm({ rooms, variants, game, onSave, onSaved, onCancel }: G
           notes: '',
         });
         form.clearErrors();
+        // What is kept comes from the game just saved: a suggested name may replace it.
+        setByHand.current.clear();
+        suggestedBuyInCurrency.current = null;
         buyInRef.current?.focus();
         buyInRef.current?.select();
       }
@@ -198,8 +287,14 @@ export function GameForm({ rooms, variants, game, onSave, onSaved, onCancel }: G
         void submit(false);
       }}
       onKeyDown={(event) => {
-        // Ctrl/Cmd + Enter: save and go on with the next game.
-        if (!game && event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+        // Ctrl/Cmd + Enter: save and go on with the next game. Not when the key picked an option
+        // of a list (default prevented): that never saves.
+        if (
+          !game &&
+          event.key === 'Enter' &&
+          (event.ctrlKey || event.metaKey) &&
+          !event.defaultPrevented
+        ) {
           event.preventDefault();
           void submit(true);
         }
@@ -219,6 +314,7 @@ export function GameForm({ rooms, variants, game, onSave, onSaved, onCancel }: G
           value={values.gameType}
           onChange={(value) => {
             // Variants belong to a type, and a cash game has neither re-entries nor tickets.
+            setByHand.current.delete('variantId');
             form.setValues({
               gameType: value as GameType,
               variantId: null,
@@ -246,6 +342,16 @@ export function GameForm({ rooms, variants, game, onSave, onSaved, onCancel }: G
               label: `${candidate.name} (${candidate.currencyCode})`,
             }))}
             {...form.getInputProps('roomId')}
+            onChange={(value) => {
+              // A buy-in taken from a suggestion is an amount of another currency in this room.
+              const chosen = activeRooms.find((candidate) => String(candidate.id) === value);
+              const suggested = suggestedBuyInCurrency.current;
+              if (suggested !== null && chosen && chosen.currencyCode !== suggested) {
+                suggestedBuyInCurrency.current = null;
+                form.setFieldValue('buyIn', '');
+              }
+              form.setFieldValue('roomId', value);
+            }}
           />
           <NumberInput
             ref={buyInRef}
@@ -253,7 +359,7 @@ export function GameForm({ rooms, variants, game, onSave, onSaved, onCancel }: G
             label={isCash ? t('gameForm.buyInCash') : t('gameForm.buyIn')}
             required
             {...amountProps}
-            {...form.getInputProps('buyIn')}
+            {...filledByName('buyIn')}
           />
           <TextInput
             type="date"
@@ -271,10 +377,32 @@ export function GameForm({ rooms, variants, game, onSave, onSaved, onCancel }: G
               label={t('gameForm.variant')}
               clearable
               data={variantOptions}
-              {...form.getInputProps('variantId')}
+              {...filledByName('variantId')}
             />
           )}
-          <TextInput label={t('gameForm.name')} maxLength={150} {...form.getInputProps('name')} />
+          {/* Free text, with the names of earlier games to pick from: Enter on one picks it. */}
+          <Autocomplete
+            label={t('gameForm.name')}
+            maxLength={150}
+            data={suggestions.map((suggestion) => suggestion.name)}
+            // The backend has already searched them.
+            filter={({ options }) => options}
+            renderOption={({ option }) => {
+              const suggestion = suggestions.find((candidate) => candidate.name === option.value);
+              return (
+                <div>
+                  <Text size="sm">{option.value}</Text>
+                  {suggestion && (
+                    <Text size="xs" c="dimmed">
+                      {nameHint(suggestion)}
+                    </Text>
+                  )}
+                </div>
+              );
+            }}
+            onOptionSubmit={fillFromName}
+            {...form.getInputProps('name')}
+          />
           {!isCash && (
             <NumberInput
               label={t('gameForm.entries')}
@@ -293,7 +421,7 @@ export function GameForm({ rooms, variants, game, onSave, onSaved, onCancel }: G
                 value: modality,
                 label: t(`modalities.${modality}`),
               }))}
-              {...form.getInputProps('modality')}
+              {...filledByName('modality')}
             />
           </Stack>
         </SimpleGrid>

@@ -5,6 +5,7 @@ import { toQueryString } from './query';
 import type {
   FinishGameRequest,
   Game,
+  GameName,
   GamePage,
   GameRequest,
   GameStatus,
@@ -40,6 +41,24 @@ export function useGames(query: GameQuery) {
 /** The games without a result yet, newest first. They are few: one page holds them all. */
 export function useGamesInPlay() {
   return useGames({ status: 'IN_PLAY', size: 200, sort: 'playedOn,desc' });
+}
+
+/** Names are suggested from this many characters on; the backend answers nothing for fewer. */
+export const MIN_NAME_SEARCH_LENGTH = 2;
+
+/**
+ * Names of recorded games of a type that contain the text, most used first, each with what its
+ * most recent game had. Nothing is asked for a shorter text; while another text loads, the
+ * previous names stay.
+ */
+export function useGameNames(text: string, gameType: GameType) {
+  const q = text.trim();
+  return useQuery({
+    queryKey: ['games', 'names', gameType, q],
+    queryFn: () => apiFetch<GameName[]>(`/games/names?${toQueryString({ q, gameType })}`),
+    enabled: q.length >= MIN_NAME_SEARCH_LENGTH,
+    placeholderData: keepPreviousData,
+  });
 }
 
 /** Mutations on games; every list and figure that depends on games is refreshed afterwards. */

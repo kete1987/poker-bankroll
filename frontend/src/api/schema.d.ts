@@ -111,6 +111,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/games/names": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Suggest names of recorded games
+         * @description The names containing the text, most used first, then most recent, then by name. Names that differ only in case or surrounding spaces are one, written as in its most recent game (latest date, then latest id), whose type, modality, buy-in and variant come with it. Games in play count too.
+         */
+        get: operations["names"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/games/{id}": {
         parameters: {
             query?: never;
@@ -436,6 +456,23 @@ export interface components {
             ticketDescription?: string | null;
             /** @description Value of a tournament ticket won. Not for cash games. Defaults to 0 */
             ticketPrizeValue?: number | null;
+        };
+        GameNameResponse: {
+            buyIn: number;
+            /** @description Currency of the buy-in: the one of the room of that game */
+            currencyCode: string;
+            /** @enum {string} */
+            gameType: "TOURNAMENT" | "SIT_AND_GO" | "CASH";
+            /**
+             * Format: int64
+             * @description How many games have that name
+             */
+            games: number;
+            /** @enum {string} */
+            modality: "NLHE" | "PLO";
+            /** @description As it was written in the most recent game of that name; names that differ only in case or surrounding spaces are the same one */
+            name: string;
+            variant?: components["schemas"]["VariantRef"] | null;
         };
         GameRequest: {
             /** @description Bounties won. Defaults to 0 */
@@ -1006,6 +1043,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GameResponse"];
+                };
+            };
+        };
+    };
+    names: {
+        parameters: {
+            query?: {
+                /** @description Text contained in the name, ignoring case and searched literally; with less than 2 characters, surrounding spaces apart, nothing is suggested */
+                q?: string;
+                /** @description Only the games of this type: their names, counts and figures */
+                gameType?: "TOURNAMENT" | "SIT_AND_GO" | "CASH";
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GameNameResponse"][];
                 };
             };
         };

@@ -187,6 +187,43 @@
         },
         "type" : "object"
       },
+      "GameNameResponse" : {
+        "properties" : {
+          "buyIn" : {
+            "type" : "number"
+          },
+          "currencyCode" : {
+            "description" : "Currency of the buy-in: the one of the room of that game",
+            "type" : "string"
+          },
+          "gameType" : {
+            "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
+            "type" : "string"
+          },
+          "games" : {
+            "description" : "How many games have that name",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "modality" : {
+            "enum" : [ "NLHE", "PLO" ],
+            "type" : "string"
+          },
+          "name" : {
+            "description" : "As it was written in the most recent game of that name; names that differ only in case or surrounding spaces are the same one",
+            "type" : "string"
+          },
+          "variant" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/VariantRef"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "buyIn", "currencyCode", "gameType", "games", "modality", "name" ],
+        "type" : "object"
+      },
       "GameRequest" : {
         "properties" : {
           "bounty" : {
@@ -1331,6 +1368,59 @@
           }
         },
         "summary" : "Record a game",
+        "tags" : [ "Games" ]
+      }
+    },
+    "/games/names" : {
+      "get" : {
+        "description" : "The names containing the text, most used first, then most recent, then by name. Names that differ only in case or surrounding spaces are one, written as in its most recent game (latest date, then latest id), whose type, modality, buy-in and variant come with it. Games in play count too.",
+        "operationId" : "names",
+        "parameters" : [ {
+          "description" : "Text contained in the name, ignoring case and searched literally; with less than 2 characters, surrounding spaces apart, nothing is suggested",
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "default" : "",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Only the games of this type: their names, counts and figures",
+          "in" : "query",
+          "name" : "gameType",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 8,
+            "format" : "int32",
+            "maximum" : 20,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/GameNameResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Suggest names of recorded games",
         "tags" : [ "Games" ]
       }
     },

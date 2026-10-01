@@ -24,6 +24,7 @@ export type GameRequest = Schemas['GameRequest'];
 export type FinishGameRequest = Schemas['FinishGameRequest'];
 export type RebuyRequest = Schemas['RebuyRequest'];
 export type GamePage = Schemas['PageResponseGameResponse'];
+export type GameName = Schemas['GameNameResponse'];
 
 export type StatsFigures = Schemas['StatsFigures'];
 export type StatsSummary = Schemas['StatsSummaryResponse'];
