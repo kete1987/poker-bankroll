@@ -9,6 +9,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ErrorPage } from './pages/ErrorPage';
 import { GamesPage } from './pages/GamesPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { SettingsPage } from './pages/SettingsPage';
 import { StatsPage } from './pages/StatsPage';
 
 /** Sections that already have their page; the others show a placeholder. */
@@ -17,6 +18,7 @@ const PAGES: Partial<Record<NavigationItem['path'], ReactElement>> = {
   '/bankroll': <BankrollPage />,
   '/games': <GamesPage />,
   '/stats': <StatsPage />,
+  '/settings': <SettingsPage />,
 };
 
 export const routes: RouteObject[] = [

@@ -330,6 +330,11 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   Tests replace `Chart` with a stub and assert on the option (see `pages/StatsPage.test.tsx`).
 - A period is chosen with `components/PeriodFilter` (`components/period.ts` has the predefined
   ranges). A screen shows one currency at a time: amounts in different currencies are never added.
+- A logo is resized in the browser before it is uploaded (`settings/resizeImage.ts`, 128 px at
+  most, PNG), so the backend only stores small images. Tests replace that module: canvas does not
+  exist in jsdom.
+- Changing a room or a variant invalidates every query (`api/rooms.ts`, `api/variants.ts`): they
+  are named all over the app.
 - A room is always rendered with `components/RoomLabel`: its logo (or its initial when it has
   none) and its name. It takes the `logoVersion` from the shared list of rooms (`useRooms`).
 - A mutation invalidates every query its data affects (a game changes `games`, `stats` and
