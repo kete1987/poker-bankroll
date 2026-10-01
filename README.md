@@ -75,8 +75,13 @@ To look at the app without recording anything, run it from the source with a thr
 filled with a year of made-up results (requires JDK 25, Node 24 and Docker):
 
 ```bash
-cd backend && ./mvnw spring-boot:test-run -Dspring-boot.run.profiles=demo   # API on :8080
-cd frontend && npm ci && npm run dev                                         # web on :5173
+# Terminal 1, from the repository root: API on :8080
+cd backend && ./mvnw spring-boot:test-run -Dspring-boot.run.profiles=demo
+```
+
+```bash
+# Terminal 2, from the repository root: web on :5173
+cd frontend && npm ci && npm run dev
 ```
 
 The demo data is only loaded into an empty database, and never unless the `demo` profile is active.

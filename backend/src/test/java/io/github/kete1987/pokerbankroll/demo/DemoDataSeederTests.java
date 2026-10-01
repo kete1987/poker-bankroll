@@ -2,6 +2,8 @@ package io.github.kete1987.pokerbankroll.demo;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.LocalDate;
+
 import io.github.kete1987.pokerbankroll.TestcontainersConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +37,9 @@ class DemoDataSeederTests {
         assertThat(count("variant where name is not null")).isEqualTo(1);
         assertThat(count("game")).isBetween(250, 700);
         assertThat(count("game where status = 'IN_PLAY'")).isEqualTo(3);
-        assertThat(count("game where played_on > current_date")).isZero();
+        // The seeder's "today" is the one of the JVM, which may not be the database's.
+        assertThat(jdbc.queryForObject("select count(*) from game where played_on > ?", Integer.class,
+                LocalDate.now())).isZero();
         assertThat(jdbc.queryForList("select distinct game_type_code from game order by 1", String.class))
                 .containsExactly("CASH", "SIT_AND_GO", "TOURNAMENT");
         assertThat(jdbc.queryForList("select distinct modality_code from game order by 1", String.class))
