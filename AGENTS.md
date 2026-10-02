@@ -178,6 +178,12 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
     currency: then it only counts in the total of that currency (e.g. an initial bankroll not
     split by room).
   - Unlike games, movements are accepted in inactive rooms.
+- **Backup**: two different things. The **backup from the app** is one JSON file with everything
+  the user created (rooms and logos, user-defined variants and which built-in ones are active,
+  every game, every bankroll movement), downloaded and restored in the Import / Export section;
+  restoring it **replaces everything** the installation holds. The **automatic backups** are the
+  `pg_dump` files of the `backup` service of the stack. An installation is **empty** when it has
+  no rooms, user-defined variants, games or movements.
 
 ## Conventions
 
@@ -252,6 +258,34 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
     fonts) without proving it works in the API image: build it and export from the container.
   - Rows are read from the database through a cursor (`GameService.forEach`,
     `BankrollService.forEach`), never as one list; the file is built in memory.
+- `GET /backup` and `POST /backup/restore?dryRun=&replace=` (`backup` package) back up everything
+  the user created into one JSON file and restore it, replacing **everything** (described for
+  users in `docs/backups.md`: keep it in step). Rules:
+  - The file says the version of its format (`formatVersion`). Each version has its own records
+    (`BackupV1`), which are the format and **never change once released**; they are mapped to and
+    from `BackupData`, the model the restore works on. A change of the format is a new
+    `BackupV2` next to it, `BackupFormat.CURRENT_VERSION` and `write` moved to it and a case in
+    `BackupFormat.read`: every older version stays readable, a newer one is refused
+    (`BACKUP_FORMAT_TOO_NEW`). A new column of a game, a room... that must survive a backup goes
+    in `BackupData` and in the records of the current version (optional there, so files made
+    before it still restore), both ways in `BackupService`.
+  - Rooms and variants have ids that only mean something inside the file; built-in variants are
+    named by game type and code and only their `active` is restored (the ones the file does not
+    name are active). Amounts are JSON numbers read as `BigDecimal`. The mapper is the one of
+    `BackupFormat`, not the one of the API.
+  - A restore is all or nothing, in one transaction that locks the tables. The file is checked
+    as a whole first, with the constraints of the request records (`GameRequest`,
+    `MovementRequest`...) and its own (`BackupProblem`); errors come in the `200` response
+    (`errors`, with `restored: false`), each with its place in the document (`games[12].buyIn`).
+    Then everything is deleted and written through the **entities** (the games, which are many,
+    with plain SQL in batches: `BackupService.writeGames`), not through the services
+    that record by hand: a backup holds states they refuse (games in inactive rooms or with
+    inactive variants). `dryRun=true` does the same and rolls back.
+  - An installation that has data is only replaced with `replace=true`
+    (`BACKUP_REPLACE_NOT_CONFIRMED` otherwise); a dry run never needs it. This is the one
+    destructive operation of the application: do not make it easier to trigger.
+  - The file is read into memory, 32 MB at most (`BackupService.MAX_BYTES`); the nginx of the web
+    image allows bodies up to 40 MB (`client_max_body_size`): keep it above that limit.
 - Controller method names are the `operationId`s of the contract: keep them unique across
   controllers (`getLogo`, not a second `get`), or springdoc renumbers the ones of other endpoints.
 - The OpenAPI spec is the contract, and it is committed as `frontend/openapi.json` (sorted keys,
@@ -379,10 +413,18 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   errors are `ApiError`s) and saved with `components/saveFile`, under the name the backend gives
   it. The menu says what is left out (games in play), and so does the notification afterwards.
   Tests stub `URL.createObjectURL` and the click of the link (`pages/Export.test.tsx`).
-- The Import section (`pages/ImportPage.tsx`, `api/imports.ts`) sends the chosen CSV file as it
-  is: first with `dryRun=true`, to show what it holds and its errors, and the import is only
-  offered when there are none. After importing, the page is left without file. It does not read
-  or validate the file itself: the format lives in the backend and in `docs/import.md`.
+- The Import / Export section (`pages/ImportPage.tsx`, route `/import`) has two parts: the import
+  of games from a CSV file and the backup of everything.
+  - The import (`api/imports.ts`) sends the chosen CSV file as it is: first with `dryRun=true`, to
+    show what it holds and its errors, and the import is only offered when there are none. After
+    importing, the page is left without file. It does not read or validate the file itself: the
+    format lives in the backend and in `docs/import.md`.
+  - The backup (`backup/BackupSection.tsx`, `api/backup.ts`) downloads the file like an export
+    and restores one the same way as the import: the chosen file is checked with `dryRun=true`
+    and the page shows what it holds next to what the installation holds. When the installation
+    has data, a red alert says what will be deleted and the confirmation
+    (`ConfirmDialog` with `confirmDisabled`) only goes on once a box is ticked; `replace=true` is
+    only sent then. Restoring invalidates every query.
 - A logo is resized in the browser before it is uploaded (`settings/resizeImage.ts`, 128 px at
   most, PNG), so the backend only stores small images. Tests replace that module: canvas does not
   exist in jsdom.

@@ -1,9 +1,9 @@
 import {
   IconCards,
   IconChartBar,
-  IconFileImport,
   IconLayoutDashboard,
   IconSettings,
+  IconTransfer,
   IconWallet,
 } from '@tabler/icons-react';
 
@@ -13,7 +13,7 @@ export const NAVIGATION = [
   { path: '/games', labelKey: 'nav.games', icon: IconCards },
   { path: '/bankroll', labelKey: 'nav.bankroll', icon: IconWallet },
   { path: '/stats', labelKey: 'nav.stats', icon: IconChartBar },
-  { path: '/import', labelKey: 'nav.import', icon: IconFileImport },
+  { path: '/import', labelKey: 'nav.import', icon: IconTransfer },
   { path: '/settings', labelKey: 'nav.settings', icon: IconSettings },
 ] as const;
 

@@ -76,7 +76,16 @@ public enum ErrorCode {
     IMPORT_TOO_MANY_ROWS(HttpStatus.BAD_REQUEST),
     IMPORT_UNKNOWN_COLUMN(HttpStatus.BAD_REQUEST),
     IMPORT_DUPLICATE_COLUMN(HttpStatus.BAD_REQUEST),
-    IMPORT_MISSING_COLUMN(HttpStatus.BAD_REQUEST);
+    IMPORT_MISSING_COLUMN(HttpStatus.BAD_REQUEST),
+
+    // Backup: what is wrong with the file as a whole. Errors of its content are part of the response.
+    BACKUP_FILE_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE),
+    /** Not JSON, not a backup of the application, or with a value that cannot be read. */
+    BACKUP_FILE_MALFORMED(HttpStatus.BAD_REQUEST),
+    /** The file was made by a newer version of the application, in a format this one cannot read. */
+    BACKUP_FORMAT_TOO_NEW(HttpStatus.BAD_REQUEST),
+    /** Restoring deletes what the installation has: it must be asked for with {@code replace=true}. */
+    BACKUP_REPLACE_NOT_CONFIRMED(HttpStatus.CONFLICT);
 
     private final HttpStatus status;
 

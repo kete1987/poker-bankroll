@@ -38,6 +38,9 @@ export type ExportFormat = operations['exportGames']['parameters']['query']['for
 export type GameImport = Schemas['GameImportResponse'];
 export type ImportRowError = Schemas['ImportRowError'];
 
+export type BackupRestore = Schemas['BackupRestoreResponse'];
+export type BackupContents = Schemas['BackupContents'];
+
 export type MovementType = Schemas['MovementResponse']['type'];
 export type Movement = Schemas['MovementResponse'];
 export type MovementRequest = Schemas['MovementRequest'];
