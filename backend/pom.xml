@@ -35,6 +35,7 @@
         <java.version>25</java.version>
         <springdoc.version>3.1.1</springdoc.version>
         <commons-csv.version>1.14.1</commons-csv.version>
+        <fastexcel.version>0.20.2</fastexcel.version>
         <!-- Extended by plugins such as JaCoCo; referenced by surefire as @{argLine}. -->
         <argLine/>
     </properties>
@@ -75,11 +76,19 @@
             <groupId>org.apache.httpcomponents.client5</groupId>
             <artifactId>httpclient5</artifactId>
         </dependency>
-        <!-- Reads the CSV files of the import: quoted values, line breaks inside them and so on. -->
+        <!-- Reads the CSV files of the import and writes those of the export: quoted values, line
+             breaks inside them and so on. -->
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-csv</artifactId>
             <version>${commons-csv.version}</version>
+        </dependency>
+        <!-- Writes the Excel files of the export. Chosen over Apache POI because it only needs
+             java.base: no AWT or fonts, which the Alpine runtime of the API image is not made for. -->
+        <dependency>
+            <groupId>org.dhatim</groupId>
+            <artifactId>fastexcel</artifactId>
+            <version>${fastexcel.version}</version>
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>
@@ -87,6 +96,13 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Reads the Excel files of the export back in their tests. -->
+        <dependency>
+            <groupId>org.dhatim</groupId>
+            <artifactId>fastexcel-reader</artifactId>
+            <version>${fastexcel.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc-test</artifactId>

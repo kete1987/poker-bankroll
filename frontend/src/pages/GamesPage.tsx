@@ -4,6 +4,7 @@ import { IconPlus } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { exportGames } from '../api/exports';
 import {
   useAddRebuy,
   useAddReEntry,
@@ -18,6 +19,7 @@ import { useRooms } from '../api/rooms';
 import type { Game } from '../api/types';
 import { useVariants } from '../api/variants';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ExportMenu } from '../components/ExportMenu';
 import { Page } from '../components/Page';
 import { useFormat } from '../format/useFormat';
 import { FinishGameDialog } from '../games/FinishGameDialog';
@@ -44,7 +46,8 @@ export function GamesPage() {
   const rooms = useRooms();
   const variants = useVariants();
   const inPlay = useGamesInPlay();
-  const games = useGames(toGameQuery(filters));
+  const gameQuery = toGameQuery(filters);
+  const games = useGames(gameQuery);
 
   const createGame = useCreateGame();
   const updateGame = useUpdateGame();
@@ -89,10 +92,27 @@ export function GamesPage() {
 
   return (
     <Page title={t('nav.games')}>
-      <Group>
+      <Group justify="space-between">
         <Button leftSection={<IconPlus size={16} />} onClick={() => setDialog({ kind: 'add' })}>
           {t('games.add')}
         </Button>
+        {/* Every game the filters of the table select, whatever its page and order. */}
+        <ExportMenu
+          label={t('export.games.label')}
+          note={t('export.games.onlyFinished')}
+          fallbackName="poker-bankroll-games"
+          doneMessage={(file) => t('export.games.done', { file })}
+          onExport={(format) =>
+            exportGames(format, {
+              from: gameQuery.from,
+              to: gameQuery.to,
+              gameType: gameQuery.gameType,
+              roomId: gameQuery.roomId,
+              variantId: gameQuery.variantId,
+              q: gameQuery.q,
+            })
+          }
+        />
       </Group>
 
       {inPlay.data && inPlay.data.items.length > 0 && (

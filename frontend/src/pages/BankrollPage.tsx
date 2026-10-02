@@ -25,6 +25,7 @@ import {
   useUpdateMovement,
 } from '../api/bankroll';
 import { useCatalog } from '../api/catalog';
+import { exportMovements } from '../api/exports';
 import { useRooms } from '../api/rooms';
 import type { BankrollFigures, Movement, MovementType } from '../api/types';
 import { MovementForm } from '../bankroll/MovementForm';
@@ -36,6 +37,7 @@ import {
   useBankrollFilters,
 } from '../bankroll/useBankrollFilters';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ExportMenu } from '../components/ExportMenu';
 import { Page } from '../components/Page';
 import { PeriodFilter } from '../components/PeriodFilter';
 import { StatCard } from '../components/StatCard';
@@ -84,12 +86,16 @@ export function BankrollPage() {
   const currencyCode =
     filters.currency && currencies.includes(filters.currency) ? filters.currency : currencies[0];
 
-  const movements = useMovements({
+  // What the list of movements shows, and what its export holds.
+  const movementFilters = {
     from: range.from,
     to: range.to,
     type: filters.type,
     roomId: roomIds,
     currency: currencyCode,
+  };
+  const movements = useMovements({
+    ...movementFilters,
     page: filters.page,
     size: MOVEMENTS_PAGE_SIZE,
   });
@@ -208,6 +214,13 @@ export function BankrollPage() {
               }))}
               value={filters.type ?? null}
               onChange={(value) => update({ type: (value as MovementType | null) ?? undefined })}
+            />
+            <ExportMenu
+              label={t('export.movements.label')}
+              note={t('export.movements.note')}
+              fallbackName="poker-bankroll-movements"
+              doneMessage={(file) => t('export.movements.done', { file })}
+              onExport={(format) => exportMovements(format, movementFilters)}
             />
             <Button leftSection={<IconPlus size={16} />} onClick={() => setDialog({ kind: 'add' })}>
               {t('bankroll.add')}

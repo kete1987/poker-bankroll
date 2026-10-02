@@ -1,4 +1,4 @@
-import type { components } from './schema';
+import type { components, operations } from './schema';
 
 /**
  * Shapes of the API requests and responses. `schema.d.ts` is generated from `openapi.json`
@@ -32,6 +32,8 @@ export type CurrencySummary = Schemas['CurrencySummary'];
 export type StatsGroups = Schemas['StatsGroupsResponse'];
 export type StatsGroup = Schemas['Group'];
 export type GroupBy = StatsGroups['groupBy'];
+
+export type ExportFormat = operations['exportGames']['parameters']['query']['format'];
 
 export type GameImport = Schemas['GameImportResponse'];
 export type ImportRowError = Schemas['ImportRowError'];

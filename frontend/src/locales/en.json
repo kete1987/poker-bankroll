@@ -272,6 +272,23 @@
     "doneTitle": "Import finished",
     "viewGames": "See the games"
   },
+  "export": {
+    "button": "Export",
+    "csv": "CSV",
+    "xlsx": "Excel",
+    "done": "File exported",
+    "failed": "The file was not exported",
+    "games": {
+      "label": "Export games",
+      "onlyFinished": "Only finished games are exported, with the filters of the list. Games in play are left out.",
+      "done": "{{file}} has the finished games of the list. Games in play are not in the file."
+    },
+    "movements": {
+      "label": "Export movements",
+      "note": "Every movement of the list, with its filters.",
+      "done": "{{file}} has the movements of the list."
+    }
+  },
   "stats": {
     "groupBy": "Group by",
     "weekOf": "Week of {{date}}",
