@@ -90,7 +90,14 @@ export function GamesInPlay({
             {games.map((game) => {
               const name = describeGame(t, game);
               return (
-                <Card key={game.id} withBorder padding="sm" component="li">
+                <Card
+                  key={game.id}
+                  withBorder
+                  padding="sm"
+                  component="li"
+                  // What the user wrote may be one long word: it breaks instead of widening the page.
+                  style={{ overflowWrap: 'anywhere' }}
+                >
                   <Stack gap={6}>
                     <Group justify="space-between" wrap="nowrap" gap="xs">
                       <Group gap="xs" wrap="nowrap">

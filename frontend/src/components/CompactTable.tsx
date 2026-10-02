@@ -95,7 +95,9 @@ export function CompactTable({ head, rows, foot }: CompactTableProps) {
   }
 
   return (
-    <Table verticalSpacing="xs" horizontalSpacing={4}>
+    // Names written by the user may be one long word: they break instead of widening the page
+    // (the figures, which never wrap, are not affected).
+    <Table verticalSpacing="xs" horizontalSpacing={4} style={{ overflowWrap: 'anywhere' }}>
       <Table.Thead>
         <Table.Tr>
           {head}

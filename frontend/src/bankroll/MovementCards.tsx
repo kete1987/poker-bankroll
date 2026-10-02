@@ -26,7 +26,14 @@ export function MovementCards({ movements, onEdit, onDelete }: MovementCardsProp
       {movements.map((movement) => {
         const name = describeMovement(t, movement, format.date(movement.occurredOn));
         return (
-          <Card key={movement.id} withBorder padding="sm" component="li">
+          <Card
+            key={movement.id}
+            withBorder
+            padding="sm"
+            component="li"
+            // What the user wrote may be one long word: it breaks instead of widening the page.
+            style={{ overflowWrap: 'anywhere' }}
+          >
             <Stack gap={6}>
               <Group justify="space-between" wrap="nowrap" gap="xs">
                 <Text span size="sm" style={{ whiteSpace: 'nowrap' }}>
