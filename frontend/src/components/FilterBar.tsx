@@ -33,7 +33,8 @@ export function FilterBar({ primary, activeCount, children }: FilterBarProps) {
   }
   return (
     <Stack gap="xs">
-      <Group gap="sm" align="flex-end" wrap="nowrap">
+      {/* Wrapping: a custom period brings two dates that do not fit next to the button. */}
+      <Group gap="sm" align="flex-end">
         {primary}
         <Button
           variant={activeCount > 0 ? 'light' : 'default'}

@@ -35,7 +35,16 @@ export function RoomLabel({ room }: RoomLabelProps) {
       >
         {room.name.trim().charAt(0).toUpperCase()}
       </Avatar>
-      <Text span size="sm" style={{ whiteSpace: narrow ? 'normal' : 'nowrap' }}>
+      <Text
+        span
+        size="sm"
+        // A name without spaces is broken wherever it has to be, and may shrink to do so.
+        style={
+          narrow
+            ? { whiteSpace: 'normal', overflowWrap: 'anywhere', minWidth: 0 }
+            : { whiteSpace: 'nowrap' }
+        }
+      >
         {room.name}
       </Text>
     </Group>
