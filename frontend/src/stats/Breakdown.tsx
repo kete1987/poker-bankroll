@@ -83,10 +83,13 @@ export function Breakdown({ query, currencyCode, dimension, sort, onChange }: Br
   const format = useFormat();
   const theme = useMantineTheme();
   const [search, setSearch] = useState('');
-  // Names are those of tournaments: the other games rarely have one.
+  // Names are those of tournaments, which is where games have one, unless the filter asks for
+  // other types: the breakdown never shows games the filter leaves out.
   const groups = useStatsGroups(
     dimension,
-    dimension === 'NAME' ? { ...query, gameType: ['TOURNAMENT'] } : query,
+    dimension === 'NAME' && !query.gameType?.length
+      ? { ...query, gameType: ['TOURNAMENT'] }
+      : query,
   );
   // While another breakdown loads, the previous one stays on screen under its own name.
   const drawn = DIMENSIONS.find((value) => value === groups.data?.groupBy) ?? dimension;

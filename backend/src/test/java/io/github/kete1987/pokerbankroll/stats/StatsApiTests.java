@@ -397,6 +397,13 @@ class StatsApiTests extends ApiIntegrationTest {
 
         assertThat(JsonPath.<Object>read(groups("?groupBy=NAME&gameType=TOURNAMENT"), groups + "[*].key.name"))
                 .hasToString("[\"Kill The Fish\",\"Monster Stack\"]");
+
+        // Each currency writes a name as its own games do.
+        game(pokerStars, "TOURNAMENT", "2026-01-19").name("MONSTER STACK").insert();
+        game(pokerStars, "TOURNAMENT", "2026-01-20").name("MONSTER STACK").insert();
+        String both = groups("?groupBy=NAME&gameType=TOURNAMENT");
+        assertThat(JsonPath.<Object>read(both, "$.currencies[0].groups[1].key.name")).isEqualTo("Monster Stack");
+        assertThat(JsonPath.<Object>read(both, "$.currencies[1].groups[0].key.name")).isEqualTo("MONSTER STACK");
     }
 
     @Test

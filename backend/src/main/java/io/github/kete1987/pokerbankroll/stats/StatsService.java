@@ -95,8 +95,9 @@ public class StatsService {
         Map<String, Map<GroupKey, GameTotals>> currencies = new TreeMap<>();
         // The same sums again, kept apart per game type within each group.
         Map<String, Map<GroupKey, Map<GameType, GameTotals>>> perGameType = new HashMap<>();
-        // Names are grouped ignoring case: how each is written, with the games written that way.
-        Map<String, Map<String, Long>> spellings = new HashMap<>();
+        // Names are grouped ignoring case: how each is written in a currency, with the games written
+        // that way.
+        Map<String, Map<String, Map<String, Long>>> spellings = new HashMap<>();
         for (Tuple row : sums(filter, true, grouping.keys)) {
             if ((groupBy == GroupBy.BUY_IN || groupBy == GroupBy.BUY_IN_RANGE)
                     && row.get(GAME_TYPE, GameType.class) == GameType.CASH) {
@@ -105,7 +106,8 @@ public class StatsService {
             String currency = row.get(CURRENCY, String.class);
             GroupKey groupKey = grouping.toKey.apply(row);
             if (groupBy == GroupBy.NAME && groupKey.name() != null) {
-                spellings.computeIfAbsent(groupKey.name(), key -> new HashMap<>())
+                spellings.computeIfAbsent(currency, code -> new HashMap<>())
+                        .computeIfAbsent(groupKey.name(), key -> new HashMap<>())
                         .merge(row.get(FIRST_KEY, String.class).strip(), count(row, FIRST_KEY + 1), Long::sum);
             }
             add(row, grouping.keyCount, currencies
@@ -121,7 +123,7 @@ public class StatsService {
         List<CurrencyGroups> result = new ArrayList<>();
         currencies.forEach((currencyCode, totalsByKey) -> {
             List<Group> groups = totalsByKey.entrySet().stream()
-                    .map(entry -> new Group(written(entry.getKey(), spellings), entry.getValue().toFigures(), null,
+                    .map(entry -> new Group(written(entry.getKey(), spellings.get(currencyCode)), entry.getValue().toFigures(), null,
                             byGameType ? gameTypesOf(perGameType.get(currencyCode).get(entry.getKey())) : null))
                     .sorted(order(groupBy))
                     .toList();
@@ -131,8 +133,8 @@ public class StatsService {
     }
 
     /** A name as most of its games write it. */
-    private static GroupKey written(GroupKey key, Map<String, Map<String, Long>> spellings) {
-        if (key.name() == null) {
+    private static GroupKey written(GroupKey key, @Nullable Map<String, Map<String, Long>> spellings) {
+        if (key.name() == null || spellings == null) {
             return key;
         }
         String name = spellings.get(key.name()).entrySet().stream()

@@ -251,12 +251,12 @@ describe('Statistics breakdowns', () => {
 
   it('breaks tournaments down by name: the most played ones, and the rest by searching', async () => {
     const calls = stubStats();
-    renderApp('/stats?view=breakdown&by=name&type=SIT_AND_GO&room=1');
+    renderApp('/stats?view=breakdown&by=name&room=1');
 
     expect(
       await screen.findByRole('columnheader', { name: 'Tournament name' }),
     ).toBeInTheDocument();
-    // Names are those of tournaments, whatever types the filter has.
+    // Names are those of tournaments when the filter has no type.
     expect(breakdownQueries(calls).at(-1)).toMatchObject({
       groupBy: 'NAME',
       gameType: 'TOURNAMENT',
@@ -280,6 +280,17 @@ describe('Statistics breakdowns', () => {
     await userEvent.type(screen.getByRole('textbox', { name: 'Search a name' }), 'zzz');
     expect(screen.getByText('No name contains that text.')).toBeInTheDocument();
     expect(screen.queryByTestId('chart')).not.toBeInTheDocument();
+  });
+
+  it('breaks down by name the types the filter asks for', async () => {
+    const calls = stubStats();
+    renderApp('/stats?view=breakdown&by=name&type=SIT_AND_GO,CASH');
+
+    await screen.findByRole('columnheader', { name: 'Tournament name' });
+    expect(breakdownQueries(calls).at(-1)).toMatchObject({
+      groupBy: 'NAME',
+      gameType: 'SIT_AND_GO,CASH',
+    });
   });
 
   it('takes the breakdown and its order from the URL, and drops the order with another one', async () => {
