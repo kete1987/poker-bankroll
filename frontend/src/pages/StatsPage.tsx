@@ -12,7 +12,7 @@ import {
 import { useTranslation } from 'react-i18next';
 
 import { useRooms } from '../api/rooms';
-import { useStatsOverTime } from '../api/stats';
+import { useStatsOverTime, useStatsSummary } from '../api/stats';
 import type { GameType, StatsFigures, StatsGroup } from '../api/types';
 import { useVariants } from '../api/variants';
 import { Page } from '../components/Page';
@@ -57,7 +57,12 @@ export function StatsPage() {
 
   const rooms = useRooms();
   const variants = useVariants();
-  const stats = useStatsOverTime(granularity, query);
+  // Each view asks only for what it shows: the breakdowns need the summary (which currencies
+  // there are) and not the periods.
+  const onBreakdown = filters.view === 'breakdown';
+  const stats = useStatsOverTime(granularity, query, !onBreakdown);
+  const summaryAlone = useStatsSummary(query, onBreakdown);
+  const loaded = onBreakdown ? summaryAlone : stats;
 
   const filterBar = (
     <>
@@ -73,7 +78,7 @@ export function StatsPage() {
     </>
   );
 
-  if ([rooms, variants, stats].some((request) => request.isError)) {
+  if ([rooms, variants, loaded].some((request) => request.isError)) {
     return (
       <Page title={t('nav.stats')}>
         <Group gap="sm" align="flex-end">
@@ -83,7 +88,8 @@ export function StatsPage() {
       </Page>
     );
   }
-  if (!stats.data) {
+  const summary = onBreakdown ? summaryAlone.data : stats.data?.summary;
+  if (!summary) {
     return (
       <Page title={t('nav.stats')}>
         <Group gap="sm" align="flex-end">
@@ -96,7 +102,7 @@ export function StatsPage() {
 
   // Amounts in different currencies are never added up: one currency at a time, by default the
   // one with most games in the period.
-  const { summary, groups: overTime } = stats.data;
+  const overTime = stats.data?.groups;
   const currencies = [...summary.currencies]
     .sort((a, b) => b.total.games - a.total.games || a.currencyCode.localeCompare(b.currencyCode))
     .map((currency) => currency.currencyCode);
@@ -106,11 +112,11 @@ export function StatsPage() {
   const total = ofCurrency?.total;
   const totalByGameType = ofCurrency?.byGameType ?? [];
   const groups: StatsGroup[] =
-    overTime.currencies.find((currency) => currency.currencyCode === currencyCode)?.groups ?? [];
+    overTime?.currencies.find((currency) => currency.currencyCode === currencyCode)?.groups ?? [];
 
   // While another cut is loading the previous data stays on screen: it is named by its own cut,
   // not by the one just chosen.
-  const drawn = GRANULARITIES.find((value) => value === overTime.groupBy) ?? granularity;
+  const drawn = GRANULARITIES.find((value) => value === overTime?.groupBy) ?? granularity;
   const labelOf = (period: string) =>
     drawn === 'MONTH'
       ? format.month(period)

@@ -16,11 +16,12 @@ export interface StatsQuery {
 }
 
 /** Results overall and per game type, for each currency. */
-export function useStatsSummary(query: StatsQuery) {
+export function useStatsSummary(query: StatsQuery, enabled = true) {
   return useQuery({
     queryKey: ['stats', 'summary', query],
     queryFn: () => apiFetch<StatsSummary>(`/stats/summary?${toQueryString(query)}`),
     placeholderData: keepPreviousData,
+    enabled,
   });
 }
 
@@ -38,7 +39,7 @@ export function useStatsGroups(groupBy: GroupBy, query: StatsQuery, enabled = tr
  * The summary and the groups (each broken down by game type) of the same games, as one piece of data: both arrive together, so
  * a screen never shows the totals of one filter next to the groups of another.
  */
-export function useStatsOverTime(groupBy: GroupBy, query: StatsQuery) {
+export function useStatsOverTime(groupBy: GroupBy, query: StatsQuery, enabled = true) {
   return useQuery({
     queryKey: ['stats', 'overTime', groupBy, query],
     queryFn: async () => {
@@ -51,5 +52,6 @@ export function useStatsOverTime(groupBy: GroupBy, query: StatsQuery) {
       return { summary, groups };
     },
     placeholderData: keepPreviousData,
+    enabled,
   });
 }

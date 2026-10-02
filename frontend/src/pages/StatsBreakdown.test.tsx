@@ -167,13 +167,19 @@ describe('Statistics breakdowns', () => {
   });
 
   it('draws the net of each group as bars, in the order of the table', async () => {
-    stubStats();
+    const calls = stubStats();
     renderApp('/stats?view=breakdown');
 
     const option = await chartOption();
 
     // The axis of a bar chart grows upwards: the first row is the last category.
     expect(option.yAxis.data).toEqual(['888poker', 'PokerStars', 'Winamax']);
+    // Opened on this view, the periods of the other one are never asked for.
+    expect(
+      calls
+        .filter((call) => call.path === '/stats/groups')
+        .map((call) => call.query.get('groupBy')),
+    ).toEqual(['ROOM']);
     expect(option.series[0]?.data.map((bar) => bar.value)).toEqual([40, -8, 12.5]);
   });
 
