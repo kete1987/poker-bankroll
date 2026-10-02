@@ -27,8 +27,11 @@ import { DIMENSIONS, type BreakdownSort, type Dimension, type SortColumn } from 
 export const NAMES_SHOWN = 50;
 export const BARS_SHOWN = 15;
 
-/** Groups that have an order of their own, kept until a column is chosen. */
-const ORDERED: readonly Dimension[] = ['BUY_IN_RANGE', 'WEEKDAY'];
+/**
+ * Groups that come in an order of their own, kept until a column is chosen: ranges from the
+ * lowest, days from Monday, names by games with those without a name last.
+ */
+const ORDERED: readonly Dimension[] = ['BUY_IN_RANGE', 'WEEKDAY', 'NAME'];
 
 interface Row {
   key: string;
