@@ -1,6 +1,7 @@
 package io.github.kete1987.pokerbankroll.stats;
 
 import java.math.BigDecimal;
+import java.time.DayOfWeek;
 import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -17,8 +18,9 @@ public record StatsGroupsResponse(GroupBy groupBy, List<CurrencyGroups> currenci
 
     public record CurrencyGroups(
             String currencyCode,
-            @Schema(description = "Groups with finished games. Periods from oldest to newest, buy-ins from "
-                    + "lowest to highest, anything else from most to fewest games")
+            @Schema(description = "Groups with finished games. Periods from oldest to newest, buy-ins and "
+                    + "their ranges from lowest to highest, days of the week from Monday, anything else from "
+                    + "most to fewest games (games without a name last)")
             List<Group> groups) {
     }
 
@@ -46,6 +48,58 @@ public record StatsGroupsResponse(GroupBy groupBy, List<CurrencyGroups> currenci
             @Schema(description = "MODALITY")
             @Nullable Modality modality,
             @Schema(description = "BUY_IN")
-            @Nullable BigDecimal buyIn) {
+            @Nullable BigDecimal buyIn,
+            @Schema(description = "BUY_IN_RANGE")
+            @Nullable BuyInRange buyInRange,
+            @Schema(description = "NAME, as written in most of its games; null for the games without a name")
+            @Nullable String name,
+            @Schema(description = "WEEKDAY: 1 (Monday) to 7 (Sunday)")
+            @Nullable Integer weekday) {
+
+        static GroupKey ofPeriod(String period) {
+            return new GroupKey(period, null, null, null, null, null, null, null, null);
+        }
+
+        static GroupKey ofGameType(GameType gameType) {
+            return ofVariant(gameType, null);
+        }
+
+        static GroupKey ofVariant(GameType gameType, @Nullable VariantRef variant) {
+            return new GroupKey(null, gameType, variant, null, null, null, null, null, null);
+        }
+
+        static GroupKey ofRoom(RoomRef room) {
+            return new GroupKey(null, null, null, room, null, null, null, null, null);
+        }
+
+        static GroupKey ofModality(Modality modality) {
+            return new GroupKey(null, null, null, null, modality, null, null, null, null);
+        }
+
+        static GroupKey ofBuyIn(BigDecimal buyIn) {
+            return new GroupKey(null, null, null, null, null, buyIn, null, null, null);
+        }
+
+        static GroupKey ofBuyInRange(BuyInRange range) {
+            return new GroupKey(null, null, null, null, null, null, range, null, null);
+        }
+
+        static GroupKey ofName(@Nullable String name) {
+            return new GroupKey(null, null, null, null, null, null, null, name, null);
+        }
+
+        static GroupKey ofWeekday(DayOfWeek day) {
+            return new GroupKey(null, null, null, null, null, null, null, null, day.getValue());
+        }
+    }
+
+    /**
+     * Buy-ins from {@code from} up to, but not including, {@code to}. Free games are the range from
+     * 0 to 0, and the first range with a price starts above 0.
+     */
+    public record BuyInRange(
+            BigDecimal from,
+            @Schema(description = "Null for the last range, which has no upper end")
+            @Nullable BigDecimal to) {
     }
 }

@@ -391,6 +391,32 @@
         "WEEK": "Resultados por semana",
         "MONTH": "Resultados por mes"
       }
+    },
+    "breakdown": {
+      "title": "Desgloses",
+      "by": "Desglosar por",
+      "search": "Buscar un nombre",
+      "noVariant": "Sin variante",
+      "noName": "Sin nombre",
+      "free": "Gratis",
+      "between": "De {{from}} a {{to}}",
+      "above": "{{amount}} o más",
+      "more_one": "Y {{count}} nombre más: búscalo para verlo.",
+      "more_other": "Y {{count}} nombres más: búscalos para verlos.",
+      "dimensions": {
+        "GAME_TYPE": "Tipo de partida",
+        "VARIANT": "Variante",
+        "ROOM": "Sala",
+        "MODALITY": "Modalidad",
+        "BUY_IN_RANGE": "Rango de buy-in",
+        "NAME": "Nombre de torneo",
+        "WEEKDAY": "Día de la semana"
+      },
+      "below": "Menos de {{amount}}",
+      "view": "Qué se muestra",
+      "evolution": "Evolución",
+      "loading": "Cargando",
+      "noMatch": "Ningún nombre contiene ese texto."
     }
   },
   "games": {

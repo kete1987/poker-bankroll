@@ -428,7 +428,7 @@ export interface paths {
         };
         /**
          * Results of the finished games per group, for each currency
-         * @description Groups by period (day, week, month, year), game type, variant, room, modality or buy-in, with the same figures as the summary. Takes the filters of the games list, so e.g. `groupBy=MONTH&gameType=TOURNAMENT` gives the tournaments per month. Periods without games are not returned.
+         * @description Groups by period (day, week, month, year), game type, variant, room, modality, buy-in or range of buy-ins, name of the game or day of the week, with the same figures as the summary. Ranges of buy-ins are fixed: free, below 1, and from 1, 2, 5, 10, 20 and 50. Names are grouped ignoring case and surrounding spaces. Takes the filters of the games list, so e.g. `groupBy=MONTH&gameType=TOURNAMENT` gives the tournaments per month. Periods without games are not returned.
          */
         get: operations["groups"];
         put?: never;
@@ -589,6 +589,11 @@ export interface components {
         BankrollSummaryResponse: {
             currencies: components["schemas"]["CurrencyBankroll"][];
         };
+        BuyInRange: {
+            from: number;
+            /** @description Null for the last range, which has no upper end */
+            to?: number | null;
+        };
         Catalog: {
             currencies: components["schemas"]["CurrencyResponse"][];
             gameTypes: ("TOURNAMENT" | "SIT_AND_GO" | "CASH")[];
@@ -605,7 +610,7 @@ export interface components {
         };
         CurrencyGroups: {
             currencyCode: string;
-            /** @description Groups with finished games. Periods from oldest to newest, buy-ins from lowest to highest, anything else from most to fewest games */
+            /** @description Groups with finished games. Periods from oldest to newest, buy-ins and their ranges from lowest to highest, days of the week from Monday, anything else from most to fewest games (games without a name last) */
             groups: components["schemas"]["Group"][];
         };
         CurrencyResponse: {
@@ -790,6 +795,8 @@ export interface components {
         GroupKey: {
             /** @description BUY_IN */
             buyIn?: number | null;
+            /** @description BUY_IN_RANGE */
+            buyInRange?: components["schemas"]["BuyInRange"] | null;
             /**
              * @description GAME_TYPE, and VARIANT (the type the variant belongs to)
              * @enum {string|null}
@@ -800,12 +807,19 @@ export interface components {
              * @enum {string|null}
              */
             modality?: "NLHE" | "PLO" | null;
+            /** @description NAME, as written in most of its games; null for the games without a name */
+            name?: string | null;
             /** @description DAY: 2026-01-19; WEEK: its Monday, 2026-01-19; MONTH: 2026-01; YEAR: 2026 */
             period?: string | null;
             /** @description ROOM */
             room?: components["schemas"]["RoomRef"] | null;
             /** @description VARIANT; null for the games of the type without a variant */
             variant?: components["schemas"]["VariantRef"] | null;
+            /**
+             * Format: int32
+             * @description WEEKDAY: 1 (Monday) to 7 (Sunday)
+             */
+            weekday?: number | null;
         };
         ImportCurrencyTotal: {
             currencyCode: string;
@@ -1003,7 +1017,7 @@ export interface components {
         StatsGroupsResponse: {
             currencies: components["schemas"]["CurrencyGroups"][];
             /** @enum {string} */
-            groupBy: "DAY" | "WEEK" | "MONTH" | "YEAR" | "GAME_TYPE" | "VARIANT" | "ROOM" | "MODALITY" | "BUY_IN";
+            groupBy: "DAY" | "WEEK" | "MONTH" | "YEAR" | "GAME_TYPE" | "VARIANT" | "ROOM" | "MODALITY" | "BUY_IN" | "BUY_IN_RANGE" | "NAME" | "WEEKDAY";
         };
         StatsSummaryResponse: {
             currencies: components["schemas"]["CurrencySummary"][];
@@ -1829,7 +1843,7 @@ export interface operations {
     groups: {
         parameters: {
             query: {
-                groupBy: "DAY" | "WEEK" | "MONTH" | "YEAR" | "GAME_TYPE" | "VARIANT" | "ROOM" | "MODALITY" | "BUY_IN";
+                groupBy: "DAY" | "WEEK" | "MONTH" | "YEAR" | "GAME_TYPE" | "VARIANT" | "ROOM" | "MODALITY" | "BUY_IN" | "BUY_IN_RANGE" | "NAME" | "WEEKDAY";
                 /** @description Also break each group down by game type */
                 byGameType?: boolean;
                 /** @description Played on or after this date */

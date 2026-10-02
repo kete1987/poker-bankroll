@@ -42,6 +42,8 @@ export interface Formatters {
   longDate(isoDate: string): string;
   /** ISO month (`2026-01`) or date, e.g. `enero de 2026`. */
   month(isoMonth: string): string;
+  /** Name of a day of the week, from 1 (Monday) to 7 (Sunday), e.g. `lunes`. */
+  weekday(day: number): string;
   /** ISO time (`21:30:00`) as `21:30`. */
   time(isoTime: string): string;
   /** Character between the integer and decimal parts (`,` or `.`), for number inputs. */
@@ -97,6 +99,7 @@ export function createFormatters(locale: string): Formatters {
     timeZone: 'UTC',
   });
   const longDateFormat = new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeZone: 'UTC' });
+  const weekdayFormat = new Intl.DateTimeFormat(locale, { weekday: 'long', timeZone: 'UTC' });
   const monthFormat = new Intl.DateTimeFormat(locale, {
     month: 'long',
     year: 'numeric',
@@ -111,6 +114,8 @@ export function createFormatters(locale: string): Formatters {
     date: (isoDate) => dateFormat.format(parseIsoDate(isoDate)),
     longDate: (isoDate) => longDateFormat.format(parseIsoDate(isoDate)),
     month: (isoMonth) => monthFormat.format(parseIsoDate(isoMonth)),
+    // 1 January 2024 was a Monday.
+    weekday: (day) => weekdayFormat.format(new Date(Date.UTC(2024, 0, day))),
     time: (isoTime) => isoTime.slice(0, 5),
     decimalSeparator:
       new Intl.NumberFormat(locale).formatToParts(1.5).find((part) => part.type === 'decimal')

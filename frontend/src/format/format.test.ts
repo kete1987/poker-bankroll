@@ -62,6 +62,12 @@ describe('formatters', () => {
     expect(en.longDate('2026-12-31')).toBe('31 December 2026');
   });
 
+  it('names the days of the week from Monday', () => {
+    expect(es.weekday(1)).toBe('lunes');
+    expect(es.weekday(7)).toBe('domingo');
+    expect(en.weekday(3)).toBe('Wednesday');
+  });
+
   it('formats months and times', () => {
     expect(es.month('2026-01')).toBe('enero de 2026');
     expect(en.month('2026-01')).toBe('January 2026');

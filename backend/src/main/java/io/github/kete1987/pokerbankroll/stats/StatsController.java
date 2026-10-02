@@ -52,8 +52,10 @@ class StatsController {
 
     @GetMapping("/groups")
     @Operation(summary = "Results of the finished games per group, for each currency",
-            description = "Groups by period (day, week, month, year), game type, variant, room, modality or "
-                    + "buy-in, with the same figures as the summary. Takes the filters of the games list, so "
+            description = "Groups by period (day, week, month, year), game type, variant, room, modality, "
+                    + "buy-in or range of buy-ins, name of the game or day of the week, with the same figures as "
+                    + "the summary. Ranges of buy-ins are fixed: free, below 1, and from 1, 2, 5, 10, 20 and 50. "
+                    + "Names are grouped ignoring case and surrounding spaces. Takes the filters of the games list, so "
                     + "e.g. `groupBy=MONTH&gameType=TOURNAMENT` gives the tournaments per month. "
                     + "Periods without games are not returned.")
     StatsGroupsResponse groups(
