@@ -11,6 +11,8 @@ interface ConfirmDialogProps {
   confirmLabel: string;
   /** Red confirm button, for what cannot be undone. */
   destructive?: boolean;
+  /** Something in the dialog must be done first (a box ticked): the confirm button waits for it. */
+  confirmDisabled?: boolean;
   /** Does it; the dialog closes when it resolves and shows the error when it rejects. */
   onConfirm: () => Promise<unknown>;
   onClose: () => void;
@@ -22,6 +24,7 @@ export function ConfirmDialog({
   children,
   confirmLabel,
   destructive = false,
+  confirmDisabled = false,
   onConfirm,
   onClose,
 }: ConfirmDialogProps) {
@@ -49,6 +52,7 @@ export function ConfirmDialog({
             data-autofocus
             color={destructive ? 'red' : undefined}
             loading={busy}
+            disabled={confirmDisabled}
             onClick={() =>
               void run(async () => {
                 await onConfirm();

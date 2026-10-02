@@ -1,9 +1,101 @@
 # Backups and restore
 
+There are two kinds of backup, and they complement each other:
+
+| | [Backup from the app](#backup-from-the-app) | [Automatic backups](#automatic-backups) |
+|---|---|---|
+| What it is | One JSON file with your data, downloaded from *Import / Export* | A `pg_dump` of the whole database, made by the `backup` service of the stack |
+| Made | When you ask for it | Every day, on its own, with daily, weekly and monthly retention |
+| Restored | From the app, with two clicks | With commands, in a shell on the server |
+| Restored into | Any installation of the same or a newer version, also on another machine | The same database server |
+| Use it to | Move to another computer; keep a copy on your own machine; go back after a mistake | Recover from a broken disk or database without having thought of it beforehand |
+
+Keep the automatic backups on: they are the ones that exist when something goes wrong and nobody
+downloaded anything. Use the backup from the app when **you** want a copy, and above all to move
+the installation somewhere else: no shell is needed on either side.
+
+## Backup from the app
+
+In the app, open **Import / Export** and go to *Backup of everything*.
+
+- **Download backup** saves one file, `poker-bankroll-backup-<date>.json`, with everything you
+  created: rooms and their logos, your own variants and which built-in ones are active, every
+  game (those in play too) and every bankroll movement. It is not encrypted: it holds all your
+  data, so keep it where only you can read it.
+- **Choose backup file** takes such a file and only checks it: the page shows what it holds
+  (rooms, variants, games, movements, dates) next to what the installation holds now. Nothing
+  changes yet.
+- **Restore this backup** replaces **everything** the installation holds with the content of the
+  file. When the installation has data, the page says in red what will be deleted, and the
+  confirmation only goes on after ticking a box. There is no undo: download a backup of the
+  current data first if you may need it.
+
+It is all or nothing: if the file has an error, or anything fails halfway, the installation is
+left exactly as it was, and the page lists what is wrong and where in the file.
+
+### Move to another computer
+
+1. On the old installation: *Import / Export* → **Download backup**.
+2. Set up the new installation as in the README and open it: it is empty.
+3. On the new one: *Import / Export* → **Choose backup file** → **Restore this backup**.
+
+The new installation can be a newer version than the old one, not an older one: the file says
+the version of its format, every version of the app reads the formats of the previous ones, and
+a file made by a newer version is refused with a message saying so (update the app, then
+restore).
+
+### What the file is
+
+A JSON document, readable with any text editor:
+
+```json
+{
+  "formatVersion": 1,
+  "appVersion": "0.2.0",
+  "exportedAt": "2026-10-02T10:15:30Z",
+  "rooms": [
+    {"id": 1, "name": "Winamax", "currencyCode": "EUR", "active": true,
+     "logo": {"contentType": "image/png", "content": "iVBORw0KGgo..."}}
+  ],
+  "variants": [
+    {"id": 2, "gameType": "TOURNAMENT", "code": "KO", "active": true},
+    {"id": 13, "gameType": "SIT_AND_GO", "name": "Hyper Turbo 6-max", "active": true}
+  ],
+  "games": [
+    {"playedOn": "2026-01-19", "playedAt": "21:30:00", "roomId": 1, "gameType": "TOURNAMENT",
+     "modality": "NLHE", "variantId": 2, "status": "FINISHED", "name": "Kill The Fish",
+     "buyIn": 10.00, "entries": 2, "prize": 80.50, "bounty": 12.25, "ticketPrizeValue": 0.00,
+     "paidWithTicket": false, "notes": "Final table"}
+  ],
+  "movements": [
+    {"occurredOn": "2026-01-01", "type": "DEPOSIT", "roomId": 1, "amount": 500.00},
+    {"occurredOn": "2026-01-01", "type": "DEPOSIT", "currencyCode": "EUR", "amount": 1000.00}
+  ]
+}
+```
+
+- The `id` of a room or a variant only means something inside the file: games and movements name
+  them by it. The ids of the database, and the dates the rows were created, are not kept.
+- Built-in variants (those with a `code`) are only there to say whether they are active; the
+  ones with a `name` are yours.
+- Currencies are named by their code. A file with a currency the installation does not have is
+  an error.
+- The file can be up to 32 MB, which is more than 100,000 games with their notes and dozens of
+  logos.
+
+The API behind it is `GET /api/backup` and `POST /api/backup/restore?dryRun=&replace=` (see the
+Swagger UI), so a backup can also be scheduled with `curl` from another machine:
+
+```bash
+curl -fsS -o "poker-bankroll-$(date +%F).json" http://your-server:8080/api/backup
+```
+
+## Automatic backups
+
 The Compose stack in `deploy/` includes a `backup` service that dumps the database every day to
 a folder on the host and rotates the dumps. It is on by default: there is nothing to set up for
-a basic installation. This page explains what is saved, how to change the schedule and
-retention, how to take a backup now and how to restore one.
+a basic installation. The rest of this page explains what is saved, how to change the schedule
+and retention, how to take a backup now and how to restore one.
 
 All commands are run from the `deploy/` folder (where `docker-compose.yml` and `.env` are). See
 [Portainer](#portainer) if you run the stack without a shell there.
@@ -167,7 +259,8 @@ into the same or a newer version.
 
 ### Restore on a new machine
 
-Set up the stack as in the README (`.env` with your settings), then start only the database,
+The easy way to move to another machine is the [backup from the app](#move-to-another-computer).
+With a dump instead: set up the stack as in the README (`.env` with your settings), then start only the database,
 restore and start the rest:
 
 ```bash

@@ -2,6 +2,7 @@ import {
   Alert,
   Anchor,
   Button,
+  Divider,
   FileButton,
   Group,
   List,
@@ -10,6 +11,7 @@ import {
   Stack,
   Table,
   Text,
+  Title,
 } from '@mantine/core';
 import { IconDownload, IconFileImport } from '@tabler/icons-react';
 import { useRef, useState, type ReactNode } from 'react';
@@ -19,6 +21,7 @@ import { Link } from 'react-router';
 import { ApiError } from '../api/client';
 import { useCheckImport, useImportGames } from '../api/imports';
 import type { GameImport } from '../api/types';
+import { BackupSection } from '../backup/BackupSection';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Page } from '../components/Page';
 import { StatCard } from '../components/StatCard';
@@ -36,9 +39,12 @@ interface Checked {
 }
 
 /**
- * Imports games from a CSV file. Choosing a file only checks it: the page shows what it holds and
- * its errors, and the import is offered once there are none. It is all or nothing; afterwards the
- * page is ready for another file.
+ * The Import / Export section: games from a CSV file, and the backup of everything
+ * ({@link BackupSection}).
+ *
+ * Importing games: choosing a file only checks it: the page shows what it holds and its errors,
+ * and the import is offered once there are none. It is all or nothing; afterwards the page is
+ * ready for another file.
  */
 export function ImportPage() {
   const { t } = useTranslation();
@@ -90,6 +96,7 @@ export function ImportPage() {
 
   return (
     <Page title={t('nav.import')}>
+      <Title order={3}>{t('import.title')}</Title>
       <Stack gap="xs" maw={720}>
         <Text>{t('import.intro')}</Text>
         <Group gap="lg">
@@ -278,6 +285,10 @@ export function ImportPage() {
           </Stack>
         </ConfirmDialog>
       )}
+
+      <Divider my="sm" />
+      <Title order={3}>{t('backup.title')}</Title>
+      <BackupSection />
     </Page>
   );
 }

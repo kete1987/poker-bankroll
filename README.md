@@ -30,6 +30,8 @@ here is results and bankroll management.
 - English and Spanish UI
 - Import of games from a CSV file ([format](docs/import.md)), to bring your history from a spreadsheet
 - Export of the games and the bankroll movements you are looking at, as CSV or Excel
+- Backup of everything to one file, downloaded and restored from the app: to move to another
+  computer or to recover from a problem
 - Daily database backups
 
 See the [issues](https://github.com/kete1987/poker-bankroll/issues) for what is planned.
@@ -99,6 +101,10 @@ The stack backs up the database every day to `deploy/backups/` (keeping 7 daily,
 6 monthly dumps; set `BACKUP_*` in `.env` to change the folder, schedule or retention). In
 Portainer, set `BACKUP_DIR` to an absolute path of the host. See [docs/backups.md](docs/backups.md)
 to take a backup on demand, restore one and copy them to another machine.
+
+Besides those, *Import / Export* in the app downloads a backup of everything as one file and
+restores it, also into another installation: the easy way to move to another computer. See
+[Backup from the app](docs/backups.md#backup-from-the-app).
 
 ## Repository layout
 

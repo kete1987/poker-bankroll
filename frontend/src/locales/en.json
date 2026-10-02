@@ -13,7 +13,7 @@
     "games": "Games",
     "bankroll": "Bankroll",
     "stats": "Statistics",
-    "import": "Import",
+    "import": "Import / Export",
     "settings": "Settings"
   },
   "apiStatus": {
@@ -232,6 +232,7 @@
     }
   },
   "import": {
+    "title": "Import games from a CSV file",
     "intro": "Load games recorded somewhere else from a CSV file in the format of the application. Only games are imported, all of them as finished.",
     "format": "See the format",
     "example": "Download an example",
@@ -288,6 +289,67 @@
       "note": "Every movement of the list, with its filters.",
       "done": "{{file}} has the movements of the list."
     }
+  },
+  "backup": {
+    "title": "Backup of everything",
+    "intro": "A backup is one file with everything this installation holds: rooms and their logos, variants, every game (those in play too) and bankroll movements. Keep it somewhere safe, or restore it in another installation to move to another computer.",
+    "docs": "Backups and when to use each kind",
+    "download": "Download backup",
+    "downloaded": "Backup downloaded",
+    "downloadedText": "{{file}} has everything this installation holds.",
+    "downloadFailed": "The backup was not downloaded",
+    "restoreIntro": "Restoring a backup replaces everything this installation holds with the content of the file. Choosing a file only checks it: nothing changes until you confirm.",
+    "choose": "Choose backup file",
+    "chooseAnother": "Choose another backup",
+    "checking": "Checking the file…",
+    "unreadable": "The file cannot be restored",
+    "madeOn": "Backup made on {{date}} with poker-bankroll {{version}}.",
+    "contents": {
+      "label": "Content of the backup",
+      "file": "In the file",
+      "current": "In this installation",
+      "rooms": "Rooms",
+      "variants": "Variants of your own",
+      "games": "Games",
+      "gamesInPlay": "Games in play",
+      "movements": "Bankroll movements",
+      "dates": "Dates of the games"
+    },
+    "counts": {
+      "rooms_one": "{{formatted}} room",
+      "rooms_other": "{{formatted}} rooms",
+      "variants_one": "{{formatted}} variant of your own",
+      "variants_other": "{{formatted}} variants of your own",
+      "games_one": "{{formatted}} game",
+      "games_other": "{{formatted}} games",
+      "movements_one": "{{formatted}} bankroll movement",
+      "movements_other": "{{formatted}} bankroll movements"
+    },
+    "emptyInstallation": "This installation is empty: nothing will be deleted.",
+    "replace": {
+      "title": "Restoring deletes everything this installation holds",
+      "text": "What it holds now is deleted for good and replaced with the content of the file: {{contents}}. Download a backup first if you may need it again."
+    },
+    "errors": {
+      "title_one": "{{formatted}} error: nothing is restored until the file is right",
+      "title_other": "{{formatted}} errors: nothing is restored until the file is right",
+      "help": "The file was changed after it was made, or it was not made by this application. Positions start at 0: games[12] is the thirteenth game of the file.",
+      "where": "Where",
+      "error": "Error",
+      "more_one": "And {{formatted}} more error.",
+      "more_other": "And {{formatted}} more errors."
+    },
+    "submit": "Restore this backup",
+    "confirm": {
+      "title": "Restore backup",
+      "text": "{{file}} will be restored: {{contents}}.",
+      "deleted": "Everything this installation holds now will be deleted for good: {{contents}}.",
+      "understand": "I understand that the data of this installation will be deleted",
+      "label": "Restore",
+      "labelReplace": "Delete and restore"
+    },
+    "doneTitle": "Backup restored",
+    "done": "This installation now holds what {{file}} holds: {{contents}}."
   },
   "stats": {
     "groupBy": "Group by",

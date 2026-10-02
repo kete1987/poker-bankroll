@@ -1,6 +1,107 @@
 {
   "components" : {
     "schemas" : {
+      "BackupContents" : {
+        "properties" : {
+          "empty" : {
+            "type" : "boolean"
+          },
+          "from" : {
+            "description" : "Date of the first game",
+            "format" : "date",
+            "type" : [ "string", "null" ]
+          },
+          "games" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "gamesInPlay" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "movements" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "rooms" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "to" : {
+            "description" : "Date of the last game",
+            "format" : "date",
+            "type" : [ "string", "null" ]
+          },
+          "variants" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "empty", "games", "gamesInPlay", "movements", "rooms", "variants" ],
+        "type" : "object"
+      },
+      "BackupError" : {
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "path" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "code", "message", "path" ],
+        "type" : "object"
+      },
+      "BackupRestoreResponse" : {
+        "properties" : {
+          "appVersion" : {
+            "description" : "Version of the application that made the file",
+            "type" : [ "string", "null" ]
+          },
+          "current" : {
+            "$ref" : "#/components/schemas/BackupContents",
+            "description" : "What the installation held before the restore: it is deleted by it (in a dry run or with errors, what it holds and would lose)"
+          },
+          "dryRun" : {
+            "description" : "The file was only checked: nothing was changed",
+            "type" : "boolean"
+          },
+          "errorCount" : {
+            "description" : "Errors found in the content of the file; `errors` lists only the first ones",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "errors" : {
+            "items" : {
+              "$ref" : "#/components/schemas/BackupError"
+            },
+            "type" : "array"
+          },
+          "exportedAt" : {
+            "description" : "When the file was made",
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "file" : {
+            "$ref" : "#/components/schemas/BackupContents",
+            "description" : "What the file holds"
+          },
+          "formatVersion" : {
+            "description" : "Version of the format of the file",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "restored" : {
+            "description" : "The installation now holds what the file holds: not a dry run, and no errors",
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "current", "dryRun", "errorCount", "errors", "file", "formatVersion", "restored" ],
+        "type" : "object"
+      },
       "BankrollFigures" : {
         "properties" : {
           "adjustments" : {
@@ -1072,6 +1173,77 @@
   },
   "openapi" : "3.1.0",
   "paths" : {
+    "/backup" : {
+      "get" : {
+        "description" : "One JSON document with everything the user created: rooms (with their logos), user-defined variants and whether each built-in one is active, every game (those in play too) and every bankroll movement. It says the version of its format (`formatVersion`) and the version of the application that made it.\n\nThe file comes as an attachment named after the day, e.g. `poker-bankroll-backup-2026-10-02.json`. Restore it with `POST /backup/restore`.",
+        "operationId" : "downloadBackup",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "format" : "binary",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Download a backup of everything",
+        "tags" : [ "Backup" ]
+      }
+    },
+    "/backup/restore" : {
+      "post" : {
+        "description" : "The body is the file of `GET /backup` itself, up to 32 MB, in any version of the format up to the current one. Restoring **deletes everything the installation holds** (games, bankroll movements, rooms and their logos, user-defined variants) and writes what the file holds; built-in variants are active or not as the file says.\n\nIt is all or nothing: with an error in the content of the file nothing changes, and the response (still 200) lists the errors with `restored: false`, each with its place in the document. With `dryRun=true` the file is checked in the same way and nothing changes either: the response says what the file holds and what the installation holds and would lose.\n\nAn installation that has data is only replaced with `replace=true`; without it the restore fails with `BACKUP_REPLACE_NOT_CONFIRMED` (409). A file that cannot be read as a whole fails with `BACKUP_FILE_MALFORMED` or `BACKUP_FORMAT_TOO_NEW` (made by a newer version of the application) (400), or `BACKUP_FILE_TOO_LARGE` (413).",
+        "operationId" : "restoreBackup",
+        "parameters" : [ {
+          "description" : "Only check the file and report what it holds and what would be deleted",
+          "in" : "query",
+          "name" : "dryRun",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        }, {
+          "description" : "Delete what the installation holds; needed unless it is empty",
+          "in" : "query",
+          "name" : "replace",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "format" : "binary",
+                "type" : "string"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BackupRestoreResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Restore a backup, replacing everything",
+        "tags" : [ "Backup" ]
+      }
+    },
     "/bankroll/movements" : {
       "get" : {
         "description" : "All filters are optional and combined with AND.",
@@ -2656,6 +2828,9 @@
   }, {
     "description" : "Money set aside for poker and what was won or lost with it",
     "name" : "Bankroll"
+  }, {
+    "description" : "Everything the installation holds as one file, and restoring it",
+    "name" : "Backup"
   }, {
     "description" : "Recorded results",
     "name" : "Games"
