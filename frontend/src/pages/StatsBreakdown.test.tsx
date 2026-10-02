@@ -336,6 +336,24 @@ describe('Statistics breakdowns', () => {
     expect(rowLabels()).toEqual(['Winamax', 'PokerStars', '888poker']);
   });
 
+  it('can still be opened when the results over time cannot be loaded', async () => {
+    stubStats({
+      'GET /stats/groups': (call: ApiCall) =>
+        call.query.has('byGameType')
+          ? problem(500, 'INTERNAL_ERROR', 'Boom')
+          : { groupBy: 'ROOM', currencies: [{ currencyCode: 'EUR', groups: BREAKDOWNS.ROOM }] },
+    });
+    renderApp('/stats');
+
+    expect(
+      await screen.findByText(/The data could not be loaded/, {}, { timeout: 5000 }),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('radio', { name: 'Breakdowns' }));
+
+    expect(await screen.findByRole('columnheader', { name: 'Room' })).toBeInTheDocument();
+    expect(screen.queryByText(/The data could not be loaded/)).not.toBeInTheDocument();
+  });
+
   it('says so when there is nothing to break down or it cannot be loaded', async () => {
     stubStats({
       'GET /stats/groups': (call: ApiCall) =>

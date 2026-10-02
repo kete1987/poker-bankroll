@@ -78,12 +78,27 @@ export function StatsPage() {
     </>
   );
 
+  // Always there, also while a view loads or when it fails: the other one may well work.
+  const viewSwitch = (
+    <SegmentedControl
+      aria-label={t('stats.breakdown.view')}
+      style={{ alignSelf: 'flex-start' }}
+      data={[
+        { value: 'evolution', label: t('stats.breakdown.evolution') },
+        { value: 'breakdown', label: t('stats.breakdown.title') },
+      ]}
+      value={filters.view}
+      onChange={(value) => update({ view: value as StatsView })}
+    />
+  );
+
   if ([rooms, variants, loaded].some((request) => request.isError)) {
     return (
       <Page title={t('nav.stats')}>
         <Group gap="sm" align="flex-end">
           {filterBar}
         </Group>
+        {viewSwitch}
         <Alert color="red">{t('games.loadError')}</Alert>
       </Page>
     );
@@ -95,6 +110,7 @@ export function StatsPage() {
         <Group gap="sm" align="flex-end">
           {filterBar}
         </Group>
+        {viewSwitch}
         <Loader />
       </Page>
     );
@@ -177,16 +193,7 @@ export function StatsPage() {
         )}
       </Group>
 
-      <SegmentedControl
-        aria-label={t('stats.breakdown.view')}
-        style={{ alignSelf: 'flex-start' }}
-        data={[
-          { value: 'evolution', label: t('stats.breakdown.evolution') },
-          { value: 'breakdown', label: t('stats.breakdown.title') },
-        ]}
-        value={filters.view}
-        onChange={(value) => update({ view: value as StatsView })}
-      />
+      {viewSwitch}
 
       {filters.view === 'breakdown' ? (
         currencyCode ? (
