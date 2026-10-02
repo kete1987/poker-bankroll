@@ -11,6 +11,7 @@ import {
   Text,
   Title,
 } from '@mantine/core';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
@@ -18,6 +19,7 @@ import { useBankrollSummary } from '../api/bankroll';
 import { useRooms } from '../api/rooms';
 import { useStatsGroups, useStatsSummary } from '../api/stats';
 import type { StatsFigures } from '../api/types';
+import { FilterBar } from '../components/FilterBar';
 import { Page } from '../components/Page';
 import { PeriodFilter } from '../components/PeriodFilter';
 import { StatCard } from '../components/StatCard';
@@ -61,9 +63,12 @@ export function DashboardPage() {
   const bankrollNow = useBankrollSummary({ roomId: roomIds });
   const byRoom = useStatsGroups('ROOM', query);
 
-  const filterBar = (
-    <Group gap="sm" align="flex-end">
-      <PeriodFilter range={range} onChange={(next) => update({ range: next })} />
+  /** The filters, with what a state of the page adds to them (the currency, once known). */
+  const filterBar = (extra?: ReactNode) => (
+    <FilterBar
+      primary={<PeriodFilter range={range} onChange={(next) => update({ range: next })} />}
+      activeCount={roomIds.length > 0 ? 1 : 0}
+    >
       <MultiSelect
         label={t('filters.room')}
         miw={180}
@@ -74,14 +79,15 @@ export function DashboardPage() {
         value={roomIds.map(String)}
         onChange={(values) => update({ roomIds: values.map(Number) })}
       />
-    </Group>
+      {extra}
+    </FilterBar>
   );
 
   const failed = [rooms, stats, bankrollNow, byRoom, byVariant].some((query) => query.isError);
   if (failed) {
     return (
       <Page title={t('nav.dashboard')}>
-        {filterBar}
+        {filterBar()}
         <Alert color="red">{t('games.loadError')}</Alert>
       </Page>
     );
@@ -89,7 +95,7 @@ export function DashboardPage() {
   if (!stats.data || !bankrollNow.data || !byRoom.data) {
     return (
       <Page title={t('nav.dashboard')}>
-        {filterBar}
+        {filterBar()}
         <Loader />
       </Page>
     );
@@ -105,7 +111,7 @@ export function DashboardPage() {
   if (currencies.length === 0) {
     return (
       <Page title={t('nav.dashboard')}>
-        {filterBar}
+        {filterBar()}
         <Text c="dimmed">
           {t('dashboard.empty')}{' '}
           <Anchor component={Link} to="/games">
@@ -165,9 +171,8 @@ export function DashboardPage() {
 
   return (
     <Page title={t('nav.dashboard')}>
-      <Group gap="sm" align="flex-end">
-        {filterBar}
-        {currencies.length > 1 && (
+      {filterBar(
+        currencies.length > 1 && (
           <Select
             label={t('dashboard.currency')}
             w={110}
@@ -176,8 +181,8 @@ export function DashboardPage() {
             value={currencyCode}
             onChange={(value) => update({ currency: value ?? undefined })}
           />
-        )}
-      </Group>
+        ),
+      )}
 
       <SimpleGrid cols={{ base: 1, xs: 2, lg: 4 }}>
         <StatCard

@@ -1,6 +1,7 @@
 import { Avatar, Group, Text } from '@mantine/core';
 
 import { roomLogoUrl, useRooms } from '../api/rooms';
+import { useNarrowScreen } from './useNarrowScreen';
 
 interface RoomLabelProps {
   /** The room as any response names it: its id and name are enough. */
@@ -14,6 +15,8 @@ interface RoomLabelProps {
 export function RoomLabel({ room }: RoomLabelProps) {
   // Whether a room has a logo comes with the list of rooms, which every screen shares.
   const rooms = useRooms();
+  // On a phone a long name takes two lines instead of pushing the figures next to it away.
+  const narrow = useNarrowScreen();
   const logoVersion = rooms.data?.find((candidate) => candidate.id === room.id)?.logoVersion;
 
   return (
@@ -32,7 +35,7 @@ export function RoomLabel({ room }: RoomLabelProps) {
       >
         {room.name.trim().charAt(0).toUpperCase()}
       </Avatar>
-      <Text span size="sm" style={{ whiteSpace: 'nowrap' }}>
+      <Text span size="sm" style={{ whiteSpace: narrow ? 'normal' : 'nowrap' }}>
         {room.name}
       </Text>
     </Group>

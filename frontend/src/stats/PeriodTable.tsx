@@ -2,6 +2,8 @@ import { Group, Pagination, Stack, Table, Text } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 
 import type { GameType, StatsFigures } from '../api/types';
+import { CompactTable, type CompactRow } from '../components/CompactTable';
+import { useNarrowScreen } from '../components/useNarrowScreen';
 import { NO_VALUE } from '../format/format';
 import { useFormat } from '../format/useFormat';
 
@@ -45,6 +47,7 @@ export function PeriodTable({
 }: PeriodTableProps) {
   const { t } = useTranslation();
   const format = useFormat();
+  const narrow = useNarrowScreen();
   const pageCount = Math.ceil(rows.length / PAGE_SIZE);
   // The page comes from the URL and the rows can shrink under it: stay within them.
   const current = Math.min(page + 1, Math.max(pageCount, 1));
@@ -90,43 +93,85 @@ export function PeriodTable({
     );
   }
 
+  // On a phone: played, net and ROI; the net of each game type and the rest unfold under the row.
+  const compact = (
+    key: string,
+    label: string,
+    figures: StatsFigures,
+    netByGameType: Partial<Record<GameType, number>>,
+    bold: boolean,
+  ): CompactRow => ({
+    key,
+    label,
+    name: label,
+    cells: [format.number(figures.games), net(figures.net, bold), format.percent(figures.roi)],
+    details: [
+      ...gameTypes.map((type) => ({
+        label: t(`gameTypes.${type}`),
+        value: net(netByGameType[type]),
+      })),
+      {
+        label: t('dashboard.columns.invested'),
+        value: format.money(figures.invested, currencyCode),
+      },
+      { label: t('dashboard.columns.won'), value: format.money(figures.won, currencyCode) },
+    ],
+  });
+
   return (
     <Stack gap="sm">
-      <Table.ScrollContainer minWidth={760}>
-        <Table verticalSpacing="xs" highlightOnHover style={{ whiteSpace: 'nowrap' }}>
-          <Table.Thead>
-            <Table.Tr>
+      {narrow ? (
+        <CompactTable
+          head={
+            <>
               <Table.Th>{periodLabel}</Table.Th>
               <Table.Th ta="right">{t('dashboard.columns.games')}</Table.Th>
-              {gameTypes.map((type) => (
-                <Table.Th key={type} ta="right">
-                  {t(`gameTypes.${type}`)}
-                </Table.Th>
-              ))}
-              <Table.Th ta="right">{t('dashboard.columns.invested')}</Table.Th>
-              <Table.Th ta="right">{t('dashboard.columns.won')}</Table.Th>
               <Table.Th ta="right">{t('dashboard.columns.net')}</Table.Th>
               <Table.Th ta="right">{t('dashboard.columns.roi')}</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {shown.map((row) => (
-              <Table.Tr key={row.key}>
-                <Table.Th scope="row" fw={500}>
-                  {row.label}
-                </Table.Th>
-                {cells(row.figures, row.netByGameType, false)}
+            </>
+          }
+          rows={shown.map((row) =>
+            compact(row.key, row.label, row.figures, row.netByGameType, false),
+          )}
+          foot={compact('total', t('dashboard.total'), total, totalNetByGameType, true)}
+        />
+      ) : (
+        <Table.ScrollContainer minWidth={760}>
+          <Table verticalSpacing="xs" highlightOnHover style={{ whiteSpace: 'nowrap' }}>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>{periodLabel}</Table.Th>
+                <Table.Th ta="right">{t('dashboard.columns.games')}</Table.Th>
+                {gameTypes.map((type) => (
+                  <Table.Th key={type} ta="right">
+                    {t(`gameTypes.${type}`)}
+                  </Table.Th>
+                ))}
+                <Table.Th ta="right">{t('dashboard.columns.invested')}</Table.Th>
+                <Table.Th ta="right">{t('dashboard.columns.won')}</Table.Th>
+                <Table.Th ta="right">{t('dashboard.columns.net')}</Table.Th>
+                <Table.Th ta="right">{t('dashboard.columns.roi')}</Table.Th>
               </Table.Tr>
-            ))}
-          </Table.Tbody>
-          <Table.Tfoot>
-            <Table.Tr fw={700}>
-              <Table.Th scope="row">{t('dashboard.total')}</Table.Th>
-              {cells(total, totalNetByGameType, true)}
-            </Table.Tr>
-          </Table.Tfoot>
-        </Table>
-      </Table.ScrollContainer>
+            </Table.Thead>
+            <Table.Tbody>
+              {shown.map((row) => (
+                <Table.Tr key={row.key}>
+                  <Table.Th scope="row" fw={500}>
+                    {row.label}
+                  </Table.Th>
+                  {cells(row.figures, row.netByGameType, false)}
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+            <Table.Tfoot>
+              <Table.Tr fw={700}>
+                <Table.Th scope="row">{t('dashboard.total')}</Table.Th>
+                {cells(total, totalNetByGameType, true)}
+              </Table.Tr>
+            </Table.Tfoot>
+          </Table>
+        </Table.ScrollContainer>
+      )}
       {pageCount > 1 && (
         <Group justify="flex-end">
           <Pagination

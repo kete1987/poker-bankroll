@@ -143,7 +143,10 @@
     },
     "actions": {
       "editMovement": "Edit {{movement}}",
-      "deleteMovement": "Delete {{movement}}"
+      "deleteMovement": "Delete {{movement}}",
+      "edit": "Edit",
+      "delete": "Delete",
+      "moreFor": "Actions for {{movement}}"
     },
     "delete": {
       "title": "Delete movement",
@@ -457,7 +460,10 @@
       "reEntryGame": "Add a re-entry to {{game}}",
       "rebuyGame": "Add a rebuy to {{game}}",
       "editGame": "Edit {{game}}",
-      "deleteGame": "Delete {{game}}"
+      "deleteGame": "Delete {{game}}",
+      "edit": "Edit",
+      "delete": "Delete",
+      "moreFor": "Actions for {{game}}"
     },
     "list": {
       "empty": "There are no finished games yet.",
@@ -498,6 +504,11 @@
       "confirm": "Delete {{game}} of {{date}} in {{room}}? This cannot be undone.",
       "confirmLabel": "Delete",
       "done": "Game deleted"
+    },
+    "sort": {
+      "label": "Sort by",
+      "descending": "Highest or latest first: reverse the order",
+      "ascending": "Lowest or earliest first: reverse the order"
     }
   },
   "filters": {
@@ -517,7 +528,8 @@
       "lastMonth": "Last month",
       "thisYear": "This year",
       "custom": "Custom"
-    }
+    },
+    "more": "Filters"
   },
   "gameForm": {
     "gameType": "Game type",
@@ -574,5 +586,8 @@
     "title": "Something went wrong",
     "description": "An unexpected error occurred. Try reloading the page.",
     "reload": "Reload"
+  },
+  "compactTable": {
+    "details": "Details of {{row}}"
   }
 }

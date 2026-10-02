@@ -18,6 +18,7 @@ import { useSubmit } from '../components/useSubmit';
 import { useFormat } from '../format/useFormat';
 import { amountOrNull, type Amount } from './amount';
 import { describeGame } from './labels';
+import { useNarrowScreen } from '../components/useNarrowScreen';
 
 interface FinishGameDialogProps {
   game: Game;
@@ -32,6 +33,7 @@ interface FinishGameDialogProps {
  */
 export function FinishGameDialog({ game, onFinish, onClose }: FinishGameDialogProps) {
   const { t } = useTranslation();
+  const narrow = useNarrowScreen();
   const format = useFormat();
   const { run, busy, failure } = useSubmit();
   const isCash = game.gameType === 'CASH';
@@ -81,6 +83,7 @@ export function FinishGameDialog({ game, onFinish, onClose }: FinishGameDialogPr
 
   return (
     <Modal
+      fullScreen={narrow}
       opened
       onClose={onClose}
       title={t('games.finish.title')}

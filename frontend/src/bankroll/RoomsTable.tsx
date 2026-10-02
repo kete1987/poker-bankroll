@@ -2,6 +2,8 @@ import { Badge, Group, Table, Text } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 
 import type { BankrollFigures, CurrencyBankroll } from '../api/types';
+import { CompactTable, type CompactRow } from '../components/CompactTable';
+import { useNarrowScreen } from '../components/useNarrowScreen';
 import { RoomLabel } from '../components/RoomLabel';
 import { useFormat } from '../format/useFormat';
 
@@ -24,6 +26,7 @@ function hasMovements(figures: BankrollFigures): boolean {
 export function RoomsTable({ bankroll, bankrollLabel }: RoomsTableProps) {
   const { t } = useTranslation();
   const format = useFormat();
+  const narrow = useNarrowScreen();
   const currencyCode = bankroll.currencyCode;
 
   const plain = (value: number) => format.money(value, currencyCode);
@@ -49,6 +52,72 @@ export function RoomsTable({ bankroll, bankrollLabel }: RoomsTableProps) {
         <Table.Td ta="right">{signed(figures.result, bold)}</Table.Td>
         <Table.Td ta="right">{signed(figures.bankroll, bold)}</Table.Td>
       </>
+    );
+  }
+
+  if (narrow) {
+    // On a phone: the result and the bankroll; what they are made of unfolds under the row.
+    const compact = (
+      key: string,
+      label: CompactRow['label'],
+      name: string,
+      figures: BankrollFigures,
+      bold: boolean,
+    ): CompactRow => ({
+      key,
+      label,
+      name,
+      cells: [signed(figures.result, bold), signed(figures.bankroll, bold)],
+      details: [
+        { label: t('bankroll.columns.deposited'), value: plain(figures.deposited) },
+        { label: t('bankroll.columns.withdrawn'), value: plain(figures.withdrawn) },
+        { label: t('bankroll.columns.bonuses'), value: plain(figures.bonuses) },
+        { label: t('bankroll.columns.adjustments'), value: signed(figures.adjustments) },
+        { label: t('bankroll.columns.gamesNet'), value: signed(figures.gamesNet) },
+      ],
+    });
+    return (
+      <CompactTable
+        head={
+          <>
+            <Table.Th>{t('bankroll.columns.room')}</Table.Th>
+            <Table.Th ta="right">{t('bankroll.columns.result')}</Table.Th>
+            <Table.Th ta="right">{bankrollLabel}</Table.Th>
+          </>
+        }
+        rows={[
+          ...bankroll.rooms.map((room) =>
+            compact(
+              String(room.room.id),
+              <Group gap="xs">
+                <RoomLabel room={room.room} />
+                {!room.active && (
+                  <Badge size="xs" variant="light" color="gray">
+                    {t('bankroll.inactive')}
+                  </Badge>
+                )}
+              </Group>,
+              room.room.name,
+              room.figures,
+              false,
+            ),
+          ),
+          ...(hasMovements(bankroll.withoutRoom)
+            ? [
+                compact(
+                  'withoutRoom',
+                  <Text size="sm" c="dimmed">
+                    {t('bankroll.withoutRoom')}
+                  </Text>,
+                  t('bankroll.withoutRoom'),
+                  bankroll.withoutRoom,
+                  false,
+                ),
+              ]
+            : []),
+        ]}
+        foot={compact('total', t('dashboard.total'), t('dashboard.total'), bankroll.total, true)}
+      />
     );
   }
 

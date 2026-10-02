@@ -20,6 +20,7 @@ import type { Currency, Room } from '../api/types';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { RoomLabel } from '../components/RoomLabel';
 import { RoomDialog } from './RoomDialog';
+import { useNarrowScreen } from '../components/useNarrowScreen';
 
 type Dialog = { kind: 'add' } | { kind: 'edit' | 'delete'; room: Room };
 
@@ -31,6 +32,7 @@ interface RoomsSettingsProps {
 /** The rooms: add, rename, activate or deactivate, set their logo, and delete the unused ones. */
 export function RoomsSettings({ rooms, currencies }: RoomsSettingsProps) {
   const { t } = useTranslation();
+  const narrow = useNarrowScreen();
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const updateRoom = useUpdateRoom();
@@ -60,8 +62,9 @@ export function RoomsSettings({ rooms, currencies }: RoomsSettingsProps) {
       {rooms.length === 0 ? (
         <Text c="dimmed">{t('settings.rooms.empty')}</Text>
       ) : (
-        <Table.ScrollContainer minWidth={480}>
-          <Table verticalSpacing="xs" highlightOnHover>
+        // Four short columns fit a phone when the table is not forced to a width.
+        <Table.ScrollContainer minWidth={narrow ? 0 : 480}>
+          <Table verticalSpacing="xs" horizontalSpacing={narrow ? 6 : undefined} highlightOnHover>
             <Table.Thead>
               <Table.Tr>
                 <Table.Th>{t('settings.rooms.room')}</Table.Th>

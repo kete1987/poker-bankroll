@@ -17,7 +17,9 @@ import { useTranslation } from 'react-i18next';
 import { useStatsGroups, type StatsQuery } from '../api/stats';
 import type { StatsFigures, StatsGroup } from '../api/types';
 import { Chart } from '../components/Chart';
+import { CompactTable, type CompactRow } from '../components/CompactTable';
 import { RoomLabel } from '../components/RoomLabel';
+import { useNarrowScreen } from '../components/useNarrowScreen';
 import { NO_VALUE } from '../format/format';
 import { useFormat } from '../format/useFormat';
 import { variantLabel } from '../games/labels';
@@ -88,6 +90,7 @@ export function Breakdown({ query, currencyCode, dimension, sort, onChange }: Br
   const { t } = useTranslation();
   const format = useFormat();
   const theme = useMantineTheme();
+  const narrow = useNarrowScreen();
   const [search, setSearch] = useState('');
   // Names are those of tournaments, which is where games have one, unless the filter already
   // says which games (types or variants): the breakdown never shows games the filter leaves out.
@@ -178,12 +181,18 @@ export function Breakdown({ query, currencyCode, dimension, sort, onChange }: Br
       },
       xAxis: {
         type: 'value',
-        axisLabel: { formatter: (value: number) => format.money(value, currencyCode) },
+        // Fewer marks on a phone, and none on top of another.
+        splitNumber: narrow ? 3 : 5,
+        axisLabel: {
+          hideOverlap: true,
+          formatter: (value: number) => format.money(value, currencyCode),
+        },
       },
       yAxis: {
         type: 'category',
         data: bars.map((row) => row.label),
-        axisLabel: { width: 220, overflow: 'truncate' },
+        // On a phone the names get less room, so the bars keep most of it.
+        axisLabel: { width: narrow ? 110 : 220, overflow: 'truncate' },
       },
       series: [
         {
@@ -195,7 +204,7 @@ export function Breakdown({ query, currencyCode, dimension, sort, onChange }: Br
         },
       ],
     };
-  }, [rows, currencyCode, format, theme]);
+  }, [rows, currencyCode, format, theme, narrow]);
 
   // Without a column chosen, ranges and days come in their own order and the rest by games.
   const shownSort: BreakdownSort | undefined =
@@ -236,7 +245,7 @@ export function Breakdown({ query, currencyCode, dimension, sort, onChange }: Br
       <Group gap="sm" align="flex-end">
         <Select
           label={t('stats.breakdown.by')}
-          w={220}
+          w={narrow ? '100%' : 220}
           allowDeselect={false}
           data={DIMENSIONS.map((value) => ({
             value,
@@ -249,7 +258,7 @@ export function Breakdown({ query, currencyCode, dimension, sort, onChange }: Br
         {drawn === 'NAME' && (
           <TextInput
             label={t('stats.breakdown.search')}
-            w={260}
+            w={narrow ? '100%' : 260}
             leftSection={<IconSearch size={16} />}
             value={search}
             onChange={(event) => setSearch(event.currentTarget.value)}
@@ -268,44 +277,89 @@ export function Breakdown({ query, currencyCode, dimension, sort, onChange }: Br
             option={option}
             height={Math.max(Math.min(rows.length, BARS_SHOWN) * 30 + 40, 140)}
           />
-          <Table.ScrollContainer minWidth={760}>
-            <Table verticalSpacing="xs" highlightOnHover style={{ whiteSpace: 'nowrap' }}>
-              <Table.Thead>
-                <Table.Tr>
+          {narrow ? (
+            // On a phone: played, net and ROI; the rest of each row unfolds under it.
+            <CompactTable
+              head={
+                <>
                   {header('label', t(`stats.breakdown.dimensions.${drawn}`), 'left')}
                   {header('games', t('dashboard.columns.games'))}
-                  {header('averageBuyIn', t('dashboard.columns.averageBuyIn'))}
-                  {header('itm', t('dashboard.columns.inTheMoneyRate'))}
-                  {header('invested', t('dashboard.columns.invested'))}
-                  {header('won', t('dashboard.columns.won'))}
                   {header('net', t('dashboard.columns.net'))}
                   {header('roi', t('dashboard.columns.roi'))}
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {rows.map((row) => (
-                  <Table.Tr key={row.key}>
-                    <Table.Th scope="row" fw={500}>
-                      {row.room ? <RoomLabel room={row.room} /> : row.label}
-                    </Table.Th>
-                    <Table.Td ta="right">{format.number(row.figures.games)}</Table.Td>
-                    <Table.Td ta="right">
-                      {row.figures.averageBuyIn == null
+                </>
+              }
+              rows={rows.map((row): CompactRow => ({
+                key: row.key,
+                label: row.room ? <RoomLabel room={row.room} /> : row.label,
+                name: row.label,
+                cells: [
+                  format.number(row.figures.games),
+                  net(row.figures.net),
+                  format.percent(row.figures.roi),
+                ],
+                details: [
+                  {
+                    label: t('dashboard.columns.averageBuyIn'),
+                    value:
+                      row.figures.averageBuyIn == null
                         ? NO_VALUE
-                        : format.money(row.figures.averageBuyIn, currencyCode)}
-                    </Table.Td>
-                    <Table.Td ta="right">{format.percent(row.figures.inTheMoneyRate)}</Table.Td>
-                    <Table.Td ta="right">
-                      {format.money(row.figures.invested, currencyCode)}
-                    </Table.Td>
-                    <Table.Td ta="right">{format.money(row.figures.won, currencyCode)}</Table.Td>
-                    <Table.Td ta="right">{net(row.figures.net)}</Table.Td>
-                    <Table.Td ta="right">{format.percent(row.figures.roi)}</Table.Td>
+                        : format.money(row.figures.averageBuyIn, currencyCode),
+                  },
+                  {
+                    label: t('dashboard.columns.inTheMoneyRate'),
+                    value: format.percent(row.figures.inTheMoneyRate),
+                  },
+                  {
+                    label: t('dashboard.columns.invested'),
+                    value: format.money(row.figures.invested, currencyCode),
+                  },
+                  {
+                    label: t('dashboard.columns.won'),
+                    value: format.money(row.figures.won, currencyCode),
+                  },
+                ],
+              }))}
+            />
+          ) : (
+            <Table.ScrollContainer minWidth={760}>
+              <Table verticalSpacing="xs" highlightOnHover style={{ whiteSpace: 'nowrap' }}>
+                <Table.Thead>
+                  <Table.Tr>
+                    {header('label', t(`stats.breakdown.dimensions.${drawn}`), 'left')}
+                    {header('games', t('dashboard.columns.games'))}
+                    {header('averageBuyIn', t('dashboard.columns.averageBuyIn'))}
+                    {header('itm', t('dashboard.columns.inTheMoneyRate'))}
+                    {header('invested', t('dashboard.columns.invested'))}
+                    {header('won', t('dashboard.columns.won'))}
+                    {header('net', t('dashboard.columns.net'))}
+                    {header('roi', t('dashboard.columns.roi'))}
                   </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          </Table.ScrollContainer>
+                </Table.Thead>
+                <Table.Tbody>
+                  {rows.map((row) => (
+                    <Table.Tr key={row.key}>
+                      <Table.Th scope="row" fw={500}>
+                        {row.room ? <RoomLabel room={row.room} /> : row.label}
+                      </Table.Th>
+                      <Table.Td ta="right">{format.number(row.figures.games)}</Table.Td>
+                      <Table.Td ta="right">
+                        {row.figures.averageBuyIn == null
+                          ? NO_VALUE
+                          : format.money(row.figures.averageBuyIn, currencyCode)}
+                      </Table.Td>
+                      <Table.Td ta="right">{format.percent(row.figures.inTheMoneyRate)}</Table.Td>
+                      <Table.Td ta="right">
+                        {format.money(row.figures.invested, currencyCode)}
+                      </Table.Td>
+                      <Table.Td ta="right">{format.money(row.figures.won, currencyCode)}</Table.Td>
+                      <Table.Td ta="right">{net(row.figures.net)}</Table.Td>
+                      <Table.Td ta="right">{format.percent(row.figures.roi)}</Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            </Table.ScrollContainer>
+          )}
           {namesLeftOut > 0 && (
             <Text size="sm" c="dimmed">
               {t('stats.breakdown.more', { count: namesLeftOut })}

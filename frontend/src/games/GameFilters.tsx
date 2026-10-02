@@ -1,11 +1,13 @@
-import { Button, Group, TextInput } from '@mantine/core';
+import { Button, TextInput } from '@mantine/core';
 import { useDebouncedCallback } from '@mantine/hooks';
 import { IconSearch, IconX } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { Room, Variant } from '../api/types';
+import { FilterBar } from '../components/FilterBar';
 import { PeriodFilter } from '../components/PeriodFilter';
+import { useNarrowScreen } from '../components/useNarrowScreen';
 import { ScopeFilters } from './ScopeFilters';
 import type { GameFilters as Filters } from './useGameFilters';
 
@@ -28,6 +30,7 @@ export function GameFilters({
   onClear,
 }: GameFiltersProps) {
   const { t } = useTranslation();
+  const narrow = useNarrowScreen();
   const [cleared, setCleared] = useState(0);
 
   // The text is searched a moment after the last key, not on every one.
@@ -43,13 +46,20 @@ export function GameFilters({
   }
 
   return (
-    <Group gap="sm" align="flex-end">
-      {/* The key resets "Custom" when the filters are cleared. */}
-      <PeriodFilter
-        key={cleared}
-        range={{ from: filters.from, to: filters.to }}
-        onChange={(range) => onChange({ from: range.from, to: range.to })}
-      />
+    <FilterBar
+      activeCount={
+        [filters.gameTypes, filters.roomIds, filters.variantIds].filter((list) => list.length > 0)
+          .length + (filters.q ? 1 : 0)
+      }
+      primary={
+        // The key resets "Custom" when the filters are cleared.
+        <PeriodFilter
+          key={cleared}
+          range={{ from: filters.from, to: filters.to }}
+          onChange={(range) => onChange({ from: range.from, to: range.to })}
+        />
+      }
+    >
       <ScopeFilters
         gameTypes={filters.gameTypes}
         roomIds={filters.roomIds}
@@ -61,7 +71,7 @@ export function GameFilters({
       <TextInput
         label={t('filters.text')}
         placeholder={t('filters.textPlaceholder')}
-        w={220}
+        w={narrow ? undefined : 220}
         leftSection={<IconSearch size={16} />}
         value={text}
         onChange={(event) => {
@@ -85,6 +95,6 @@ export function GameFilters({
           {t('filters.clear')}
         </Button>
       )}
-    </Group>
+    </FilterBar>
   );
 }
