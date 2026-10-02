@@ -28,6 +28,7 @@ import { useCatalog } from '../api/catalog';
 import { exportMovements } from '../api/exports';
 import { useRooms } from '../api/rooms';
 import type { BankrollFigures, Movement, MovementType } from '../api/types';
+import { MovementCards } from '../bankroll/MovementCards';
 import { MovementForm } from '../bankroll/MovementForm';
 import { MovementsTable } from '../bankroll/MovementsTable';
 import { RoomsTable } from '../bankroll/RoomsTable';
@@ -37,10 +38,12 @@ import {
   useBankrollFilters,
 } from '../bankroll/useBankrollFilters';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { FilterBar } from '../components/FilterBar';
 import { ExportMenu } from '../components/ExportMenu';
 import { Page } from '../components/Page';
 import { PeriodFilter } from '../components/PeriodFilter';
 import { StatCard } from '../components/StatCard';
+import { useNarrowScreen } from '../components/useNarrowScreen';
 import { useFormat } from '../format/useFormat';
 
 /** Figures of a currency without anything in the period. */
@@ -71,6 +74,7 @@ function toneOf(amount: number): 'positive' | 'negative' | undefined {
 export function BankrollPage() {
   const { t } = useTranslation();
   const format = useFormat();
+  const narrow = useNarrowScreen();
   const { filters, update } = useBankrollFilters();
   const { range, roomIds } = filters;
   const [dialog, setDialog] = useState<Dialog | null>(null);
@@ -125,10 +129,14 @@ export function BankrollPage() {
   const money = (amount: number) => format.money(amount, currencyCode ?? 'EUR');
   const signed = (amount: number) => format.signedMoney(amount, currencyCode ?? 'EUR');
 
+  const MovementsList = narrow ? MovementCards : MovementsTable;
+
   return (
     <Page title={t('nav.bankroll')}>
-      <Group gap="sm" align="flex-end">
-        <PeriodFilter range={range} onChange={(next) => update({ range: next })} />
+      <FilterBar
+        primary={<PeriodFilter range={range} onChange={(next) => update({ range: next })} />}
+        activeCount={roomIds.length > 0 ? 1 : 0}
+      >
         <MultiSelect
           label={t('filters.room')}
           miw={180}
@@ -149,7 +157,7 @@ export function BankrollPage() {
             onChange={(value) => update({ currency: value ?? undefined })}
           />
         )}
-      </Group>
+      </FilterBar>
 
       {failed ? (
         <Alert color="red">{t('games.loadError')}</Alert>
@@ -233,7 +241,8 @@ export function BankrollPage() {
           <Text c="dimmed">{t('bankroll.noMovements')}</Text>
         ) : (
           <Stack gap="sm" style={{ opacity: movements.isPlaceholderData ? 0.6 : 1 }}>
-            <MovementsTable
+            {/* A table has too many columns for a phone: there each movement is a card. */}
+            <MovementsList
               movements={movements.data.items}
               onEdit={(movement) => setDialog({ kind: 'edit', movement })}
               onDelete={(movement) => setDialog({ kind: 'delete', movement })}
@@ -267,6 +276,7 @@ export function BankrollPage() {
           onClose={close}
           title={dialog.kind === 'add' ? t('bankroll.add') : t('bankroll.edit')}
           size="lg"
+          fullScreen={narrow}
           closeButtonProps={{ 'aria-label': t('actions.close') }}
         >
           {rooms.data && catalog.data ? (

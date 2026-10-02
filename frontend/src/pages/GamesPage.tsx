@@ -20,10 +20,12 @@ import type { Game } from '../api/types';
 import { useVariants } from '../api/variants';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ExportMenu } from '../components/ExportMenu';
+import { useNarrowScreen } from '../components/useNarrowScreen';
 import { Page } from '../components/Page';
 import { useFormat } from '../format/useFormat';
 import { FinishGameDialog } from '../games/FinishGameDialog';
 import { describeGame } from '../games/labels';
+import { GameCards } from '../games/GameCards';
 import { GameFilters } from '../games/GameFilters';
 import { GameForm } from '../games/GameForm';
 import { GamesInPlay } from '../games/GamesInPlay';
@@ -42,6 +44,7 @@ export function GamesPage() {
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const close = () => setDialog(null);
 
+  const narrow = useNarrowScreen();
   const { filters, update, clear, hasFilters } = useGameFilters();
   const rooms = useRooms();
   const variants = useVariants();
@@ -89,6 +92,8 @@ export function GamesPage() {
       update({ page: Math.max(pageCount - 1, 0) });
     }
   }, [pastTheEnd, pageCount, update]);
+
+  const GamesList = narrow ? GameCards : GamesTable;
 
   return (
     <Page title={t('nav.games')}>
@@ -144,7 +149,8 @@ export function GamesPage() {
         <Text c="dimmed">{hasFilters ? t('games.list.noMatches') : t('games.list.empty')}</Text>
       ) : (
         <Stack gap="sm" style={{ opacity: games.isPlaceholderData ? 0.6 : 1 }}>
-          <GamesTable
+          {/* A table has too many columns for a phone: there each game is a card. */}
+          <GamesList
             games={games.data.items}
             sortField={filters.sortField}
             sortDescending={filters.sortDescending}
@@ -178,6 +184,7 @@ export function GamesPage() {
           onClose={close}
           title={dialog.kind === 'add' ? t('games.add') : t('games.edit')}
           size="lg"
+          fullScreen={narrow}
           closeButtonProps={{ 'aria-label': t('actions.close') }}
         >
           {loadFailed ? (

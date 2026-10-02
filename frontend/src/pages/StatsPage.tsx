@@ -9,12 +9,14 @@ import {
   Text,
   Title,
 } from '@mantine/core';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useRooms } from '../api/rooms';
 import { useStatsOverTime, useStatsSummary } from '../api/stats';
 import type { GameType, StatsFigures, StatsGroup } from '../api/types';
 import { useVariants } from '../api/variants';
+import { FilterBar } from '../components/FilterBar';
 import { Page } from '../components/Page';
 import { PeriodFilter } from '../components/PeriodFilter';
 import { StatCard } from '../components/StatCard';
@@ -64,9 +66,15 @@ export function StatsPage() {
   const summaryAlone = useStatsSummary(query, onBreakdown);
   const loaded = onBreakdown ? summaryAlone : stats;
 
-  const filterBar = (
-    <>
-      <PeriodFilter range={filters.range} onChange={(range) => update({ range })} />
+  /** The filters, with what a state of the page adds to them (the cut in time, the currency). */
+  const filterBar = (extra?: ReactNode) => (
+    <FilterBar
+      primary={<PeriodFilter range={filters.range} onChange={(range) => update({ range })} />}
+      activeCount={
+        [filters.gameTypes, filters.roomIds, filters.variantIds].filter((list) => list.length > 0)
+          .length
+      }
+    >
       <ScopeFilters
         gameTypes={filters.gameTypes}
         roomIds={filters.roomIds}
@@ -75,7 +83,8 @@ export function StatsPage() {
         variants={variants.data ?? []}
         onChange={update}
       />
-    </>
+      {extra}
+    </FilterBar>
   );
 
   // Always there, also while a view loads or when it fails: the other one may well work.
@@ -95,9 +104,7 @@ export function StatsPage() {
   if ([rooms, variants, loaded].some((request) => request.isError)) {
     return (
       <Page title={t('nav.stats')}>
-        <Group gap="sm" align="flex-end">
-          {filterBar}
-        </Group>
+        {filterBar()}
         {viewSwitch}
         <Alert color="red">{t('games.loadError')}</Alert>
       </Page>
@@ -107,9 +114,7 @@ export function StatsPage() {
   if (!summary) {
     return (
       <Page title={t('nav.stats')}>
-        <Group gap="sm" align="flex-end">
-          {filterBar}
-        </Group>
+        {filterBar()}
         {viewSwitch}
         <Loader />
       </Page>
@@ -169,29 +174,33 @@ export function StatsPage() {
 
   return (
     <Page title={t('nav.stats')}>
-      <Group gap="sm" align="flex-end">
-        {filterBar}
-        {filters.view === 'evolution' && (
-          <Select
-            label={t('stats.groupBy')}
-            w={130}
-            allowDeselect={false}
-            data={GRANULARITIES.map((value) => ({ value, label: t(`stats.granularity.${value}`) }))}
-            value={granularity}
-            onChange={(value) => update({ granularity: value as Granularity })}
-          />
-        )}
-        {currencies.length > 1 && currencyCode && (
-          <Select
-            label={t('dashboard.currency')}
-            w={110}
-            allowDeselect={false}
-            data={[...currencies].sort()}
-            value={currencyCode}
-            onChange={(value) => update({ currency: value ?? undefined })}
-          />
-        )}
-      </Group>
+      {filterBar(
+        <>
+          {filters.view === 'evolution' && (
+            <Select
+              label={t('stats.groupBy')}
+              w={130}
+              allowDeselect={false}
+              data={GRANULARITIES.map((value) => ({
+                value,
+                label: t(`stats.granularity.${value}`),
+              }))}
+              value={granularity}
+              onChange={(value) => update({ granularity: value as Granularity })}
+            />
+          )}
+          {currencies.length > 1 && currencyCode && (
+            <Select
+              label={t('dashboard.currency')}
+              w={110}
+              allowDeselect={false}
+              data={[...currencies].sort()}
+              value={currencyCode}
+              onChange={(value) => update({ currency: value ?? undefined })}
+            />
+          )}
+        </>,
+      )}
 
       {viewSwitch}
 

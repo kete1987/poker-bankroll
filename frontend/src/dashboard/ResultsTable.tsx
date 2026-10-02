@@ -2,6 +2,8 @@ import { Table, Text } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 
 import type { StatsFigures } from '../api/types';
+import { CompactTable, type CompactRow } from '../components/CompactTable';
+import { useNarrowScreen } from '../components/useNarrowScreen';
 import { NO_VALUE } from '../format/format';
 import { useFormat } from '../format/useFormat';
 
@@ -21,6 +23,7 @@ interface ResultsTableProps {
 export function ResultsTable({ rows, total, currencyCode }: ResultsTableProps) {
   const { t } = useTranslation();
   const format = useFormat();
+  const narrow = useNarrowScreen();
   const count = (value: number | null | undefined) =>
     value == null ? NO_VALUE : format.number(value);
   const money = (value: number | null | undefined) =>
@@ -50,6 +53,62 @@ export function ResultsTable({ rows, total, currencyCode }: ResultsTableProps) {
         </Table.Td>
         <Table.Td ta="right">{format.percent(figures.roi)}</Table.Td>
       </>
+    );
+  }
+
+  if (narrow) {
+    // On a phone: played, net and ROI; the rest of each row unfolds under it.
+    const compact = (
+      key: string,
+      label: string,
+      figures: StatsFigures,
+      bold: boolean,
+    ): CompactRow => ({
+      key,
+      label,
+      name: label,
+      cells: [
+        count(figures.games),
+        <Text
+          key="net"
+          span
+          size="sm"
+          fw={bold ? 700 : 500}
+          c={figures.net > 0 ? 'teal' : figures.net < 0 ? 'red' : undefined}
+        >
+          {format.signedMoney(figures.net, currencyCode)}
+        </Text>,
+        format.percent(figures.roi),
+      ],
+      details: [
+        { label: t('dashboard.columns.withPrize'), value: count(figures.gamesWithPrize) },
+        {
+          label: t('dashboard.columns.withPrizeRate'),
+          value: format.percent(figures.withPrizeRate),
+        },
+        { label: t('dashboard.columns.inTheMoney'), value: count(figures.gamesInTheMoney) },
+        {
+          label: t('dashboard.columns.inTheMoneyRate'),
+          value: format.percent(figures.inTheMoneyRate),
+        },
+        { label: t('dashboard.columns.averageBuyIn'), value: money(figures.averageBuyIn) },
+        { label: t('dashboard.columns.invested'), value: money(figures.invested) },
+        { label: t('dashboard.columns.won'), value: money(figures.won) },
+      ],
+    });
+    return (
+      <CompactTable
+        head={
+          <>
+            <Table.Th />
+            <Table.Th ta="right">{t('dashboard.columns.games')}</Table.Th>
+            <Table.Th ta="right">{t('dashboard.columns.net')}</Table.Th>
+            <Table.Th ta="right">{t('dashboard.columns.roi')}</Table.Th>
+          </>
+        }
+        rows={rows.map((row) => compact(row.key, row.label, row.figures, false))}
+        foot={compact('total', t('dashboard.total'), total, true)}
+      />
     );
   }
 

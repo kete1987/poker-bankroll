@@ -26,6 +26,7 @@ import {
 import type { Currency, Room } from '../api/types';
 import { useSubmit } from '../components/useSubmit';
 import { resizeImage } from './resizeImage';
+import { useNarrowScreen } from '../components/useNarrowScreen';
 
 interface RoomDialogProps {
   /** The room being edited; a new one is created when absent. */
@@ -46,6 +47,7 @@ interface RoomDialogProps {
  */
 export function RoomDialog({ room, currencies, onSaved, onClose }: RoomDialogProps) {
   const { t } = useTranslation();
+  const narrow = useNarrowScreen();
   const save = useSubmit();
   const createRoom = useCreateRoom();
   const updateRoom = useUpdateRoom();
@@ -105,6 +107,7 @@ export function RoomDialog({ room, currencies, onSaved, onClose }: RoomDialogPro
 
   return (
     <Modal
+      fullScreen={narrow}
       opened
       onClose={onClose}
       title={room ? t('settings.rooms.edit') : t('settings.rooms.add')}

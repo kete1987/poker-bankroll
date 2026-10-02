@@ -143,7 +143,10 @@
     },
     "actions": {
       "editMovement": "Editar {{movement}}",
-      "deleteMovement": "Borrar {{movement}}"
+      "deleteMovement": "Borrar {{movement}}",
+      "edit": "Editar",
+      "delete": "Borrar",
+      "moreFor": "Acciones de {{movement}}"
     },
     "delete": {
       "title": "Borrar movimiento",
@@ -457,7 +460,10 @@
       "reEntryGame": "Añadir una reentrada a {{game}}",
       "rebuyGame": "Añadir una recompra a {{game}}",
       "editGame": "Editar {{game}}",
-      "deleteGame": "Borrar {{game}}"
+      "deleteGame": "Borrar {{game}}",
+      "edit": "Editar",
+      "delete": "Borrar",
+      "moreFor": "Acciones de {{game}}"
     },
     "list": {
       "empty": "Todavía no hay partidas finalizadas.",
@@ -498,6 +504,11 @@
       "confirm": "¿Borrar {{game}} del {{date}} en {{room}}? No se puede deshacer.",
       "confirmLabel": "Borrar",
       "done": "Partida borrada"
+    },
+    "sort": {
+      "label": "Ordenar por",
+      "descending": "De mayor a menor: invertir el orden",
+      "ascending": "De menor a mayor: invertir el orden"
     }
   },
   "filters": {
@@ -517,7 +528,8 @@
       "lastMonth": "Mes pasado",
       "thisYear": "Este año",
       "custom": "Personalizado"
-    }
+    },
+    "more": "Filtros"
   },
   "gameForm": {
     "gameType": "Tipo de partida",
@@ -574,5 +586,8 @@
     "title": "Algo ha ido mal",
     "description": "Se ha producido un error inesperado. Prueba a recargar la página.",
     "reload": "Recargar"
+  },
+  "compactTable": {
+    "details": "Detalle de {{row}}"
   }
 }

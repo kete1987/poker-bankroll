@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { BankrollFigures, CurrencyBankroll } from '../api/types';
 import { RoomLabel } from '../components/RoomLabel';
+import { useNarrowScreen } from '../components/useNarrowScreen';
 import { NO_VALUE } from '../format/format';
 import { useFormat } from '../format/useFormat';
 
@@ -28,6 +29,7 @@ function hasMovements(figures: BankrollFigures): boolean {
 export function BankrollByRoom({ now, netOfPeriod, totalNetOfPeriod }: BankrollByRoomProps) {
   const { t } = useTranslation();
   const format = useFormat();
+  const narrow = useNarrowScreen();
   const currencyCode = now.currencyCode;
 
   const amount = (value: number, bold = false) => (
@@ -36,14 +38,21 @@ export function BankrollByRoom({ now, netOfPeriod, totalNetOfPeriod }: BankrollB
       size="sm"
       fw={bold ? 700 : 500}
       c={value > 0 ? 'teal' : value < 0 ? 'red' : undefined}
+      style={{ whiteSpace: 'nowrap' }}
     >
       {format.signedMoney(value, currencyCode)}
     </Text>
   );
 
   return (
-    <Table.ScrollContainer minWidth={420}>
-      <Table verticalSpacing="xs" style={{ whiteSpace: 'nowrap' }}>
+    // Three columns fit a phone when the table is not forced to a width.
+    <Table.ScrollContainer minWidth={narrow ? 0 : 420}>
+      <Table
+        verticalSpacing="xs"
+        horizontalSpacing={narrow ? 6 : undefined}
+        // There the headings may take two lines; the amounts never do.
+        style={{ whiteSpace: narrow ? undefined : 'nowrap' }}
+      >
         <Table.Thead>
           <Table.Tr>
             <Table.Th>{t('dashboard.bankroll.room')}</Table.Th>

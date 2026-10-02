@@ -406,6 +406,19 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   A new breakdown is a `GroupBy` of the backend, its entry in `DIMENSIONS` (`stats/useStatsFilters.ts`),
   its label in `Breakdown` and its name in both locale files. Names are asked for tournaments
   unless the filter already names types or variants.
+- **Phones**: below the `sm` breakpoint (`components/useNarrowScreen`) nothing may need horizontal
+  scrolling. The hook chooses what is rendered (not CSS that hides one of two copies, which tests
+  and screen readers would both see):
+  - Lists of things (games, games in play, movements) become **cards**, one per row
+    (`games/GameCards`, `bankroll/MovementCards`), with their actions in a menu; the order of the
+    games is chosen above the cards, as there are no column headings.
+  - Tables of figures become a `components/CompactTable`: the columns that matter most (played,
+    net, ROI; result and bankroll for rooms) and the rest of each row unfolded on demand.
+  - The filters of a screen go in `components/FilterBar`: the period stays in sight and the others
+    fold under a "Filters" button that says how many are set.
+  - Large dialogs open full screen (`fullScreen={narrow}`).
+  A new table or row of filters needs its phone layout; tests run as on a phone with
+  `onANarrowScreen()` (`test/narrowScreen.ts`, see `pages/Phone.test.tsx`).
 - A period is chosen with `components/PeriodFilter` (`components/period.ts` has the predefined
   ranges). A screen shows one currency at a time: amounts in different currencies are never added.
 - A logo can also come from a URL: the browser cannot read images of other sites, so

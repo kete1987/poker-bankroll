@@ -1,11 +1,11 @@
 import { ActionIcon, Group, Table, Text } from '@mantine/core';
 import { IconPencil, IconTrash } from '@tabler/icons-react';
-import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 
 import type { Movement } from '../api/types';
 import { RoomLabel } from '../components/RoomLabel';
 import { useFormat } from '../format/useFormat';
+import { describeMovement } from './labels';
 
 interface MovementsTableProps {
   movements: Movement[];
@@ -99,12 +99,4 @@ export function MovementsTable({ movements, onEdit, onDelete }: MovementsTablePr
       </Table>
     </Table.ScrollContainer>
   );
-}
-
-/** One line that says which movement it is, e.g. to name the buttons of its row. */
-function describeMovement(t: TFunction, movement: Movement, date: string): string {
-  return t('bankroll.movementName', {
-    type: t(`movementTypes.${movement.type}`),
-    date,
-  });
 }

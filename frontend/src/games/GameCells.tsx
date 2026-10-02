@@ -6,8 +6,8 @@ import type { Game } from '../api/types';
 import { useFormat } from '../format/useFormat';
 import { variantLabel } from './labels';
 
-/** Date of a game, with its start time when it has one. */
-export function GameDate({ game }: { game: Game }) {
+/** Date of a game, with its start time when it has one: below it, or next to it (`inline`). */
+export function GameDate({ game, inline = false }: { game: Game; inline?: boolean }) {
   const format = useFormat();
   return (
     <>
@@ -15,7 +15,7 @@ export function GameDate({ game }: { game: Game }) {
         {format.date(game.playedOn)}
       </Text>
       {game.playedAt && (
-        <Text size="xs" c="dimmed">
+        <Text size="xs" c="dimmed" span={inline}>
           {format.time(game.playedAt)}
         </Text>
       )}
