@@ -54,6 +54,23 @@ export async function apiFetchBlob(path: string, init: RequestInit = {}): Promis
   return response.blob();
 }
 
+/** A file the backend made to be saved, with the name it gives it (if it gives one). */
+export interface ApiFile {
+  blob: Blob;
+  name?: string;
+}
+
+/**
+ * Calls the backend for a file to download (an export) and returns it with the name of its
+ * `Content-Disposition`. Errors are the same as with {@link apiFetch}.
+ */
+export async function apiFetchFile(path: string, init: RequestInit = {}): Promise<ApiFile> {
+  const response = await request(path, init, '*/*');
+  const disposition = response.headers.get('Content-Disposition') ?? '';
+  const name = /filename="([^"]+)"/.exec(disposition)?.[1];
+  return { blob: await response.blob(), name };
+}
+
 async function request(path: string, init: RequestInit, accept: string): Promise<Response> {
   const headers = new Headers(init.headers);
   headers.set('Accept', accept);

@@ -272,6 +272,23 @@
     "doneTitle": "Importación terminada",
     "viewGames": "Ver las partidas"
   },
+  "export": {
+    "button": "Exportar",
+    "csv": "CSV",
+    "xlsx": "Excel",
+    "done": "Fichero exportado",
+    "failed": "El fichero no se ha exportado",
+    "games": {
+      "label": "Exportar partidas",
+      "onlyFinished": "Solo se exportan las partidas finalizadas, con los filtros de la lista. Las partidas en juego se quedan fuera.",
+      "done": "{{file}} tiene las partidas finalizadas de la lista. Las partidas en juego no están en el fichero."
+    },
+    "movements": {
+      "label": "Exportar movimientos",
+      "note": "Todos los movimientos de la lista, con sus filtros.",
+      "done": "{{file}} tiene los movimientos de la lista."
+    }
+  },
   "stats": {
     "groupBy": "Agrupar por",
     "weekOf": "Semana del {{date}}",

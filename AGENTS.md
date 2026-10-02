@@ -238,6 +238,23 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   It is all or nothing, and `dryRun=true` only checks. Rows are recorded through `GameService`,
   `RoomService` and `VariantService`, so the rules are those of the API, and the transaction is
   rolled back on a dry run or when a row failed: do not add a second validation path for imports.
+- `GET /exports/games` and `GET /exports/movements` (`export` package) give, as a file to download,
+  **every** game or movement the filters select (the filter parameters of their lists, without page
+  or order), oldest first, as `format=CSV` or `XLSX`. Rules:
+  - Only **finished** games are exported, in both formats; the status is not a filter there.
+  - The CSV of games is the format of the import, written by `GameCsv.Writer` next to what reads
+    it: exporting and importing into an empty database gives the same games (pinned by
+    `ExportApiTests`). A new column of a game goes in `GameCsv`, both ways, and in `docs/import.md`.
+  - The CSV of movements has its own columns (`ExportService.MOVEMENT_CSV_COLUMNS`, the amount
+    signed); there is no import for it.
+  - Excel files are made to be read: typed cells (`export/ExcelSheet`), and headers and values in
+    the language of `Accept-Language`, from the `export.*` keys of `messages*.properties`. Every
+    built-in variant needs its `export.variant.<CODE>` there (a test fails otherwise), with the
+    words the frontend uses (`variants` in `locales/*.json`). What the user wrote is not translated.
+  - They are written with `fastexcel`, which only needs `java.base`. Do not use Apache POI (AWT,
+    fonts) without proving it works in the API image: build it and export from the container.
+  - Rows are read from the database through a cursor (`GameService.forEach`,
+    `BankrollService.forEach`), never as one list; the file is built in memory.
 - Controller method names are the `operationId`s of the contract: keep them unique across
   controllers (`getLogo`, not a second `get`), or springdoc renumbers the ones of other endpoints.
 - The OpenAPI spec is the contract, and it is committed as `frontend/openapi.json` (sorted keys,
@@ -364,6 +381,12 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   application, so the ones checked are the ones connected to; the whole download has a deadline
   (`poker-bankroll.logo-fetch.timeout`, 20 s). `poker-bankroll.logo-fetch.allow-private-addresses=true`
   lifts the address check (the tests need it to reach their own web server).
+- A list is exported with `components/ExportMenu` (CSV or Excel), given the function of
+  `api/exports.ts` that asks for the file with the filters the list has, but neither its page nor
+  its order. The file is fetched through `apiFetchFile` (so the Excel comes in the UI language and
+  errors are `ApiError`s) and saved with `components/saveFile`, under the name the backend gives
+  it. The menu says what is left out (games in play), and so does the notification afterwards.
+  Tests stub `URL.createObjectURL` and the click of the link (`pages/Export.test.tsx`).
 - The Import section (`pages/ImportPage.tsx`, `api/imports.ts`) sends the chosen CSV file as it
   is: first with `dryRun=true`, to show what it holds and its errors, and the import is only
   offered when there are none. After importing, the page is left without file. It does not read

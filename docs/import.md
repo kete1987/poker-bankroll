@@ -7,6 +7,9 @@ section of the application offers it for download.
 
 Only games are imported. Bankroll movements (deposits, withdrawals, bonuses) are entered by hand.
 
+The **CSV that the games list exports is this same format** (see [Exported files](#exported-files)),
+so it can be imported as it is.
+
 ## The file
 
 - **CSV**, UTF-8 (with or without byte order mark), values separated by **commas**.
@@ -92,3 +95,24 @@ With the API it is `POST /api/imports/games` with the file as the body (`Content
 ```bash
 curl -X POST -H "Content-Type: text/csv" --data-binary @games.csv   "http://localhost:8080/api/imports/games?dryRun=true"
 ```
+
+## Exported files
+
+The *Export* button of the games list writes, as **CSV**, a file in this format with every column
+and the finished games that match the filters of the list, oldest first. Rooms go by name with
+their `currency`, variants by code (built-in) or by name (yours).
+
+- Imported into an **empty** installation it records the same games, creating the rooms and the
+  variants of your own. It is a way to move your games to another installation, not a backup: the
+  bankroll movements, the logos and what is inactive are not in it (see [backups](backups.md)).
+- **Games in play are not exported**: they have no result yet, and an import would record them as
+  finished.
+- Imported into the installation it came from, it records the games a second time.
+- A file with more than 50,000 games is over the limit of an import: export it by periods.
+
+The Excel file of the same button is made to be read, not to be imported: it has translated
+headers and values and two computed columns (invested and net). The bankroll screen exports its
+movements too (CSV or Excel), but there is no import for them.
+
+With the API it is `GET /api/exports/games?format=CSV` (or `XLSX`) with the filters of
+`GET /api/games`, and `GET /api/exports/movements` with those of `GET /api/bankroll/movements`.

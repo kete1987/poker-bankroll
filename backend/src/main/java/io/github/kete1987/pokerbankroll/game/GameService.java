@@ -1,6 +1,14 @@
 package io.github.kete1987.pokerbankroll.game;
 
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Root;
 
 import io.github.kete1987.pokerbankroll.catalog.GameType;
 import io.github.kete1987.pokerbankroll.common.api.PageResponse;
@@ -10,9 +18,11 @@ import io.github.kete1987.pokerbankroll.room.Room;
 import io.github.kete1987.pokerbankroll.room.RoomRepository;
 import io.github.kete1987.pokerbankroll.variant.Variant;
 import io.github.kete1987.pokerbankroll.variant.VariantRepository;
+import org.hibernate.jpa.HibernateHints;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.repository.query.QueryUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,15 +31,20 @@ import org.springframework.transaction.annotation.Transactional;
 public class GameService {
 
     static final int MIN_NAME_SEARCH_LENGTH = 2;
+    /** Rows read at a time when every game of a filter is gone through. */
+    private static final int STREAM_FETCH_SIZE = 500;
 
     private final GameRepository games;
     private final RoomRepository rooms;
     private final VariantRepository variants;
+    private final EntityManager entityManager;
 
-    GameService(GameRepository games, RoomRepository rooms, VariantRepository variants) {
+    GameService(GameRepository games, RoomRepository rooms, VariantRepository variants,
+            EntityManager entityManager) {
         this.games = games;
         this.rooms = rooms;
         this.variants = variants;
+        this.entityManager = entityManager;
     }
 
     @Transactional(readOnly = true)
@@ -37,6 +52,33 @@ public class GameService {
         return PageResponse.of(
                 games.findAll(filter.toSpecification(), PageRequest.of(page, size, sort)),
                 GameResponse::of);
+    }
+
+    /**
+     * Hands over every game the filter selects, oldest first (the order of {@code playedOn,asc}),
+     * for an export: however many they are, they are read from the database a few at a time and
+     * none is kept once it has been handed over.
+     */
+    @Transactional(readOnly = true)
+    public void forEach(GameFilter filter, Consumer<GameResponse> action) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Game> query = cb.createQuery(Game.class);
+        Root<Game> game = query.from(Game.class);
+        game.fetch("room");
+        game.fetch("variant", JoinType.LEFT);
+        query.select(game)
+                .where(filter.toSpecification().toPredicate(game, query, cb))
+                .orderBy(QueryUtils.toOrders(GameSort.parse(GameSort.OLDEST_FIRST), game, cb));
+        // With a fetch size, inside a transaction, PostgreSQL sends the rows through a cursor.
+        try (Stream<Game> found = entityManager.createQuery(query)
+                .setHint(HibernateHints.HINT_FETCH_SIZE, STREAM_FETCH_SIZE)
+                .getResultStream()) {
+            found.forEach(one -> {
+                action.accept(GameResponse.of(one));
+                // Rooms and variants stay: they are few and shared by the games.
+                entityManager.detach(one);
+            });
+        }
     }
 
     @Transactional(readOnly = true)

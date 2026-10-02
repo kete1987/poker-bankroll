@@ -87,6 +87,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/exports/games": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export the finished games as a CSV or Excel file
+         * @description Every **finished** game the filters select (those of the games list, combined with AND), not a page of them, oldest first. Games in play are never exported.
+         *
+         *     `CSV` is the format of the import (`docs/import.md`): importing the file into an empty database records the same games. `XLSX` is made to be read: dates and amounts are typed cells, it adds what was invested and the net of each game, and its headers and values are in the language of `Accept-Language`.
+         *
+         *     The file comes as an attachment named after its content and the day, e.g. `poker-bankroll-games-2026-10-02.csv`.
+         */
+        get: operations["exportGames"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/exports/movements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export the bankroll movements as a CSV or Excel file
+         * @description Every movement the filters select (those of the list of movements, combined with AND), not a page of them, oldest first: date, type, room (empty when it belongs to no room), currency, amount and notes. The amount is signed (a withdrawal is negative), so the amounts of a currency add up to what they did to the bankroll.
+         *
+         *     `CSV` carries codes; `XLSX` is made to be read: dates and amounts are typed cells and its headers and types are in the language of `Accept-Language`.
+         *
+         *     The file comes as an attachment named after its content and the day, e.g. `poker-bankroll-movements-2026-10-02.xlsx`.
+         */
+        get: operations["exportMovements"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/games": {
         parameters: {
             query?: never;
@@ -1082,6 +1130,78 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Catalog"];
+                };
+            };
+        };
+    };
+    exportGames: {
+        parameters: {
+            query: {
+                format: "CSV" | "XLSX";
+                /** @description Played on or after this date */
+                from?: string;
+                /** @description Played on or before this date */
+                to?: string;
+                /** @description One or more game types: games of any of them */
+                gameType?: ("TOURNAMENT" | "SIT_AND_GO" | "CASH")[];
+                modality?: "NLHE" | "PLO";
+                /** @description One or more rooms: games in any of them */
+                roomId?: number[];
+                /** @description One or more variants: games of any of them */
+                variantId?: number[];
+                /** @description Currency of the room, e.g. EUR */
+                currency?: string;
+                /** @description Text contained in the name or the notes, ignoring case */
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    "text/csv": string;
+                };
+            };
+        };
+    };
+    exportMovements: {
+        parameters: {
+            query: {
+                format: "CSV" | "XLSX";
+                /** @description On or after this date */
+                from?: string;
+                /** @description On or before this date */
+                to?: string;
+                type?: "DEPOSIT" | "WITHDRAWAL" | "BONUS" | "ADJUSTMENT";
+                /** @description One or more rooms: movements of any of them */
+                roomId?: number[];
+                /** @description true: only movements that belong to no room; false: only those of a room */
+                withoutRoom?: boolean;
+                /** @description Currency of the amount, e.g. EUR */
+                currency?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    "text/csv": string;
                 };
             };
         };
