@@ -178,7 +178,7 @@ export function Breakdown({ query, currencyCode, dimension, sort, onChange }: Br
       },
       xAxis: {
         type: 'value',
-        axisLabel: { formatter: (value: number) => format.number(value) },
+        axisLabel: { formatter: (value: number) => format.money(value, currencyCode) },
       },
       yAxis: {
         type: 'category',
