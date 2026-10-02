@@ -16,38 +16,42 @@ import java.util.Set;
 
 import io.github.kete1987.pokerbankroll.common.error.ApiException;
 import io.github.kete1987.pokerbankroll.common.error.ErrorCode;
+import io.github.kete1987.pokerbankroll.game.GameResponse;
+import io.github.kete1987.pokerbankroll.game.GameResponse.VariantRef;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Reads the CSV file of an import: UTF-8, comma separated, quoted as in RFC 4180, with a header
- * row naming the columns (see {@code docs/import.md}). What is wrong with the file as a whole
- * (encoding, quoting, header, size) is an {@link ApiException}; what is wrong with a row is left
- * to whoever reads its values.
+ * The CSV format of the games, read by the import and written by the export: UTF-8, comma
+ * separated, quoted as in RFC 4180, with a header row naming the columns (see
+ * {@code docs/import.md}). Reading: what is wrong with the file as a whole (encoding, quoting,
+ * header, size) is an {@link ApiException}; what is wrong with a row is left to whoever reads its
+ * values.
  */
-final class GameCsv {
+public final class GameCsv {
 
-    static final String PLAYED_ON = "playedOn";
-    static final String PLAYED_AT = "playedAt";
-    static final String ROOM = "room";
-    static final String CURRENCY = "currency";
-    static final String GAME_TYPE = "gameType";
-    static final String VARIANT = "variant";
-    static final String MODALITY = "modality";
-    static final String NAME = "name";
-    static final String BUY_IN = "buyIn";
-    static final String ENTRIES = "entries";
-    static final String PRIZE = "prize";
-    static final String BOUNTY = "bounty";
-    static final String TICKET_PRIZE_VALUE = "ticketPrizeValue";
-    static final String TICKET_DESCRIPTION = "ticketDescription";
-    static final String PAID_WITH_TICKET = "paidWithTicket";
-    static final String NOTES = "notes";
+    public static final String PLAYED_ON = "playedOn";
+    public static final String PLAYED_AT = "playedAt";
+    public static final String ROOM = "room";
+    public static final String CURRENCY = "currency";
+    public static final String GAME_TYPE = "gameType";
+    public static final String VARIANT = "variant";
+    public static final String MODALITY = "modality";
+    public static final String NAME = "name";
+    public static final String BUY_IN = "buyIn";
+    public static final String ENTRIES = "entries";
+    public static final String PRIZE = "prize";
+    public static final String BOUNTY = "bounty";
+    public static final String TICKET_PRIZE_VALUE = "ticketPrizeValue";
+    public static final String TICKET_DESCRIPTION = "ticketDescription";
+    public static final String PAID_WITH_TICKET = "paidWithTicket";
+    public static final String NOTES = "notes";
 
     /** Every column of the format, in the order of the documentation. */
-    static final List<String> COLUMNS = List.of(PLAYED_ON, PLAYED_AT, ROOM, CURRENCY, GAME_TYPE, VARIANT, MODALITY,
+    public static final List<String> COLUMNS = List.of(PLAYED_ON, PLAYED_AT, ROOM, CURRENCY, GAME_TYPE, VARIANT, MODALITY,
             NAME, BUY_IN, ENTRIES, PRIZE, BOUNTY, TICKET_PRIZE_VALUE, TICKET_DESCRIPTION, PAID_WITH_TICKET, NOTES);
 
     /** The columns a file must have; the others are optional. */
@@ -163,5 +167,50 @@ final class GameCsv {
             return null;
         }
         return new Row(recordNumber, values, csvRecord.size() == header.size());
+    }
+
+    /**
+     * Writes games as a file of this format, with every column: importing what it writes records
+     * the same games. Rooms go by name with their currency, variants by code (built-in) or name.
+     */
+    public static final class Writer {
+
+        private final CSVPrinter printer;
+
+        /** Starts the file: writes the header row. */
+        public Writer(Appendable out) throws IOException {
+            printer = new CSVPrinter(out, FORMAT);
+            printer.printRecord(COLUMNS);
+        }
+
+        public void write(GameResponse game) throws IOException {
+            VariantRef variant = game.variant();
+            Map<String, Object> values = new HashMap<>();
+            values.put(PLAYED_ON, game.playedOn());
+            values.put(PLAYED_AT, game.playedAt());
+            values.put(ROOM, game.room().name());
+            values.put(CURRENCY, game.currencyCode());
+            values.put(GAME_TYPE, game.gameType());
+            values.put(VARIANT, variant == null ? null : variant.code() != null ? variant.code() : variant.name());
+            values.put(MODALITY, game.modality());
+            values.put(NAME, game.name());
+            values.put(BUY_IN, game.buyIn().toPlainString());
+            values.put(ENTRIES, game.entries());
+            values.put(PRIZE, game.prize().toPlainString());
+            values.put(BOUNTY, game.bounty().toPlainString());
+            values.put(TICKET_PRIZE_VALUE, game.ticketPrizeValue().toPlainString());
+            values.put(TICKET_DESCRIPTION, game.ticketDescription());
+            values.put(PAID_WITH_TICKET, game.paidWithTicket());
+            values.put(NOTES, game.notes());
+            // Value by value in the order of the header, so they cannot drift apart.
+            for (String column : COLUMNS) {
+                printer.print(values.get(column));
+            }
+            printer.println();
+        }
+
+        public void flush() throws IOException {
+            printer.flush();
+        }
     }
 }

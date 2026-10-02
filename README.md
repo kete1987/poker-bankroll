@@ -29,6 +29,7 @@ here is results and bankroll management.
 - Multiple currencies (EUR and USD out of the box, extensible)
 - English and Spanish UI
 - Import of games from a CSV file ([format](docs/import.md)), to bring your history from a spreadsheet
+- Export of the games and the bankroll movements you are looking at, as CSV or Excel
 - Daily database backups
 
 See the [issues](https://github.com/kete1987/poker-bankroll/issues) for what is planned.

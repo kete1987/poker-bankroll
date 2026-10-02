@@ -9,7 +9,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Root;
 
 import io.github.kete1987.pokerbankroll.bankroll.BankrollSummaryResponse.CurrencyBankroll;
 import io.github.kete1987.pokerbankroll.bankroll.BankrollSummaryResponse.BankrollFigures;
@@ -21,10 +29,12 @@ import io.github.kete1987.pokerbankroll.common.error.ErrorCode;
 import io.github.kete1987.pokerbankroll.game.GameResponse.RoomRef;
 import io.github.kete1987.pokerbankroll.room.Room;
 import io.github.kete1987.pokerbankroll.room.RoomRepository;
+import org.hibernate.jpa.HibernateHints;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Order;
+import org.springframework.data.jpa.repository.query.QueryUtils;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,18 +45,23 @@ public class BankrollService {
 
     /** Newest first; the id makes the order total, so pages are stable. */
     private static final Sort NEWEST_FIRST = Sort.by(Order.desc("occurredOn"), Order.desc("id"));
+    private static final Sort OLDEST_FIRST = Sort.by(Order.asc("occurredOn"), Order.asc("id"));
+    /** Rows read at a time when every movement of a filter is gone through. */
+    private static final int STREAM_FETCH_SIZE = 500;
 
     private final BankrollMovementRepository movements;
     private final RoomRepository rooms;
     private final CurrencyRepository currencies;
     private final JdbcClient jdbc;
+    private final EntityManager entityManager;
 
     BankrollService(BankrollMovementRepository movements, RoomRepository rooms, CurrencyRepository currencies,
-            JdbcClient jdbc) {
+            JdbcClient jdbc, EntityManager entityManager) {
         this.movements = movements;
         this.rooms = rooms;
         this.currencies = currencies;
         this.jdbc = jdbc;
+        this.entityManager = entityManager;
     }
 
     @Transactional(readOnly = true)
@@ -54,6 +69,31 @@ public class BankrollService {
         return PageResponse.of(
                 movements.findAll(filter.toSpecification(), PageRequest.of(page, size, NEWEST_FIRST)),
                 MovementResponse::of);
+    }
+
+    /**
+     * Hands over every movement the filter selects, oldest first, for an export: they are read
+     * from the database a few at a time and none is kept once it has been handed over.
+     */
+    @Transactional(readOnly = true)
+    public void forEach(MovementFilter filter, Consumer<MovementResponse> action) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<BankrollMovement> query = cb.createQuery(BankrollMovement.class);
+        Root<BankrollMovement> movement = query.from(BankrollMovement.class);
+        movement.fetch("room", JoinType.LEFT);
+        query.select(movement)
+                .where(filter.toSpecification().toPredicate(movement, query, cb))
+                .orderBy(QueryUtils.toOrders(OLDEST_FIRST, movement, cb));
+        // With a fetch size, inside a transaction, PostgreSQL sends the rows through a cursor.
+        try (Stream<BankrollMovement> found = entityManager.createQuery(query)
+                .setHint(HibernateHints.HINT_FETCH_SIZE, STREAM_FETCH_SIZE)
+                .getResultStream()) {
+            found.forEach(one -> {
+                action.accept(MovementResponse.of(one));
+                // Rooms stay: they are few and shared by the movements.
+                entityManager.detach(one);
+            });
+        }
     }
 
     @Transactional(readOnly = true)

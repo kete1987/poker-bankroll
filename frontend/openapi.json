@@ -1351,6 +1351,208 @@
         "tags" : [ "Catalog" ]
       }
     },
+    "/exports/games" : {
+      "get" : {
+        "description" : "Every **finished** game the filters select (those of the games list, combined with AND), not a page of them, oldest first. Games in play are never exported.\n\n`CSV` is the format of the import (`docs/import.md`): importing the file into an empty database records the same games. `XLSX` is made to be read: dates and amounts are typed cells, it adds what was invested and the net of each game, and its headers and values are in the language of `Accept-Language`.\n\nThe file comes as an attachment named after its content and the day, e.g. `poker-bankroll-games-2026-10-02.csv`.",
+        "operationId" : "exportGames",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "format",
+          "required" : true,
+          "schema" : {
+            "enum" : [ "CSV", "XLSX" ],
+            "type" : "string"
+          }
+        }, {
+          "description" : "Played on or after this date",
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Played on or before this date",
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "One or more game types: games of any of them",
+          "in" : "query",
+          "name" : "gameType",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        }, {
+          "in" : "query",
+          "name" : "modality",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "NLHE", "PLO" ],
+            "type" : "string"
+          }
+        }, {
+          "description" : "One or more rooms: games in any of them",
+          "in" : "query",
+          "name" : "roomId",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "description" : "One or more variants: games of any of them",
+          "in" : "query",
+          "name" : "variantId",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "description" : "Currency of the room, e.g. EUR",
+          "in" : "query",
+          "name" : "currency",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "Text contained in the name or the notes, ignoring case",
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : {
+                "schema" : {
+                  "format" : "binary",
+                  "type" : "string"
+                }
+              },
+              "text/csv" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Export the finished games as a CSV or Excel file",
+        "tags" : [ "Export" ]
+      }
+    },
+    "/exports/movements" : {
+      "get" : {
+        "description" : "Every movement the filters select (those of the list of movements, combined with AND), not a page of them, oldest first: date, type, room (empty when it belongs to no room), currency, amount and notes. The amount is signed (a withdrawal is negative), so the amounts of a currency add up to what they did to the bankroll.\n\n`CSV` carries codes; `XLSX` is made to be read: dates and amounts are typed cells and its headers and types are in the language of `Accept-Language`.\n\nThe file comes as an attachment named after its content and the day, e.g. `poker-bankroll-movements-2026-10-02.xlsx`.",
+        "operationId" : "exportMovements",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "format",
+          "required" : true,
+          "schema" : {
+            "enum" : [ "CSV", "XLSX" ],
+            "type" : "string"
+          }
+        }, {
+          "description" : "On or after this date",
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "On or before this date",
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "type",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "DEPOSIT", "WITHDRAWAL", "BONUS", "ADJUSTMENT" ],
+            "type" : "string"
+          }
+        }, {
+          "description" : "One or more rooms: movements of any of them",
+          "in" : "query",
+          "name" : "roomId",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "description" : "true: only movements that belong to no room; false: only those of a room",
+          "in" : "query",
+          "name" : "withoutRoom",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "description" : "Currency of the amount, e.g. EUR",
+          "in" : "query",
+          "name" : "currency",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : {
+                "schema" : {
+                  "format" : "binary",
+                  "type" : "string"
+                }
+              },
+              "text/csv" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Export the bankroll movements as a CSV or Excel file",
+        "tags" : [ "Export" ]
+      }
+    },
     "/games" : {
       "get" : {
         "description" : "All filters are optional and combined with AND.",
@@ -2457,6 +2659,9 @@
   }, {
     "description" : "Recorded results",
     "name" : "Games"
+  }, {
+    "description" : "Games and bankroll movements as files",
+    "name" : "Export"
   }, {
     "description" : "Sub-types within a game type",
     "name" : "Variants"
