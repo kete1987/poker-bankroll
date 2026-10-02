@@ -20,6 +20,7 @@ import { PeriodFilter } from '../components/PeriodFilter';
 import { StatCard } from '../components/StatCard';
 import { useFormat } from '../format/useFormat';
 import { ScopeFilters } from '../games/ScopeFilters';
+import { Breakdown } from '../stats/Breakdown';
 import { NetEvolutionChart, type NetPoint } from '../stats/NetEvolutionChart';
 import { PeriodTable, type PeriodRow } from '../stats/PeriodTable';
 import {
@@ -29,6 +30,7 @@ import {
   useStatsFilters,
   type ChartMode,
   type Granularity,
+  type StatsView,
 } from '../stats/useStatsFilters';
 
 function toneOf(amount: number): 'positive' | 'negative' | undefined {
@@ -147,14 +149,16 @@ export function StatsPage() {
     <Page title={t('nav.stats')}>
       <Group gap="sm" align="flex-end">
         {filterBar}
-        <Select
-          label={t('stats.groupBy')}
-          w={130}
-          allowDeselect={false}
-          data={GRANULARITIES.map((value) => ({ value, label: t(`stats.granularity.${value}`) }))}
-          value={granularity}
-          onChange={(value) => update({ granularity: value as Granularity })}
-        />
+        {filters.view === 'evolution' && (
+          <Select
+            label={t('stats.groupBy')}
+            w={130}
+            allowDeselect={false}
+            data={GRANULARITIES.map((value) => ({ value, label: t(`stats.granularity.${value}`) }))}
+            value={granularity}
+            onChange={(value) => update({ granularity: value as Granularity })}
+          />
+        )}
         {currencies.length > 1 && currencyCode && (
           <Select
             label={t('dashboard.currency')}
@@ -167,78 +171,103 @@ export function StatsPage() {
         )}
       </Group>
 
-      <Stack gap="xs">
-        <Group justify="space-between" align="flex-end">
-          <Title order={3} size="h4">
-            {t('stats.net.title')}
-          </Title>
-          <SegmentedControl
-            size="xs"
-            aria-label={t('stats.chart.label')}
-            data={[
-              { value: 'cumulative', label: t('stats.chart.cumulative') },
-              { value: 'period', label: t('stats.chart.period') },
-            ]}
-            value={filters.chart}
-            onChange={(value) => update({ chart: value as ChartMode })}
+      <SegmentedControl
+        aria-label={t('stats.breakdown.view')}
+        style={{ alignSelf: 'flex-start' }}
+        data={[
+          { value: 'evolution', label: t('stats.breakdown.evolution') },
+          { value: 'breakdown', label: t('stats.breakdown.title') },
+        ]}
+        value={filters.view}
+        onChange={(value) => update({ view: value as StatsView })}
+      />
+
+      {filters.view === 'breakdown' ? (
+        currencyCode ? (
+          <Breakdown
+            query={query}
+            currencyCode={currencyCode}
+            dimension={filters.dimension}
+            sort={filters.sort}
+            onChange={update}
           />
-        </Group>
-        {!currencyCode || !total || points.length === 0 ? (
-          <Text c="dimmed">{t('dashboard.noGames')}</Text>
         ) : (
-          <>
-            <SimpleGrid cols={{ base: 1, xs: 2, lg: 4 }}>
-              <StatCard
-                label={t('stats.net.cards.net')}
-                value={format.signedMoney(total.net, currencyCode)}
-                tone={toneOf(total.net)}
-              >
-                {t('dashboard.cards.games', {
-                  count: total.games,
-                  formatted: format.number(total.games),
-                })}
-              </StatCard>
-              <StatCard label={t('dashboard.cards.roi')} value={format.percent(total.roi)}>
-                {t('stats.net.cards.invested', {
-                  invested: format.money(total.invested, currencyCode),
-                })}
-              </StatCard>
-              {/* With a single point there is nothing to compare. */}
-              {best && worst && points.length > 1 && (
-                <>
-                  <StatCard
-                    label={t(`stats.net.cards.best.${drawn}`)}
-                    value={format.signedMoney(best.net, currencyCode)}
-                    tone={toneOf(best.net)}
-                  >
-                    {best.label}
-                  </StatCard>
-                  <StatCard
-                    label={t(`stats.net.cards.worst.${drawn}`)}
-                    value={format.signedMoney(worst.net, currencyCode)}
-                    tone={toneOf(worst.net)}
-                  >
-                    {worst.label}
-                  </StatCard>
-                </>
-              )}
-            </SimpleGrid>
-            <NetEvolutionChart points={points} currencyCode={currencyCode} mode={filters.chart} />
-            <Title order={3} size="h4" mt="md">
-              {t(`stats.table.title.${drawn}`)}
+          <Text c="dimmed">{t('dashboard.noGames')}</Text>
+        )
+      ) : (
+        <Stack gap="xs">
+          <Group justify="space-between" align="flex-end">
+            <Title order={3} size="h4">
+              {t('stats.net.title')}
             </Title>
-            <PeriodTable
-              rows={rows}
-              total={total}
-              totalNetByGameType={netByGameType(totalByGameType)}
-              currencyCode={currencyCode}
-              periodLabel={t(`stats.granularity.${drawn}`)}
-              page={filters.page}
-              onPageChange={(page) => update({ page })}
+            <SegmentedControl
+              size="xs"
+              aria-label={t('stats.chart.label')}
+              data={[
+                { value: 'cumulative', label: t('stats.chart.cumulative') },
+                { value: 'period', label: t('stats.chart.period') },
+              ]}
+              value={filters.chart}
+              onChange={(value) => update({ chart: value as ChartMode })}
             />
-          </>
-        )}
-      </Stack>
+          </Group>
+          {!currencyCode || !total || points.length === 0 ? (
+            <Text c="dimmed">{t('dashboard.noGames')}</Text>
+          ) : (
+            <>
+              <SimpleGrid cols={{ base: 1, xs: 2, lg: 4 }}>
+                <StatCard
+                  label={t('stats.net.cards.net')}
+                  value={format.signedMoney(total.net, currencyCode)}
+                  tone={toneOf(total.net)}
+                >
+                  {t('dashboard.cards.games', {
+                    count: total.games,
+                    formatted: format.number(total.games),
+                  })}
+                </StatCard>
+                <StatCard label={t('dashboard.cards.roi')} value={format.percent(total.roi)}>
+                  {t('stats.net.cards.invested', {
+                    invested: format.money(total.invested, currencyCode),
+                  })}
+                </StatCard>
+                {/* With a single point there is nothing to compare. */}
+                {best && worst && points.length > 1 && (
+                  <>
+                    <StatCard
+                      label={t(`stats.net.cards.best.${drawn}`)}
+                      value={format.signedMoney(best.net, currencyCode)}
+                      tone={toneOf(best.net)}
+                    >
+                      {best.label}
+                    </StatCard>
+                    <StatCard
+                      label={t(`stats.net.cards.worst.${drawn}`)}
+                      value={format.signedMoney(worst.net, currencyCode)}
+                      tone={toneOf(worst.net)}
+                    >
+                      {worst.label}
+                    </StatCard>
+                  </>
+                )}
+              </SimpleGrid>
+              <NetEvolutionChart points={points} currencyCode={currencyCode} mode={filters.chart} />
+              <Title order={3} size="h4" mt="md">
+                {t(`stats.table.title.${drawn}`)}
+              </Title>
+              <PeriodTable
+                rows={rows}
+                total={total}
+                totalNetByGameType={netByGameType(totalByGameType)}
+                currencyCode={currencyCode}
+                periodLabel={t(`stats.granularity.${drawn}`)}
+                page={filters.page}
+                onPageChange={(page) => update({ page })}
+              />
+            </>
+          )}
+        </Stack>
+      )}
     </Page>
   );
 }

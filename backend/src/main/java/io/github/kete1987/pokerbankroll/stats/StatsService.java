@@ -9,10 +9,12 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Tuple;
@@ -33,6 +35,7 @@ import io.github.kete1987.pokerbankroll.game.GameFilter;
 import io.github.kete1987.pokerbankroll.game.GameResponse.RoomRef;
 import io.github.kete1987.pokerbankroll.game.GameResponse.VariantRef;
 import io.github.kete1987.pokerbankroll.game.GameStatus;
+import io.github.kete1987.pokerbankroll.stats.StatsGroupsResponse.BuyInRange;
 import io.github.kete1987.pokerbankroll.stats.StatsGroupsResponse.CurrencyGroups;
 import io.github.kete1987.pokerbankroll.stats.StatsGroupsResponse.Group;
 import io.github.kete1987.pokerbankroll.stats.StatsGroupsResponse.GroupKey;
@@ -40,6 +43,7 @@ import io.github.kete1987.pokerbankroll.stats.StatsSummaryResponse.CurrencySumma
 import io.github.kete1987.pokerbankroll.stats.StatsSummaryResponse.GameTypeSummary;
 import io.github.kete1987.pokerbankroll.stats.StatsSummaryResponse.InPlay;
 import io.github.kete1987.pokerbankroll.variant.Variant;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -91,12 +95,19 @@ public class StatsService {
         Map<String, Map<GroupKey, GameTotals>> currencies = new TreeMap<>();
         // The same sums again, kept apart per game type within each group.
         Map<String, Map<GroupKey, Map<GameType, GameTotals>>> perGameType = new HashMap<>();
+        // Names are grouped ignoring case: how each is written, with the games written that way.
+        Map<String, Map<String, Long>> spellings = new HashMap<>();
         for (Tuple row : sums(filter, true, grouping.keys)) {
-            if (groupBy == GroupBy.BUY_IN && row.get(GAME_TYPE, GameType.class) == GameType.CASH) {
+            if ((groupBy == GroupBy.BUY_IN || groupBy == GroupBy.BUY_IN_RANGE)
+                    && row.get(GAME_TYPE, GameType.class) == GameType.CASH) {
                 continue;
             }
             String currency = row.get(CURRENCY, String.class);
             GroupKey groupKey = grouping.toKey.apply(row);
+            if (groupBy == GroupBy.NAME && groupKey.name() != null) {
+                spellings.computeIfAbsent(groupKey.name(), key -> new HashMap<>())
+                        .merge(row.get(FIRST_KEY, String.class).strip(), count(row, FIRST_KEY + 1), Long::sum);
+            }
             add(row, grouping.keyCount, currencies
                     .computeIfAbsent(currency, code -> new HashMap<>())
                     .computeIfAbsent(groupKey, key -> new GameTotals()));
@@ -110,13 +121,24 @@ public class StatsService {
         List<CurrencyGroups> result = new ArrayList<>();
         currencies.forEach((currencyCode, totalsByKey) -> {
             List<Group> groups = totalsByKey.entrySet().stream()
-                    .map(entry -> new Group(entry.getKey(), entry.getValue().toFigures(), null,
+                    .map(entry -> new Group(written(entry.getKey(), spellings), entry.getValue().toFigures(), null,
                             byGameType ? gameTypesOf(perGameType.get(currencyCode).get(entry.getKey())) : null))
                     .sorted(order(groupBy))
                     .toList();
             result.add(new CurrencyGroups(currencyCode, groupBy.isPeriod() ? withCumulativeNet(groups) : groups));
         });
         return new StatsGroupsResponse(groupBy, result);
+    }
+
+    /** A name as most of its games write it. */
+    private static GroupKey written(GroupKey key, Map<String, Map<String, Long>> spellings) {
+        if (key.name() == null) {
+            return key;
+        }
+        String name = spellings.get(key.name()).entrySet().stream()
+                .max(Map.Entry.<String, Long>comparingByValue().thenComparing(Map.Entry.comparingByKey()))
+                .orElseThrow().getKey();
+        return GroupKey.ofName(name);
     }
 
     private static List<GameTypeSummary> gameTypesOf(Map<GameType, GameTotals> totals) {
@@ -133,8 +155,18 @@ public class StatsService {
         if (groupBy == GroupBy.BUY_IN) {
             return Comparator.comparing(group -> group.key().buyIn());
         }
-        // Most played first; the rest only makes the order stable.
-        return Comparator.<Group>comparingLong(group -> group.figures().games()).reversed()
+        if (groupBy == GroupBy.BUY_IN_RANGE) {
+            // Free games (from 0 to 0) before the range that starts above 0.
+            return Comparator.<Group, BigDecimal>comparing(group -> group.key().buyInRange().from())
+                    .thenComparing(group -> group.key().buyInRange().to(),
+                            Comparator.nullsLast(Comparator.naturalOrder()));
+        }
+        if (groupBy == GroupBy.WEEKDAY) {
+            return Comparator.comparing(group -> group.key().weekday());
+        }
+        // Most played first; the rest only makes the order stable. Games without a name go last.
+        return Comparator.<Group, Boolean>comparing(group -> groupBy == GroupBy.NAME && group.key().name() == null)
+                .thenComparing(Comparator.<Group>comparingLong(group -> group.figures().games()).reversed())
                 .thenComparing(group -> group.figures().net(), Comparator.reverseOrder())
                 .thenComparing(group -> group.key().toString());
     }
@@ -246,7 +278,7 @@ public class StatsService {
                 case MONTH -> period(day -> YearMonth.from(day).toString());
                 case YEAR -> period(day -> String.valueOf(day.getYear()));
                 case GAME_TYPE -> new Grouping(0, (game, cb) -> List.of(),
-                        row -> new GroupKey(null, row.get(GAME_TYPE, GameType.class), null, null, null, null));
+                        row -> GroupKey.ofGameType(row.get(GAME_TYPE, GameType.class)));
                 case VARIANT -> new Grouping(3, (game, cb) -> {
                     Join<Game, Variant> variant = game.join("variant", JoinType.LEFT);
                     return List.of(variant.get("id"), variant.get("code"), variant.get("name"));
@@ -254,23 +286,52 @@ public class StatsService {
                     Long id = row.get(FIRST_KEY, Long.class);
                     VariantRef variant = id == null ? null : new VariantRef(
                             id, row.get(FIRST_KEY + 1, String.class), row.get(FIRST_KEY + 2, String.class));
-                    return new GroupKey(null, row.get(GAME_TYPE, GameType.class), variant, null, null, null);
+                    return GroupKey.ofVariant(row.get(GAME_TYPE, GameType.class), variant);
                 });
                 case ROOM -> new Grouping(2,
                         (game, cb) -> List.of(game.get("room").get("id"), game.get("room").get("name")),
-                        row -> new GroupKey(null, null, null,
-                                new RoomRef(row.get(FIRST_KEY, Long.class), row.get(FIRST_KEY + 1, String.class)),
-                                null, null));
+                        row -> GroupKey.ofRoom(
+                                new RoomRef(row.get(FIRST_KEY, Long.class), row.get(FIRST_KEY + 1, String.class))));
                 case MODALITY -> new Grouping(1, (game, cb) -> List.of(game.get("modality")),
-                        row -> new GroupKey(null, null, null, null, row.get(FIRST_KEY, Modality.class), null));
+                        row -> GroupKey.ofModality(row.get(FIRST_KEY, Modality.class)));
                 case BUY_IN -> new Grouping(1, (game, cb) -> List.of(game.get("buyIn")),
-                        row -> new GroupKey(null, null, null, null, null, row.get(FIRST_KEY, BigDecimal.class)));
+                        row -> GroupKey.ofBuyIn(row.get(FIRST_KEY, BigDecimal.class)));
+                // Read per buy-in and put in its range here.
+                case BUY_IN_RANGE -> new Grouping(1, (game, cb) -> List.of(game.get("buyIn")),
+                        row -> GroupKey.ofBuyInRange(rangeOf(row.get(FIRST_KEY, BigDecimal.class))));
+                // Read as written and put together here, whatever the capitals.
+                case NAME -> new Grouping(1, (game, cb) -> List.of(game.get("name")),
+                        row -> GroupKey.ofName(nameKey(row.get(FIRST_KEY, String.class))));
+                case WEEKDAY -> new Grouping(1, (game, cb) -> List.of(game.get("playedOn")),
+                        row -> GroupKey.ofWeekday(row.get(FIRST_KEY, LocalDate.class).getDayOfWeek()));
             };
+        }
+
+        /** Where each range of buy-ins ends and the next one starts; the last one has no end. */
+        private static final List<BigDecimal> RANGE_ENDS = Stream.of("1", "2", "5", "10", "20", "50")
+                .map(BigDecimal::new).toList();
+
+        private static BuyInRange rangeOf(BigDecimal buyIn) {
+            if (buyIn.signum() == 0) {
+                return new BuyInRange(BigDecimal.ZERO, BigDecimal.ZERO);
+            }
+            BigDecimal from = BigDecimal.ZERO;
+            for (BigDecimal end : RANGE_ENDS) {
+                if (buyIn.compareTo(end) < 0) {
+                    return new BuyInRange(from, end);
+                }
+                from = end;
+            }
+            return new BuyInRange(from, null);
+        }
+
+        private static @Nullable String nameKey(@Nullable String name) {
+            return name == null || name.isBlank() ? null : name.strip().toLowerCase(Locale.ROOT);
         }
 
         private static Grouping period(Function<LocalDate, String> periodOf) {
             return new Grouping(1, (game, cb) -> List.of(game.get("playedOn")),
-                    row -> new GroupKey(periodOf.apply(row.get(FIRST_KEY, LocalDate.class)), null, null, null, null, null));
+                    row -> GroupKey.ofPeriod(periodOf.apply(row.get(FIRST_KEY, LocalDate.class))));
         }
     }
 }

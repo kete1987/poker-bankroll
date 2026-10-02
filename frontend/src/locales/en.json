@@ -312,6 +312,32 @@
         "WEEK": "Results per week",
         "MONTH": "Results per month"
       }
+    },
+    "breakdown": {
+      "title": "Breakdowns",
+      "by": "Break down by",
+      "search": "Search a name",
+      "noVariant": "No variant",
+      "noName": "No name",
+      "free": "Free",
+      "between": "{{from}} to {{to}}",
+      "above": "{{amount}} or more",
+      "more_one": "And {{count}} more name: search to see it.",
+      "more_other": "And {{count}} more names: search to see them.",
+      "dimensions": {
+        "GAME_TYPE": "Game type",
+        "VARIANT": "Variant",
+        "ROOM": "Room",
+        "MODALITY": "Modality",
+        "BUY_IN_RANGE": "Buy-in range",
+        "NAME": "Tournament name",
+        "WEEKDAY": "Day of the week"
+      },
+      "below": "Below {{amount}}",
+      "view": "What is shown",
+      "evolution": "Over time",
+      "loading": "Loading",
+      "noMatch": "No name contains that text."
     }
   },
   "games": {

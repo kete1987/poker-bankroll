@@ -13,7 +13,13 @@ public enum GroupBy {
     ROOM,
     MODALITY,
     /** Price of one entry; cash games apart. */
-    BUY_IN;
+    BUY_IN,
+    /** Price of one entry by ranges (free, below 1, from 1, 2, 5, 10, 20 and from 50 up); cash games apart. */
+    BUY_IN_RANGE,
+    /** Name of the game, ignoring case and surrounding spaces; games without a name are one group. */
+    NAME,
+    /** Day of the week the game was played on. */
+    WEEKDAY;
 
     /** Groups in time are ordered by date and carry the cumulative net. */
     boolean isPeriod() {

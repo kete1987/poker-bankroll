@@ -3,6 +3,7 @@ package io.github.kete1987.pokerbankroll.stats;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import com.jayway.jsonpath.JsonPath;
 import io.github.kete1987.pokerbankroll.ApiIntegrationTest;
@@ -350,6 +351,70 @@ class StatsApiTests extends ApiIntegrationTest {
         assertNumber(json, "$.currencies[0].groups[2].key.buyIn", "5");
         assertNumber(json, "$.currencies[0].groups[3].key.buyIn", "10");
         assertThat(groups("?groupBy=BUY_IN&gameType=CASH")).isEqualTo("{\"groupBy\":\"BUY_IN\",\"currencies\":[]}");
+    }
+
+    @Test
+    void groupsByRangeOfBuyInFromLowestToHighestWithoutCashGames() {
+        for (String buyIn : List.of("0", "0.25", "0.99", "1", "1.99", "2", "4.99", "5", "10", "19.99", "20", "50", "109")) {
+            game(winamax, "TOURNAMENT", "2026-01-19").buyIn(buyIn).insert();
+        }
+        game(winamax, "CASH", "2026-01-19").buyIn("3").insert();
+
+        String json = groups("?groupBy=BUY_IN_RANGE&currency=EUR");
+
+        String groups = "$.currencies[0].groups";
+        // Free games apart; then each range starts where the one before ends, which it leaves out.
+        assertThat(JsonPath.<Object>read(json, groups + "[*].key.buyInRange.from"))
+                .hasToString("[0,0,1,2,5,10,20,50]");
+        assertThat(JsonPath.<Object>read(json, groups + "[*].key.buyInRange.to"))
+                .hasToString("[0,1,2,5,10,20,50,null]");
+        assertThat(JsonPath.<Object>read(json, groups + "[*].figures.games"))
+                .hasToString("[1,2,2,2,1,2,1,2]");
+        assertThat(JsonPath.<Object>read(json, groups + "[0].key.buyIn")).isNull();
+        assertThat(groups("?groupBy=BUY_IN_RANGE&gameType=CASH"))
+                .isEqualTo("{\"groupBy\":\"BUY_IN_RANGE\",\"currencies\":[]}");
+    }
+
+    @Test
+    void groupsByNameIgnoringCaseAndSpacesWithTheGamesWithoutNameLast() {
+        game(winamax, "TOURNAMENT", "2026-01-19").name("Kill The Fish").buyIn("5").prize("12").insert();
+        game(winamax, "TOURNAMENT", "2026-01-20").name("Kill The Fish").buyIn("5").insert();
+        game(winamax, "TOURNAMENT", "2026-01-21").name(" KILL THE FISH ").buyIn("5").insert();
+        game(winamax, "TOURNAMENT", "2026-01-21").name("Monster Stack").buyIn("2").insert();
+        for (int i = 0; i < 4; i++) {
+            game(winamax, "SIT_AND_GO", "2026-01-22").buyIn("1").insert();
+        }
+
+        String json = groups("?groupBy=NAME&currency=EUR");
+
+        String groups = "$.currencies[0].groups";
+        // Written as most of its games write it; the games without a name go last, however many.
+        assertThat(JsonPath.<Object>read(json, groups + "[*].key.name"))
+                .hasToString("[\"Kill The Fish\",\"Monster Stack\",null]");
+        assertThat(JsonPath.<Object>read(json, groups + "[*].figures.games")).hasToString("[3,1,4]");
+        assertNumber(json, groups + "[0].figures.net", "-3");
+        assertNumber(json, groups + "[0].figures.averageBuyIn", "5");
+
+        assertThat(JsonPath.<Object>read(groups("?groupBy=NAME&gameType=TOURNAMENT"), groups + "[*].key.name"))
+                .hasToString("[\"Kill The Fish\",\"Monster Stack\"]");
+    }
+
+    @Test
+    void groupsByDayOfTheWeekFromMonday() {
+        // 19 January 2026 is a Monday.
+        game(winamax, "TOURNAMENT", "2026-01-25").buyIn("1").prize("3").insert();
+        game(winamax, "TOURNAMENT", "2026-01-19").buyIn("1").insert();
+        game(winamax, "TOURNAMENT", "2026-01-26").buyIn("1").insert();
+        game(winamax, "CASH", "2026-01-21").buyIn("2").prize("2.50").insert();
+
+        String json = groups("?groupBy=WEEKDAY&currency=EUR");
+
+        String groups = "$.currencies[0].groups";
+        assertThat(JsonPath.<Object>read(json, groups + "[*].key.weekday")).hasToString("[1,3,7]");
+        assertThat(JsonPath.<Object>read(json, groups + "[*].figures.games")).hasToString("[2,1,1]");
+        assertNumber(json, groups + "[0].figures.net", "-2");
+        assertNumber(json, groups + "[2].figures.net", "2");
+        assertThat(JsonPath.<Object>read(json, groups + "[0].cumulativeNet")).isNull();
     }
 
     @Test

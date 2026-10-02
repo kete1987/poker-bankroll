@@ -157,7 +157,10 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - Statistics (`stats` package) share one set of figures (`StatsFigures`) built from sums by
   `GameTotals`; rates and ROI are fractions with 4 decimals (`0.3496`), formatted by the frontend.
   `/stats/summary` gives them overall and per game type, `/stats/groups?groupBy=` per period (`DAY`,
-  `WEEK` from Monday, `MONTH`, `YEAR`), `GAME_TYPE`, `VARIANT`, `ROOM`, `MODALITY` or `BUY_IN`; both
+  `WEEK` from Monday, `MONTH`, `YEAR`), `GAME_TYPE`, `VARIANT`, `ROOM`, `MODALITY`, `BUY_IN`,
+  `BUY_IN_RANGE` (fixed ranges: free, below 1, and from 1, 2, 5, 10, 20 and 50; each one leaves its
+  upper end out), `NAME` (ignoring case and surrounding spaces, written as most of its games write
+  it; games without a name are one group, listed last) or `WEEKDAY` (1 Monday to 7 Sunday); both
   take the filters of the games list. With `byGameType=true` each group is also broken down by
   game type. Periods carry the **cumulative net**, which starts from zero
   at the beginning of the filtered range. A new grouping is a `GroupBy` constant plus its `Grouping`
@@ -346,6 +349,11 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - Charts are built as an ECharts option passed to `components/Chart` (register there the ECharts
   components a new chart needs). Colouring a line by value needs closed ranges in `visualMap`.
   Tests replace `Chart` with a stub and assert on the option (see `pages/StatsPage.test.tsx`).
+- The statistics screen has two views kept in the URL (`view`): results over time, and breakdowns
+  (`stats/Breakdown.tsx`) by room, type, variant, modality, buy-in range, tournament name or day of
+  the week, as bars and a table sorted on the client (`by`, `sort=<column>,<asc|desc>` in the URL).
+  A new breakdown is a `GroupBy` of the backend, its entry in `DIMENSIONS` (`stats/useStatsFilters.ts`),
+  its label in `Breakdown` and its name in both locale files. Names are asked for tournaments only.
 - A period is chosen with `components/PeriodFilter` (`components/period.ts` has the predefined
   ranges). A screen shows one currency at a time: amounts in different currencies are never added.
 - A logo can also come from a URL: the browser cannot read images of other sites, so

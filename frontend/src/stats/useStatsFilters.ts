@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router';
 
 import type { StatsQuery } from '../api/stats';
-import type { GameType } from '../api/types';
+import type { GameType, GroupBy } from '../api/types';
 import { rangeOf, type DateRange } from '../components/period';
 import { parseDate, parseList, parseOneOf, parsePositiveInteger } from '../components/urlParams';
 import type { GameScope } from '../games/ScopeFilters';
@@ -14,7 +14,45 @@ export type Granularity = (typeof GRANULARITIES)[number];
 /** What the chart draws: the net added up over time, or the net of each period. */
 export type ChartMode = 'cumulative' | 'period';
 
+/** The two halves of the screen: results over time, or broken down by something else. */
+export type StatsView = 'evolution' | 'breakdown';
+
+/** What the games can be broken down by, in the order they are offered. */
+export const DIMENSIONS = [
+  'ROOM',
+  'GAME_TYPE',
+  'VARIANT',
+  'MODALITY',
+  'BUY_IN_RANGE',
+  'NAME',
+  'WEEKDAY',
+] as const satisfies readonly GroupBy[];
+export type Dimension = (typeof DIMENSIONS)[number];
+
+/** Columns the table of a breakdown can be sorted by. */
+export const SORT_COLUMNS = [
+  'label',
+  'games',
+  'averageBuyIn',
+  'itm',
+  'invested',
+  'won',
+  'net',
+  'roi',
+] as const;
+export type SortColumn = (typeof SORT_COLUMNS)[number];
+
+export interface BreakdownSort {
+  column: SortColumn;
+  descending: boolean;
+}
+
 export interface StatsFilters extends GameScope {
+  view: StatsView;
+  /** What the breakdown is by. */
+  dimension: Dimension;
+  /** The column the breakdown is sorted by, when the user has chosen one. */
+  sort?: BreakdownSort;
   range: DateRange;
   /** The currency shown, when the URL names one. */
   currency?: string;
@@ -40,10 +78,23 @@ export function granularityFor(range: DateRange): Granularity {
   return days <= 92 ? 'DAY' : days <= 550 ? 'WEEK' : 'MONTH';
 }
 
+/** `net,asc` or `net,desc`; anything else is no order. */
+function parseSort(text: string | null): BreakdownSort | undefined {
+  const [name, direction] = (text ?? '').split(',');
+  const column = parseOneOf(name ?? null, SORT_COLUMNS);
+  if (!column || (direction !== 'asc' && direction !== 'desc')) {
+    return undefined;
+  }
+  return { column, descending: direction === 'desc' };
+}
+
 function parse(params: URLSearchParams): StatsFilters {
   const from = parseDate(params.get('from'));
   const to = parseDate(params.get('to'));
   return {
+    view: params.get('view') === 'breakdown' ? 'breakdown' : 'evolution',
+    dimension: parseOneOf(params.get('by')?.toUpperCase() ?? null, DIMENSIONS) ?? DIMENSIONS[0],
+    sort: parseSort(params.get('sort')),
     // Without dates the statistics are about this year; "all time" has to be asked for.
     range: params.get('period') === 'all' ? {} : from || to ? { from, to } : rangeOf('thisYear'),
     gameTypes: parseList(params.get('type'), (text) => parseOneOf(text, GAME_TYPES)),
@@ -59,6 +110,15 @@ function parse(params: URLSearchParams): StatsFilters {
 
 function serialize(filters: StatsFilters): URLSearchParams {
   const params = new URLSearchParams();
+  if (filters.view === 'breakdown') {
+    params.set('view', 'breakdown');
+  }
+  if (filters.dimension !== DIMENSIONS[0]) {
+    params.set('by', filters.dimension.toLowerCase());
+  }
+  if (filters.sort) {
+    params.set('sort', `${filters.sort.column},${filters.sort.descending ? 'desc' : 'asc'}`);
+  }
   const { from, to } = filters.range;
   const thisYear = rangeOf('thisYear');
   if (!from && !to) {
@@ -106,7 +166,9 @@ export function useStatsFilters() {
     (changes: Partial<StatsFilters>) => {
       // The kind of chart does not change what the table lists; anything else takes it back to
       // its first page.
-      const keepsPage = Object.keys(changes).every((key) => key === 'chart' || key === 'page');
+      const keepsPage = Object.keys(changes).every((key) =>
+        ['chart', 'page', 'view', 'dimension', 'sort'].includes(key),
+      );
       setParams(
         (current) => {
           const now = parse(current);
