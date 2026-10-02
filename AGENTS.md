@@ -371,7 +371,7 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   the week, as bars and a table sorted on the client (`by`, `sort=<column>,<asc|desc>` in the URL).
   A new breakdown is a `GroupBy` of the backend, its entry in `DIMENSIONS` (`stats/useStatsFilters.ts`),
   its label in `Breakdown` and its name in both locale files. Names are asked for tournaments
-  unless the filter names other types.
+  unless the filter already names types or variants.
 - A period is chosen with `components/PeriodFilter` (`components/period.ts` has the predefined
   ranges). A screen shows one currency at a time: amounts in different currencies are never added.
 - A logo can also come from a URL: the browser cannot read images of other sites, so

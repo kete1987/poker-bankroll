@@ -304,6 +304,14 @@ describe('Statistics breakdowns', () => {
     });
   });
 
+  it('breaks down by name the variants the filter asks for, whatever their type', async () => {
+    const calls = stubStats();
+    renderApp('/stats?view=breakdown&by=name&variant=21&period=all');
+
+    await screen.findByRole('columnheader', { name: 'Tournament name' });
+    expect(breakdownQueries(calls).at(-1)).toEqual({ groupBy: 'NAME', variantId: '21' });
+  });
+
   it('takes the breakdown and its order from the URL, and drops the order with another one', async () => {
     const calls = stubStats();
     renderApp('/stats?view=breakdown&by=room&sort=net,asc&period=all');
