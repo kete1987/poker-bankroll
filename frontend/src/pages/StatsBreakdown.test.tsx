@@ -112,7 +112,12 @@ function breakdownQueries(calls: ApiCall[]) {
 
 /** The first cell of every row of the table, the heading apart. */
 function rowLabels() {
-  return screen.getAllByRole('rowheader').map((cell) => cell.textContent);
+  return screen.getAllByRole('rowheader').map((cell) => {
+    // A room comes with its logo, or its initial: only the name is the label.
+    const label = cell.cloneNode(true) as HTMLElement;
+    label.querySelector('.mantine-Avatar-root')?.remove();
+    return label.textContent;
+  });
 }
 
 async function chartOption() {
@@ -149,7 +154,7 @@ describe('Statistics breakdowns', () => {
     expect(screen.queryByRole('combobox', { name: 'Group by' })).not.toBeInTheDocument();
     expect(screen.queryByText('Net evolution')).not.toBeInTheDocument();
 
-    const winamax = within(screen.getByRole('row', { name: /^Winamax/ }));
+    const winamax = within(screen.getByRole('row', { name: /Winamax/ }));
     expect(winamax.getAllByRole('cell').map((cell) => cell.textContent)).toEqual([
       '30',
       '€2.00',

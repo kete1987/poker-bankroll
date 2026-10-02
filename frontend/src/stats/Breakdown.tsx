@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { useStatsGroups, type StatsQuery } from '../api/stats';
 import type { StatsFigures, StatsGroup } from '../api/types';
 import { Chart } from '../components/Chart';
+import { RoomLabel } from '../components/RoomLabel';
 import { NO_VALUE } from '../format/format';
 import { useFormat } from '../format/useFormat';
 import { variantLabel } from '../games/labels';
@@ -32,6 +33,8 @@ const ORDERED: readonly Dimension[] = ['BUY_IN_RANGE', 'WEEKDAY'];
 interface Row {
   key: string;
   label: string;
+  /** Set when the group is a room, which is shown with its logo. */
+  room?: { id: number; name: string };
   figures: StatsFigures;
 }
 
@@ -140,10 +143,13 @@ export function Breakdown({ query, currencyCode, dimension, sort, onChange }: Br
     const ofCurrency =
       groups.data?.currencies.find((currency) => currency.currencyCode === currencyCode)?.groups ??
       [];
-    return ofCurrency.map((group): Row => {
-      const label = labelOf(group);
-      return { key: label, label, figures: group.figures };
-    });
+    return ofCurrency.map((group): Row => ({
+      // What the group is, not how it reads: two groups can have the same label.
+      key: JSON.stringify(group.key),
+      label: labelOf(group),
+      room: group.key.room ?? undefined,
+      figures: group.figures,
+    }));
   }, [groups.data, drawn, currencyCode, format, t]);
 
   const wanted = search.trim().toLowerCase();
@@ -278,7 +284,7 @@ export function Breakdown({ query, currencyCode, dimension, sort, onChange }: Br
                 {rows.map((row) => (
                   <Table.Tr key={row.key}>
                     <Table.Th scope="row" fw={500}>
-                      {row.label}
+                      {row.room ? <RoomLabel room={row.room} /> : row.label}
                     </Table.Th>
                     <Table.Td ta="right">{format.number(row.figures.games)}</Table.Td>
                     <Table.Td ta="right">
