@@ -263,7 +263,11 @@ describe('On a phone', () => {
 
       await userEvent.click(filters);
       expect(filters).toHaveAttribute('aria-expanded', 'true');
-      await userEvent.type(screen.getByRole('textbox', { name: 'Search' }), 'fish');
+      // The fold opens with a transition, which jsdom may still count as hidden.
+      await userEvent.type(
+        await screen.findByRole('textbox', { name: 'Search', hidden: true }),
+        'fish',
+      );
 
       await waitFor(() => expect(finishedQueries(calls).at(-1)?.query.get('q')).toBe('fish'));
       expect(within(filters).getByText('3')).toBeInTheDocument();
