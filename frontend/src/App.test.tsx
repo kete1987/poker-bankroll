@@ -23,7 +23,7 @@ describe('App', () => {
       within(menu)
         .getAllByRole('link')
         .map((link) => link.textContent),
-    ).toEqual(['Dashboard', 'Games', 'Bankroll', 'Statistics', 'Import', 'Settings']);
+    ).toEqual(['Dashboard', 'Games', 'Bankroll', 'Statistics', 'Import / Export', 'Settings']);
     expect(within(menu).getByRole('link', { name: 'Games' })).toHaveAttribute(
       'aria-current',
       'page',

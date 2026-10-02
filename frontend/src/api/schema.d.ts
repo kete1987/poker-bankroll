@@ -4,6 +4,52 @@
  */
 
 export interface paths {
+    "/backup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download a backup of everything
+         * @description One JSON document with everything the user created: rooms (with their logos), user-defined variants and whether each built-in one is active, every game (those in play too) and every bankroll movement. It says the version of its format (`formatVersion`) and the version of the application that made it.
+         *
+         *     The file comes as an attachment named after the day, e.g. `poker-bankroll-backup-2026-10-02.json`. Restore it with `POST /backup/restore`.
+         */
+        get: operations["downloadBackup"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/backup/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore a backup, replacing everything
+         * @description The body is the file of `GET /backup` itself, up to 32 MB, in any version of the format up to the current one. Restoring **deletes everything the installation holds** (games, bankroll movements, rooms and their logos, user-defined variants) and writes what the file holds; built-in variants are active or not as the file says.
+         *
+         *     It is all or nothing: with an error in the content of the file nothing changes, and the response (still 200) lists the errors with `restored: false`, each with its place in the document. With `dryRun=true` the file is checked in the same way and nothing changes either: the response says what the file holds and what the installation holds and would lose.
+         *
+         *     An installation that has data is only replaced with `replace=true`; without it the restore fails with `BACKUP_REPLACE_NOT_CONFIRMED` (409). A file that cannot be read as a whole fails with `BACKUP_FILE_MALFORMED` or `BACKUP_FORMAT_TOO_NEW` (made by a newer version of the application) (400), or `BACKUP_FILE_TOO_LARGE` (413).
+         */
+        post: operations["restoreBackup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/bankroll/movements": {
         parameters: {
             query?: never;
@@ -462,6 +508,62 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        BackupContents: {
+            empty: boolean;
+            /**
+             * Format: date
+             * @description Date of the first game
+             */
+            from?: string | null;
+            /** Format: int32 */
+            games: number;
+            /** Format: int32 */
+            gamesInPlay: number;
+            /** Format: int32 */
+            movements: number;
+            /** Format: int32 */
+            rooms: number;
+            /**
+             * Format: date
+             * @description Date of the last game
+             */
+            to?: string | null;
+            /** Format: int32 */
+            variants: number;
+        };
+        BackupError: {
+            code: string;
+            message: string;
+            path: string;
+        };
+        BackupRestoreResponse: {
+            /** @description Version of the application that made the file */
+            appVersion?: string | null;
+            /** @description What the installation held before the restore: it is deleted by it (in a dry run or with errors, what it holds and would lose) */
+            current: components["schemas"]["BackupContents"];
+            /** @description The file was only checked: nothing was changed */
+            dryRun: boolean;
+            /**
+             * Format: int32
+             * @description Errors found in the content of the file; `errors` lists only the first ones
+             */
+            errorCount: number;
+            errors: components["schemas"]["BackupError"][];
+            /**
+             * Format: date-time
+             * @description When the file was made
+             */
+            exportedAt?: string | null;
+            /** @description What the file holds */
+            file: components["schemas"]["BackupContents"];
+            /**
+             * Format: int32
+             * @description Version of the format of the file
+             */
+            formatVersion: number;
+            /** @description The installation now holds what the file holds: not a dry run, and no errors */
+            restored: boolean;
+        };
         BankrollFigures: {
             /** @description Sum of the adjustments, positive or negative */
             adjustments: number;
@@ -960,6 +1062,55 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    downloadBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+        };
+    };
+    restoreBackup: {
+        parameters: {
+            query?: {
+                /** @description Only check the file and report what it holds and what would be deleted */
+                dryRun?: boolean;
+                /** @description Delete what the installation holds; needed unless it is empty */
+                replace?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": string;
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupRestoreResponse"];
+                };
+            };
+        };
+    };
     list_3: {
         parameters: {
             query?: {

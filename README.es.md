@@ -31,6 +31,8 @@ Aquí el foco son los resultados y la gestión de la banca.
 - Interfaz en español e inglés
 - Importación de partidas desde un fichero CSV ([formato](docs/import.md), en inglés), para traer tu
   historial de una hoja de cálculo
+- Copia de seguridad de todo en un fichero, que se descarga y se restaura desde la aplicación:
+  para mudarte a otro equipo o recuperarte de un problema
 - Copias de seguridad diarias de la base de datos
 
 Lo que está previsto está en las [issues](https://github.com/kete1987/poker-bankroll/issues).
@@ -86,6 +88,10 @@ El stack hace cada día una copia de la base de datos en `deploy/backups/` (cons
 y la retención). En Portainer, pon en `BACKUP_DIR` una ruta absoluta del host. En
 [docs/backups.md](docs/backups.md) (en inglés) se explica cómo hacer una copia en el momento,
 restaurarla y llevar las copias a otra máquina.
+
+Además, *Importar / Exportar* en la aplicación descarga una copia de todo en un fichero y la
+restaura, también en otra instalación: la forma fácil de mudarte a otro equipo. Mira
+[Backup from the app](docs/backups.md#backup-from-the-app) (en inglés).
 
 ## Estructura del repositorio
 

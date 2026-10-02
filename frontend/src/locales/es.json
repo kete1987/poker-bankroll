@@ -13,7 +13,7 @@
     "games": "Partidas",
     "bankroll": "Bankroll",
     "stats": "Estadísticas",
-    "import": "Importar",
+    "import": "Importar / Exportar",
     "settings": "Ajustes"
   },
   "apiStatus": {
@@ -232,6 +232,7 @@
     }
   },
   "import": {
+    "title": "Importar partidas desde un fichero CSV",
     "intro": "Carga partidas apuntadas en otro sitio desde un fichero CSV con el formato de la aplicación. Solo se importan partidas, todas como finalizadas.",
     "format": "Ver el formato",
     "example": "Descargar un ejemplo",
@@ -288,6 +289,67 @@
       "note": "Todos los movimientos de la lista, con sus filtros.",
       "done": "{{file}} tiene los movimientos de la lista."
     }
+  },
+  "backup": {
+    "title": "Copia de seguridad de todo",
+    "intro": "Una copia de seguridad es un fichero con todo lo que tiene esta instalación: salas y sus logos, variantes, todas las partidas (también las que están en juego) y los movimientos de bankroll. Guárdala en un lugar seguro, o restáurala en otra instalación para mudarte a otro equipo.",
+    "docs": "Copias de seguridad y cuándo usar cada tipo (en inglés)",
+    "download": "Descargar copia",
+    "downloaded": "Copia descargada",
+    "downloadedText": "{{file}} tiene todo lo que hay en esta instalación.",
+    "downloadFailed": "No se ha descargado la copia",
+    "restoreIntro": "Restaurar una copia reemplaza todo lo que tiene esta instalación por el contenido del fichero. Al elegir un fichero solo se comprueba: nada cambia hasta que confirmes.",
+    "choose": "Elegir fichero de copia",
+    "chooseAnother": "Elegir otra copia",
+    "checking": "Comprobando el fichero…",
+    "unreadable": "El fichero no se puede restaurar",
+    "madeOn": "Copia hecha el {{date}} con poker-bankroll {{version}}.",
+    "contents": {
+      "label": "Contenido de la copia",
+      "file": "En el fichero",
+      "current": "En esta instalación",
+      "rooms": "Salas",
+      "variants": "Variantes propias",
+      "games": "Partidas",
+      "gamesInPlay": "Partidas en juego",
+      "movements": "Movimientos de bankroll",
+      "dates": "Fechas de las partidas"
+    },
+    "counts": {
+      "rooms_one": "{{formatted}} sala",
+      "rooms_other": "{{formatted}} salas",
+      "variants_one": "{{formatted}} variante propia",
+      "variants_other": "{{formatted}} variantes propias",
+      "games_one": "{{formatted}} partida",
+      "games_other": "{{formatted}} partidas",
+      "movements_one": "{{formatted}} movimiento de bankroll",
+      "movements_other": "{{formatted}} movimientos de bankroll"
+    },
+    "emptyInstallation": "Esta instalación está vacía: no se borrará nada.",
+    "replace": {
+      "title": "Restaurar borra todo lo que tiene esta instalación",
+      "text": "Lo que tiene ahora se borra para siempre y se reemplaza por el contenido del fichero: {{contents}}. Descarga antes una copia si puedes volver a necesitarlo."
+    },
+    "errors": {
+      "title_one": "{{formatted}} error: no se restaura nada hasta que el fichero esté bien",
+      "title_other": "{{formatted}} errores: no se restaura nada hasta que el fichero esté bien",
+      "help": "El fichero se ha modificado después de hacerlo, o no lo ha hecho esta aplicación. Las posiciones empiezan en 0: games[12] es la decimotercera partida del fichero.",
+      "where": "Dónde",
+      "error": "Error",
+      "more_one": "Y {{formatted}} error más.",
+      "more_other": "Y {{formatted}} errores más."
+    },
+    "submit": "Restaurar esta copia",
+    "confirm": {
+      "title": "Restaurar copia",
+      "text": "Se restaurará {{file}}: {{contents}}.",
+      "deleted": "Todo lo que tiene ahora esta instalación se borrará para siempre: {{contents}}.",
+      "understand": "Entiendo que se borrarán los datos de esta instalación",
+      "label": "Restaurar",
+      "labelReplace": "Borrar y restaurar"
+    },
+    "doneTitle": "Copia restaurada",
+    "done": "Esta instalación tiene ahora lo que tiene {{file}}: {{contents}}."
   },
   "stats": {
     "groupBy": "Agrupar por",

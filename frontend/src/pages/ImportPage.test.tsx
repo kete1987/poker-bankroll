@@ -63,7 +63,7 @@ describe('import page', () => {
     stubImportApi(result());
     renderApp('/import');
 
-    expect(await screen.findByRole('heading', { name: 'Import' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Import / Export' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'See the format' })).toHaveAttribute(
       'href',
       expect.stringContaining('docs/import.md'),
