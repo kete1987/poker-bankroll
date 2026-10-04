@@ -43,9 +43,9 @@ Aquí el foco son los resultados y la gestión de la banca.
   de una vez (los diez Expressos de una noche) con el resultado de cada una en una fila
 - Plantillas de las partidas que juegas a menudo: un clic y empieza una
 - Etiquetas propias en las partidas ("challenge", "con amigos"...), para filtrar y desglosar por ellas
-- Dashboard con resultado neto, ROI e ITM, desglosado por modalidad
+- Dashboard con resultado neto, ROI e ITM, desglosado por tipo de partida o variante
 - Estadísticas por día, semana, mes o año con la gráfica de evolución del neto, y desgloses por
-  sala, modalidad, variante, buy-in, nombre del torneo, día de la semana o etiqueta
+  sala, tipo de partida, variante, buy-in, nombre del torneo, día de la semana o etiqueta
 - Bankroll de póker por sala y moneda: depósitos, retiradas, bonos y el resultado de tus partidas,
   y su evolución en el tiempo
 - Varias monedas (EUR y USD de serie, ampliable): cada sala tiene la suya, y lo que las mezcla se

@@ -22,6 +22,7 @@ services:
       # The demo makes up its own exchange rates of the dollar: nothing to download.
       POKER_BANKROLL_EXCHANGE_RATES_ENABLED: 'false'
 
-  # No backups of made-up data: the service only starts with --profile backup.
+  # No backups of made-up data: the service only starts with a profile nobody uses. Should it
+  # start anyway (COMPOSE_PROFILES=* in the shell), demo.env sends its files to a folder of its own.
   backup:
-    profiles: [backup]
+    profiles: [demo-backup]

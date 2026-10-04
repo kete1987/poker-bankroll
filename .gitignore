@@ -47,6 +47,7 @@ desktop.ini
 # Local data (backups, database volumes mounted in the repo folder)
 /backups/
 /deploy/backups/
+/deploy/demo-backups/
 /deploy/data/
 
 # Working copies of coding agents
