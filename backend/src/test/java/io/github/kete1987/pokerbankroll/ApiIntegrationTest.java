@@ -35,6 +35,22 @@ public abstract class ApiIntegrationTest {
         jdbc.update("delete from room");
         jdbc.update("delete from variant where code is null");
         jdbc.update("update variant set active = true");
+        jdbc.update("delete from exchange_rate");
+        jdbc.update("update currency_setting set base_currency_code = null");
+    }
+
+    /** A downloaded (ECB) rate: 1 EUR is worth {@code rate} units of the currency from that day on. */
+    protected void insertRate(String currency, String day, String rate) {
+        insertRate(currency, day, rate, "ECB");
+    }
+
+    protected void insertRate(String currency, String day, String rate, String source) {
+        jdbc.update("insert into exchange_rate (currency_code, rate_date, source, rate) values (?, cast(? as date), ?, ?)",
+                currency, day, source, new java.math.BigDecimal(rate));
+    }
+
+    protected void chooseBaseCurrency(String currency) {
+        jdbc.update("update currency_setting set base_currency_code = ?", currency);
     }
 
     protected MockMvcRequestBuilder postJson(String uri, String json) {

@@ -24,7 +24,8 @@ class StatsApiTests extends ApiIntegrationTest {
 
     @Test
     void thereIsNothingToSummariseWithoutGames() {
-        assertThat(summary("")).isEqualTo("{\"currencies\":[]}");
+        assertNoGames(summary(""));
+        assertNumber(summary(""), "$.converted.total.games", "0");
     }
 
     @Test
@@ -169,7 +170,7 @@ class StatsApiTests extends ApiIntegrationTest {
                 "$.currencies[1].total.games", "1");
         assertThat(JsonPath.<Integer>read(groups("?groupBy=GAME_TYPE&currency=EUR&gameType=SIT_AND_GO,CASH"),
                 "$.currencies[0].groups.length()")).isEqualTo(2);
-        assertThat(summary("?from=2027-01-01")).isEqualTo("{\"currencies\":[]}");
+        assertNoGames(summary("?from=2027-01-01"));
     }
 
     @Test
@@ -350,7 +351,7 @@ class StatsApiTests extends ApiIntegrationTest {
         assertNumber(json, "$.currencies[0].groups[1].figures.games", "1");
         assertNumber(json, "$.currencies[0].groups[2].key.buyIn", "5");
         assertNumber(json, "$.currencies[0].groups[3].key.buyIn", "10");
-        assertThat(groups("?groupBy=BUY_IN&gameType=CASH")).isEqualTo("{\"groupBy\":\"BUY_IN\",\"currencies\":[]}");
+        assertNoGames(groups("?groupBy=BUY_IN&gameType=CASH"));
     }
 
     @Test
@@ -372,7 +373,7 @@ class StatsApiTests extends ApiIntegrationTest {
                 .hasToString("[1,2,2,2,1,2,1,2]");
         assertThat(JsonPath.<Object>read(json, groups + "[0].key.buyIn")).isNull();
         assertThat(groups("?groupBy=BUY_IN_RANGE&gameType=CASH"))
-                .isEqualTo("{\"groupBy\":\"BUY_IN_RANGE\",\"currencies\":[]}");
+                .satisfies(StatsApiTests::assertNoGames);
     }
 
     @Test
@@ -481,7 +482,7 @@ class StatsApiTests extends ApiIntegrationTest {
 
         assertThat(JsonPath.<Integer>read(json, "$.currencies.length()")).isEqualTo(1);
         assertNumber(json, "$.currencies[0].groups[0].figures.games", "4");
-        assertThat(groups("?groupBy=DAY&from=2027-01-01")).isEqualTo("{\"groupBy\":\"DAY\",\"currencies\":[]}");
+        assertNoGames(groups("?groupBy=DAY&from=2027-01-01"));
     }
 
     @Test
@@ -521,6 +522,16 @@ class StatsApiTests extends ApiIntegrationTest {
             return result.getResponse().getContentAsString();
         } catch (java.io.UnsupportedEncodingException e) {
             throw new IllegalStateException(e);
+        }
+    }
+
+    /** No currency, and nothing converted either. */
+    private static void assertNoGames(String json) {
+        assertThat(JsonPath.<List<Object>>read(json, "$.currencies")).isEmpty();
+        if (json.contains("\"groups\"")) {
+            assertThat(JsonPath.<List<Object>>read(json, "$.converted.groups")).isEmpty();
+        } else {
+            assertThat(JsonPath.<Integer>read(json, "$.converted.total.games")).isZero();
         }
     }
 

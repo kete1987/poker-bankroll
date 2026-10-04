@@ -40,7 +40,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Profile {@code demo}: fills an empty database with a year of made-up results, to look at the
  * application without recording anything. It does nothing when there is already a room, a game, a
- * bankroll movement or a user-defined variant. Everything goes through the services, so it follows the rules of the API.
+ * bankroll movement or a user-defined variant. Everything goes through the services, so it follows the rules of the API,
+ * but the exchange rates of the dollar, made up too, which only the download records.
  * The same day always gives the same data.
  */
 @Component
@@ -112,9 +113,11 @@ public class DemoDataSeeder implements ApplicationRunner {
         }
         recordGamesInPlay(today);
         recordMovements(start, today);
+        recordExchangeRates(start, today);
         rooms.update(unibet, new RoomRequest("Unibet", "EUR", false));
 
-        log.info("Demo data loaded: 4 rooms, {} games from {} to {}", gameCount, start, today);
+        log.info("Demo data loaded: 4 rooms, {} games from {} to {}, and dollar exchange rates", gameCount, start,
+                today);
     }
 
     private void createRoomsAndVariants() {
@@ -273,6 +276,27 @@ public class DemoDataSeeder implements ApplicationRunner {
         move(start.plusDays(200), MovementType.WITHDRAWAL, tripleEight, null, "40", "Profits");
         move(start.plusDays(240), MovementType.BONUS, tripleEight, null, "8", "Welcome bonus");
         move(start.plusDays(300), MovementType.ADJUSTMENT, tripleEight, null, "-3.20", "Games not recorded");
+    }
+
+    /**
+     * Made-up daily rates of the dollar, around 1.05 to 1.15 per euro, on working days as the ECB
+     * publishes them, so the demo shows everything converted without internet. They are written
+     * as downloaded rates: no service records those. Their own random numbers, so the rest of the
+     * demo data stays the same.
+     */
+    private void recordExchangeRates(LocalDate start, LocalDate today) {
+        Random rates = new Random(SEED + 1);
+        double rate = 1.10;
+        for (LocalDate day = start.minusDays(10); !day.isAfter(today); day = day.plusDays(1)) {
+            if (day.getDayOfWeek().getValue() >= 6) {
+                continue;
+            }
+            rate = Math.clamp(rate + (rates.nextDouble() - 0.5) * 0.01, 1.05, 1.15);
+            jdbc.sql("insert into exchange_rate (currency_code, rate_date, source, rate) values ('USD', :day, 'ECB', :rate)")
+                    .param("day", day)
+                    .param("rate", BigDecimal.valueOf(rate).setScale(4, RoundingMode.HALF_UP))
+                    .update();
+        }
     }
 
     private void move(LocalDate day, MovementType type, @Nullable Long room, @Nullable String currency, String amount,

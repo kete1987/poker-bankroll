@@ -153,6 +153,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/exchange-rates/manual": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the rates typed by hand
+         * @description Newest first.
+         */
+        get: operations["listManualRates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/exchange-rates/manual/{currencyCode}/{date}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Record a rate by hand
+         * @description The rate of a currency from a day on (until its next rate), per 1 EUR. It wins over the downloaded rate of that day. Replaces the one typed before for the same currency and day. EUR has no rate (EXCHANGE_RATE_OF_EUR): it is always 1.
+         */
+        put: operations["saveManualRate"];
+        post?: never;
+        /**
+         * Delete a rate typed by hand
+         * @description The downloaded rate of that day, if any, applies again.
+         */
+        delete: operations["deleteManualRate"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/exchange-rates/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Download the missing exchange rates now
+         * @description Waits for the download and returns the status, with `lastError` when something failed. 409 EXCHANGE_RATES_DISABLED when the installation does not download rates.
+         */
+        post: operations["refreshExchangeRates"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/exchange-rates/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Exchange rates there are and how their download went
+         * @description Rates are those of the European Central Bank, downloaded from Frankfurter when the API starts and every day, plus the ones typed by hand.
+         */
+        get: operations["getExchangeRateStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/exports/games": {
         parameters: {
             query?: never;
@@ -507,6 +591,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/settings/currency": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Base currency
+         * @description Amounts of several currencies are shown together converted to it. When none is chosen, it is the currency with most games.
+         */
+        get: operations["getCurrencySettings"];
+        /**
+         * Choose the base currency
+         * @description Null leaves it automatic. The rates the new one needs are downloaded afterwards, in the background.
+         */
+        put: operations["updateCurrencySettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/stats/groups": {
         parameters: {
             query?: never;
@@ -699,6 +807,9 @@ export interface components {
             restored: boolean;
         };
         BankrollEvolutionResponse: {
+            /** @description Every currency converted to the base currency. When the response is in a single currency, show that currency instead */
+            converted: components["schemas"]["ConvertedEvolution"];
+            /** @description One evolution per currency, in its own money, by code */
             currencies: components["schemas"]["CurrencyEvolution"][];
             /** @enum {string} */
             groupBy: "DAY" | "WEEK" | "MONTH" | "YEAR";
@@ -726,6 +837,9 @@ export interface components {
             withdrawn: number;
         };
         BankrollSummaryResponse: {
+            /** @description Every currency converted to the base currency. When the response is in a single currency, show that currency instead */
+            converted: components["schemas"]["ConvertedBankroll"];
+            /** @description One bankroll per currency, in its own money, by code */
             currencies: components["schemas"]["CurrencyBankroll"][];
         };
         BuyInRange: {
@@ -737,6 +851,52 @@ export interface components {
             currencies: components["schemas"]["CurrencyResponse"][];
             gameTypes: ("TOURNAMENT" | "SIT_AND_GO" | "CASH")[];
             modalities: ("NLHE" | "PLO")[];
+        };
+        ConvertedBankroll: {
+            /**
+             * Format: date
+             * @description Day whose rates convert the bankroll as a balance: `to`, or today. Null with `from`: then the bankroll is what changed in the period, converted day by day
+             */
+            balanceRatesOn?: string | null;
+            /** @description The base currency the amounts are converted to */
+            currencyCode: string;
+            /** @description Amounts left out of these figures for lack of an exchange rate */
+            missingRates: components["schemas"]["MissingExchangeRate"][];
+            /** @description Rooms of every currency, by name, with their amounts converted */
+            rooms: components["schemas"]["RoomBankroll"][];
+            /** @description Every room of the response plus the movements without a room */
+            total: components["schemas"]["BankrollFigures"];
+            /** @description Movements that belong to no room, of every currency */
+            withoutRoom: components["schemas"]["BankrollFigures"];
+        };
+        ConvertedEvolution: {
+            /** @description The base currency the amounts are converted to */
+            currencyCode: string;
+            /** @description Amounts left out of these figures for lack of an exchange rate */
+            missingRates: components["schemas"]["MissingExchangeRate"][];
+            /** @description Rooms of every currency, by name. Each has every period of the total, also those it has nothing in: its balance is worth something else when the rates change */
+            rooms: components["schemas"]["RoomEvolution"][];
+            /** @description The rooms of the response plus, without a room filter, the movements that belong to no room */
+            total: components["schemas"]["EvolutionSeries"];
+        };
+        ConvertedGroups: {
+            /** @description The base currency the amounts are converted to */
+            currencyCode: string;
+            /** @description As in a currency. BUY_IN: one group per buy-in and currency (`key.currencyCode`), 5 USD and 5 EUR apart; BUY_IN_RANGE: the range of the buy-in converted with the rate of its day */
+            groups: components["schemas"]["Group"][];
+            /** @description Games left out of these groups for lack of an exchange rate */
+            missingRates: components["schemas"]["MissingExchangeRate"][];
+        };
+        ConvertedSummary: {
+            /** @description The game types with finished games, in catalog order */
+            byGameType: components["schemas"]["GameTypeSummary"][];
+            /** @description The base currency the amounts are converted to */
+            currencyCode: string;
+            inPlay: components["schemas"]["InPlay"];
+            /** @description Games left out of these figures for lack of an exchange rate */
+            missingRates: components["schemas"]["MissingExchangeRate"][];
+            /** @description Every finished game that could be converted */
+            total: components["schemas"]["StatsFigures"];
         };
         CurrencyBankroll: {
             currencyCode: string;
@@ -759,11 +919,46 @@ export interface components {
             /** @description Groups with finished games. Periods from oldest to newest, buy-ins and their ranges from lowest to highest, days of the week from Monday, anything else from most to fewest games (games without a name or without tags last) */
             groups: components["schemas"]["Group"][];
         };
+        CurrencyRates: {
+            currencyCode: string;
+            /**
+             * Format: date
+             * @description First day with a rate, downloaded or manual
+             */
+            firstRateOn?: string | null;
+            /**
+             * Format: date
+             * @description Last day with a rate, downloaded or manual
+             */
+            lastRateOn?: string | null;
+            /**
+             * Format: int32
+             * @description Rates typed by hand
+             */
+            manualRates: number;
+            /**
+             * Format: date
+             * @description First day of an amount converted with this currency's rate: amounts before `firstRateOn` cannot be converted. Null when no amount needs it with this base currency
+             */
+            neededFrom?: string | null;
+        };
         CurrencyResponse: {
             code: string;
             /** Format: int32 */
             decimals: number;
             symbol: string;
+        };
+        CurrencySettingsRequest: {
+            /** @description Code of a currency of the catalog, e.g. EUR; null (or omitted) for the automatic one: the currency with most games */
+            baseCurrencyCode?: string | null;
+        };
+        CurrencySettingsResponse: {
+            /** @description The one used when none is chosen: the currency with most games; without games the first one of the rooms and movements; without anything EUR */
+            automaticBaseCurrencyCode: string;
+            /** @description Chosen by the user; null when it is automatic */
+            baseCurrencyCode?: string | null;
+            /** @description The base currency in use: the chosen one, or the automatic one */
+            effectiveBaseCurrencyCode: string;
         };
         CurrencySummary: {
             /** @description The game types with finished games, in catalog order */
@@ -801,6 +996,28 @@ export interface components {
             periods: components["schemas"]["EvolutionPeriod"][];
             /** @description Bankroll before the first day of the range (`from`): everything earlier counts. Zero without `from` */
             startingBankroll: number;
+        };
+        ExchangeRateStatusResponse: {
+            /** @description The base currency in use */
+            baseCurrencyCode: string;
+            /** @description The currencies that need rates (the base one and those of games and movements, but EUR, which is always 1), by code */
+            currencies: components["schemas"]["CurrencyRates"][];
+            /** @description Rates are downloaded (on start, every day and when asked for); false when the installation turned it off, and then only manual rates exist */
+            enabled: boolean;
+            /**
+             * Format: date-time
+             * @description When the last download started, since the API started
+             */
+            lastAttemptAt?: string | null;
+            /** @description What went wrong in the last download; null when it went well. Technical text, not translated */
+            lastError?: string | null;
+            /**
+             * Format: date-time
+             * @description When the last download that got every currency it asked for ended, since the API started
+             */
+            lastSuccessAt?: string | null;
+            /** @description A download is running now */
+            running: boolean;
         };
         FinishGameRequest: {
             /** @description Bounties won. Not for cash games. Defaults to 0 */
@@ -1030,6 +1247,8 @@ export interface components {
             buyIn?: number | null;
             /** @description BUY_IN_RANGE */
             buyInRange?: components["schemas"]["BuyInRange"] | null;
+            /** @description BUY_IN of the converted groups: the currency of the buy-in */
+            currencyCode?: string | null;
             /**
              * @description GAME_TYPE, and VARIANT (the type the variant belongs to)
              * @enum {string|null}
@@ -1092,6 +1311,37 @@ export interface components {
         };
         LogoFetchRequest: {
             url: string;
+        };
+        ManualRateRequest: {
+            /** @description Units of the currency that 1 EUR is worth that day, as the ECB publishes rates (1 EUR = 1.0850 USD is 1.0850); up to 8 decimals */
+            rate: number;
+        };
+        ManualRateResponse: {
+            currencyCode: string;
+            /**
+             * Format: date
+             * @description Day from which it applies, until the next rate of the currency
+             */
+            date: string;
+            /** @description The rate downloaded from the ECB for the same day, which this one replaces; null when there is none */
+            downloadedRate?: number | null;
+            /** @description Units of the currency that 1 EUR is worth */
+            rate: number;
+        };
+        /** @description Amounts that could not be converted, for lack of a rate of this currency on or before their day: they are left out of the converted figures */
+        MissingExchangeRate: {
+            /** @description The currency without a rate: the one of the amounts, or the base currency */
+            currencyCode: string;
+            /**
+             * Format: date
+             * @description First day of an amount left out
+             */
+            from: string;
+            /**
+             * Format: date
+             * @description Last day of an amount left out
+             */
+            to: string;
         };
         MovementRequest: {
             /** @description Greater than zero: the type gives the direction (a withdrawal subtracts). Only an ADJUSTMENT can be negative */
@@ -1255,11 +1505,17 @@ export interface components {
             won: number;
         };
         StatsGroupsResponse: {
+            /** @description The groups of every game of the selection with its amounts converted to the base currency, each with the rates of the day it was played. When the selection is in a single currency, show that currency instead */
+            converted: components["schemas"]["ConvertedGroups"];
+            /** @description The groups of each currency, in its own money, by code */
             currencies: components["schemas"]["CurrencyGroups"][];
             /** @enum {string} */
             groupBy: "DAY" | "WEEK" | "MONTH" | "YEAR" | "GAME_TYPE" | "VARIANT" | "ROOM" | "MODALITY" | "BUY_IN" | "BUY_IN_RANGE" | "NAME" | "WEEKDAY" | "TAG";
         };
         StatsSummaryResponse: {
+            /** @description Every game of the selection with its amounts converted to the base currency, each with the rates of the day it was played. When the selection is in a single currency, show that currency instead */
+            converted: components["schemas"]["ConvertedSummary"];
+            /** @description One summary per currency, in its own money, by code */
             currencies: components["schemas"]["CurrencySummary"][];
         };
         TagRef: {
@@ -1569,6 +1825,116 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Catalog"];
+                };
+            };
+        };
+    };
+    listManualRates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManualRateResponse"][];
+                };
+            };
+        };
+    };
+    saveManualRate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Currency of the catalog, e.g. USD */
+                currencyCode: string;
+                /** @description Day of the rate, e.g. 2026-10-01 */
+                date: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManualRateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManualRateResponse"];
+                };
+            };
+        };
+    };
+    deleteManualRate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                currencyCode: string;
+                date: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    refreshExchangeRates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExchangeRateStatusResponse"];
+                };
+            };
+        };
+    };
+    getExchangeRateStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExchangeRateStatusResponse"];
                 };
             };
         };
@@ -2243,6 +2609,50 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    getCurrencySettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrencySettingsResponse"];
+                };
+            };
+        };
+    };
+    updateCurrencySettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CurrencySettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrencySettingsResponse"];
+                };
             };
         };
     };

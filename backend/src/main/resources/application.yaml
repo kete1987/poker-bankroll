@@ -54,3 +54,18 @@ springdoc:
   swagger-ui:
     enabled: true
     path: /swagger-ui.html
+
+poker-bankroll:
+  # Exchange rates of the European Central Bank, downloaded from Frankfurter (https://frankfurter.dev,
+  # free, no key) to show amounts of several currencies together. The API needs outgoing internet
+  # access to api.frankfurter.dev; without it everything works, with the rates already there and the
+  # ones typed by hand. POKER_BANKROLL_EXCHANGE_RATES_ENABLED=false turns the downloads off.
+  exchange-rates:
+    enabled: true
+    # Base address of the Frankfurter API (v2), e.g. that of a self-hosted Frankfurter.
+    url: https://api.frankfurter.dev/v2
+    # Every day after the ECB publishes (around 16:00 CET), in this time zone.
+    cron: "0 0 17 * * *"
+    zone: Europe/Madrid
+    # Longest wait for the connection and for each answer of the service.
+    timeout: 30s

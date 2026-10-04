@@ -22,6 +22,9 @@ import org.jspecify.annotations.Nullable;
  * restore creates them. Everything can be missing, since it may come from a file: the restore
  * checks it.
  *
+ * <p>Of the currencies, the base currency chosen by the user ({@code null}: automatic) and the
+ * exchange rates typed by hand; the downloaded ones are not part of it, they are downloaded again.
+ *
  * @param formatVersion version of the format of the file it was read from
  * @param appVersion    version of the application that made the backup
  */
@@ -33,7 +36,9 @@ record BackupData(
         List<@Nullable VariantData> variants,
         List<@Nullable GameData> games,
         List<@Nullable MovementData> movements,
-        List<@Nullable TemplateData> templates) {
+        List<@Nullable TemplateData> templates,
+        @Nullable String baseCurrencyCode,
+        List<@Nullable RateData> exchangeRates) {
 
     record RoomData(
             @Nullable Long id,
@@ -91,6 +96,13 @@ record BackupData(
             @Nullable String currencyCode,
             @Nullable BigDecimal amount,
             @Nullable String notes) {
+    }
+
+    /** An exchange rate typed by hand: 1 EUR is worth {@code rate} units of the currency from that day on. */
+    record RateData(
+            @Nullable String currencyCode,
+            @Nullable LocalDate date,
+            @Nullable BigDecimal rate) {
     }
 
     /** A template of a game played often, in a room and, optionally, of a variant. */

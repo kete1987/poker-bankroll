@@ -10,6 +10,7 @@ import java.util.function.Function;
 import io.github.kete1987.pokerbankroll.backup.BackupData.GameData;
 import io.github.kete1987.pokerbankroll.backup.BackupData.LogoData;
 import io.github.kete1987.pokerbankroll.backup.BackupData.MovementData;
+import io.github.kete1987.pokerbankroll.backup.BackupData.RateData;
 import io.github.kete1987.pokerbankroll.backup.BackupData.RoomData;
 import io.github.kete1987.pokerbankroll.backup.BackupData.TemplateData;
 import io.github.kete1987.pokerbankroll.backup.BackupData.VariantData;
@@ -45,7 +46,12 @@ final class BackupV1 {
             @Nullable List<@Nullable Game> games,
             @Nullable List<@Nullable Movement> movements,
             // Optional: added before the format was released, files made without it still restore.
-            @Nullable List<@Nullable Template> templates) {
+            @Nullable List<@Nullable Template> templates,
+            // Optional too: the base currency chosen (left out when automatic) and the exchange rates
+            // typed by hand. Files made without them restore with an automatic base currency and no
+            // manual rates.
+            @Nullable String baseCurrencyCode,
+            @Nullable List<@Nullable ExchangeRate> exchangeRates) {
 
         static File of(BackupData data) {
             return new File(VERSION, data.appVersion(), data.exportedAt(),
@@ -53,12 +59,14 @@ final class BackupV1 {
                     map(data.variants(), Variant::of),
                     map(data.games(), Game::of),
                     map(data.movements(), Movement::of),
-                    map(data.templates(), Template::of));
+                    map(data.templates(), Template::of),
+                    data.baseCurrencyCode(),
+                    data.exchangeRates().isEmpty() ? null : map(data.exchangeRates(), ExchangeRate::of));
         }
 
         /**
          * The lists must be there, even empty: a document without them is not a backup. Templates
-         * are the exception: without them there are none.
+         * and exchange rates are the exception: without them there are none.
          */
         @Nullable String missingList() {
             if (rooms == null) {
@@ -79,7 +87,9 @@ final class BackupV1 {
                     map(variants, Variant::toData),
                     map(games, Game::toData),
                     map(movements, Movement::toData),
-                    map(templates, Template::toData));
+                    map(templates, Template::toData),
+                    baseCurrencyCode,
+                    map(exchangeRates, ExchangeRate::toData));
         }
     }
 
@@ -190,6 +200,21 @@ final class BackupV1 {
 
         TemplateData toData() {
             return new TemplateData(label, roomId, gameType, modality, variantId, name, buyIn);
+        }
+    }
+
+    /** An exchange rate typed by hand: 1 EUR = {@code rate} units of the currency, from that day on. */
+    record ExchangeRate(
+            @Nullable String currencyCode,
+            @Nullable LocalDate date,
+            @Nullable BigDecimal rate) {
+
+        static ExchangeRate of(RateData rate) {
+            return new ExchangeRate(rate.currencyCode(), rate.date(), rate.rate());
+        }
+
+        RateData toData() {
+            return new RateData(currencyCode, date, rate);
         }
     }
 

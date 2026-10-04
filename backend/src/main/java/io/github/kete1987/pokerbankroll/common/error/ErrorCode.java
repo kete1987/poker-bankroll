@@ -24,6 +24,12 @@ public enum ErrorCode {
     // Catalog
     UNKNOWN_CURRENCY(HttpStatus.BAD_REQUEST),
 
+    // Exchange rates
+    /** EUR is the currency rates are given against: it is always 1. */
+    EXCHANGE_RATE_OF_EUR(HttpStatus.BAD_REQUEST),
+    /** The installation does not download exchange rates ({@code poker-bankroll.exchange-rates.enabled=false}). */
+    EXCHANGE_RATES_DISABLED(HttpStatus.CONFLICT),
+
     // Rooms
     ROOM_NAME_TAKEN(HttpStatus.CONFLICT),
     /** The room has games or bankroll movements: it cannot be deleted, only deactivated. */

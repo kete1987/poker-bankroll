@@ -1,0 +1,7 @@
+# Added to src/main/resources/application.yaml in the tests and in ./mvnw spring-boot:test-run
+# (config/ wins over the root of the classpath).
+poker-bankroll:
+  exchange-rates:
+    # Nothing is downloaded from the internet: the tests that download start their own web server,
+    # and the demo data brings its own rates.
+    enabled: false

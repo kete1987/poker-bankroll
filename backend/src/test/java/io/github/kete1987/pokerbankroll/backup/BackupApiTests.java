@@ -45,7 +45,9 @@ class BackupApiTests extends ApiIntegrationTest {
             "/stats/groups?groupBy=TAG",
             "/tags",
             "/bankroll/summary",
-            "/bankroll/summary?from=2026-02-01&to=2026-02-28");
+            "/bankroll/summary?from=2026-02-01&to=2026-02-28",
+            "/settings/currency",
+            "/exchange-rates/manual");
 
     // ---- backup ----
 
@@ -100,6 +102,69 @@ class BackupApiTests extends ApiIntegrationTest {
         assertThat(template.get("label").asString()).isEqualTo("Sunday KO");
         assertThat(template.get("name").asString()).isEqualTo("Kill The Fish");
         assertThat(template.get("buyIn").decimalValue()).isEqualByComparingTo("10");
+        // The base currency chosen and the rates typed by hand; not the downloaded ones.
+        assertThat(document.get("baseCurrencyCode").asString()).isEqualTo("USD");
+        assertThat(text).contains(
+                "\"exchangeRates\":[{\"currencyCode\":\"USD\",\"date\":\"2026-02-14\",\"rate\":1.20000000}]");
+    }
+
+    @Test
+    void theBaseCurrencyAndTheRatesTypedByHandAreReplacedAndTheDownloadedOnesStay() {
+        populate();
+        byte[] file = backup();
+        ok(putJson("/settings/currency", """
+                {"baseCurrencyCode": "EUR"}"""));
+        ok(putJson("/exchange-rates/manual/USD/2026-03-01", """
+                {"rate": 1.3}"""));
+        insertRate("USD", "2026-03-02", "1.15");
+
+        assertThat(restore(file, "?replace=true")).hasStatusOk().bodyJson().extractingPath("$.restored").isEqualTo(true);
+
+        assertThat(jdbc.queryForObject("select base_currency_code from currency_setting", String.class)).isEqualTo("USD");
+        assertThat(jdbc.queryForList("select rate_date || ' ' || source from exchange_rate order by rate_date",
+                String.class)).containsExactly("2026-01-01 ECB", "2026-02-14 MANUAL", "2026-03-02 ECB");
+
+        // A file without them (made before they existed): an automatic base currency and no manual rates.
+        byte[] older = edited(file, document -> {
+            document.remove("baseCurrencyCode");
+            document.remove("exchangeRates");
+        });
+        assertThat(restore(older, "?replace=true")).hasStatusOk().bodyJson().extractingPath("$.restored")
+                .isEqualTo(true);
+        assertThat(jdbc.queryForObject("select base_currency_code from currency_setting", String.class)).isNull();
+        assertThat(count("exchange_rate where source = 'MANUAL'")).isZero();
+        assertThat(count("exchange_rate where source = 'ECB'")).isEqualTo(2);
+    }
+
+    @Test
+    void theCurrenciesOfTheFileAreChecked() {
+        byte[] file = file("""
+                {"formatVersion": 1, "rooms": [], "variants": [], "games": [], "movements": [],
+                 "baseCurrencyCode": "XYZ",
+                 "exchangeRates": [
+                   {"currencyCode": "USD", "date": "2026-01-02", "rate": 1.1},
+                   {"currencyCode": "USD", "date": "2026-01-02", "rate": 1.2},
+                   {"currencyCode": "EUR", "date": "2026-01-02", "rate": 1},
+                   {"currencyCode": "GBP", "date": "2026-01-02", "rate": 0.8},
+                   {"currencyCode": "USD", "rate": -1},
+                   {"date": "2026-01-03", "rate": 1},
+                   null]}
+                """);
+
+        MvcTestResult result = restore(file, "");
+
+        assertThat(result).hasStatusOk().bodyJson().extractingPath("$.restored").isEqualTo(false);
+        assertThat(errors(result)).containsExactly(
+                "baseCurrencyCode UNKNOWN_CURRENCY The currency XYZ does not exist.",
+                "exchangeRates[1] DUPLICATE_EXCHANGE_RATE There is already a rate of USD on 2026-01-02.",
+                "exchangeRates[2].currencyCode EXCHANGE_RATE_OF_EUR "
+                        + "EUR has no exchange rate: rates are given per 1 EUR, so it is always 1.",
+                "exchangeRates[3].currencyCode UNKNOWN_CURRENCY The currency GBP does not exist.",
+                "exchangeRates[4].rate Positive must be greater than 0",
+                "exchangeRates[4].date REQUIRED A value is required.",
+                "exchangeRates[5].currencyCode REQUIRED A value is required.",
+                "exchangeRates[6] REQUIRED A value is required.");
+        assertThat(count("exchange_rate")).isZero();
     }
 
     @Test
@@ -598,6 +663,13 @@ class BackupApiTests extends ApiIntegrationTest {
                 {"active": false}"""));
         ok(putJson("/variants/" + builtInVariantId("SIT_AND_GO", "HEADS_UP"), """
                 {"active": false}"""));
+
+        // Amounts in dollars are converted with a downloaded rate and one typed by hand, to dollars.
+        insertRate("USD", "2026-01-01", "1.10");
+        ok(putJson("/exchange-rates/manual/USD/2026-02-14", """
+                {"rate": 1.2}"""));
+        ok(putJson("/settings/currency", """
+                {"baseCurrencyCode": "USD"}"""));
     }
 
     /** Another installation: nothing in common with {@link #populate()}. */
@@ -627,6 +699,9 @@ class BackupApiTests extends ApiIntegrationTest {
         jdbc.update("delete from room");
         jdbc.update("delete from variant where code is null");
         jdbc.update("update variant set active = true");
+        // The downloaded rates stay: a new installation downloads them again.
+        jdbc.update("delete from exchange_rate where source = 'MANUAL'");
+        jdbc.update("update currency_setting set base_currency_code = null");
     }
 
     private long room(String name, String currency) {

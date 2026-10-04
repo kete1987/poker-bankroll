@@ -26,6 +26,7 @@ import jakarta.validation.Validator;
 import io.github.kete1987.pokerbankroll.backup.BackupData.GameData;
 import io.github.kete1987.pokerbankroll.backup.BackupData.LogoData;
 import io.github.kete1987.pokerbankroll.backup.BackupData.MovementData;
+import io.github.kete1987.pokerbankroll.backup.BackupData.RateData;
 import io.github.kete1987.pokerbankroll.backup.BackupData.RoomData;
 import io.github.kete1987.pokerbankroll.backup.BackupData.TemplateData;
 import io.github.kete1987.pokerbankroll.backup.BackupData.VariantData;
@@ -39,6 +40,8 @@ import io.github.kete1987.pokerbankroll.catalog.GameType;
 import io.github.kete1987.pokerbankroll.catalog.Modality;
 import io.github.kete1987.pokerbankroll.common.error.ApiException;
 import io.github.kete1987.pokerbankroll.common.error.ErrorCode;
+import io.github.kete1987.pokerbankroll.exchange.ExchangeRatesNeeded;
+import io.github.kete1987.pokerbankroll.exchange.ManualRateRequest;
 import io.github.kete1987.pokerbankroll.game.Game;
 import io.github.kete1987.pokerbankroll.game.GameRequest;
 import io.github.kete1987.pokerbankroll.game.GameStatus;
@@ -59,6 +62,7 @@ import io.github.kete1987.pokerbankroll.variant.VariantRepository;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.info.BuildProperties;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Sort;
@@ -110,11 +114,14 @@ public class BackupService {
     private final TransactionTemplate snapshot;
     private final TransactionTemplate transaction;
     private final String appVersion;
+    private final ApplicationEventPublisher events;
 
     BackupService(RoomRepository rooms, RoomLogoRepository logos, RoomLogoService logoService,
             VariantRepository variants, BankrollMovementRepository movements, GameTemplateRepository templates,
             CurrencyRepository currencies, Validator validator, MessageSource messages, EntityManager entityManager, JdbcTemplate jdbc,
-            PlatformTransactionManager transactionManager, ObjectProvider<BuildProperties> build) {
+            PlatformTransactionManager transactionManager, ObjectProvider<BuildProperties> build,
+            ApplicationEventPublisher events) {
+        this.events = events;
         this.rooms = rooms;
         this.logos = logos;
         this.logoService = logoService;
@@ -201,8 +208,14 @@ public class BackupService {
                     room == null ? movement.getEffectiveCurrencyCode() : null,
                     movement.getAmount(), movement.getNotes()));
         }
+        String baseCurrency = jdbc.queryForObject("select base_currency_code from currency_setting", String.class);
+        List<@Nullable RateData> rateData = new ArrayList<>(jdbc.query("""
+                select currency_code, rate_date, rate from exchange_rate where source = 'MANUAL'
+                order by currency_code, rate_date
+                """, (row, number) -> new RateData(row.getString("currency_code"),
+                        row.getObject("rate_date", LocalDate.class), row.getBigDecimal("rate"))));
         return new BackupData(BackupFormat.CURRENT_VERSION, appVersion, Instant.now().truncatedTo(ChronoUnit.SECONDS),
-                roomData, variantData, gameData, movementData, templateData);
+                roomData, variantData, gameData, movementData, templateData, baseCurrency, rateData);
     }
 
     // ---- restore ----
@@ -226,7 +239,7 @@ public class BackupService {
             // Nothing is recorded while the installation is replaced: writers wait, readers do not.
             // Rooms first, as recording a game or a movement locks its room before it writes.
             entityManager.createNativeQuery("lock table room, room_logo, variant, game, bankroll_movement, tag, game_tag, "
-                    + "game_template in exclusive mode").executeUpdate();
+                    + "game_template, exchange_rate, currency_setting in exclusive mode").executeUpdate();
             BackupContents current = currentContents();
             if (!dryRun && !replace && !current.empty()) {
                 throw new ApiException(ErrorCode.BACKUP_REPLACE_NOT_CONFIRMED);
@@ -239,6 +252,9 @@ public class BackupService {
             boolean restored = !dryRun && restore.errorCount == 0;
             if (!restored) {
                 status.setRollbackOnly();
+            } else {
+                // Other currencies, or another base currency: their rates are downloaded once committed.
+                events.publishEvent(new ExchangeRatesNeeded());
             }
             return new BackupRestoreResponse(dryRun, restored, data.formatVersion(), data.appVersion(),
                     data.exportedAt(), contentsOf(data), current, restore.errorCount, restore.errors);
@@ -314,6 +330,7 @@ public class BackupService {
             checkGames();
             checkMovements();
             checkTemplates();
+            checkCurrencies();
         }
 
         private void checkRooms() {
@@ -443,6 +460,37 @@ public class BackupService {
             }
         }
 
+        /** The base currency, which must exist, and the rates typed by hand: once per currency and day. */
+        private void checkCurrencies() {
+            String base = data.baseCurrencyCode();
+            if (base != null && !exists(base.strip())) {
+                apiError("baseCurrencyCode", ErrorCode.UNKNOWN_CURRENCY, base.strip());
+            }
+            Set<String> days = new HashSet<>();
+            for (int i = 0; i < data.exchangeRates().size(); i++) {
+                String path = "exchangeRates[" + i + "]";
+                RateData rate = data.exchangeRates().get(i);
+                if (rate == null) {
+                    problem(path, BackupProblem.REQUIRED);
+                    continue;
+                }
+                violations(path, new ManualRateRequest(rate.rate()));
+                if (rate.date() == null) {
+                    problem(path + ".date", BackupProblem.REQUIRED);
+                }
+                String currency = rate.currencyCode() == null ? null : rate.currencyCode().strip();
+                if (currency == null || currency.isEmpty()) {
+                    problem(path + ".currencyCode", BackupProblem.REQUIRED);
+                } else if (currency.equals("EUR")) {
+                    apiError(path + ".currencyCode", ErrorCode.EXCHANGE_RATE_OF_EUR);
+                } else if (!exists(currency)) {
+                    apiError(path + ".currencyCode", ErrorCode.UNKNOWN_CURRENCY, currency);
+                } else if (rate.date() != null && !days.add(currency + "/" + rate.date())) {
+                    problem(path, BackupProblem.DUPLICATE_EXCHANGE_RATE, currency, rate.date().toString());
+                }
+            }
+        }
+
         /** Whether the id is there and is the first with its value. */
         private boolean checkId(String path, @Nullable Long id, Set<Long> ids) {
             if (id == null) {
@@ -480,6 +528,20 @@ public class BackupService {
             entityManager.flush();
             entityManager.clear();
             writeGames(newRoomIds, newVariantIds);
+            writeCurrencies();
+        }
+
+        /** The base currency and the rates typed by hand; the downloaded rates stay. */
+        private void writeCurrencies() {
+            jdbc.update("update currency_setting set base_currency_code = ?, updated_at = now()",
+                    data.baseCurrencyCode() == null ? null : data.baseCurrencyCode().strip());
+            jdbc.update("delete from exchange_rate where source = 'MANUAL'");
+            jdbc.batchUpdate("insert into exchange_rate (currency_code, rate_date, source, rate) values (?, ?, 'MANUAL', ?)",
+                    data.exchangeRates(), BATCH, (statement, rate) -> {
+                        statement.setString(1, rate.currencyCode().strip());
+                        statement.setObject(2, rate.date());
+                        statement.setBigDecimal(3, rate.rate());
+                    });
         }
 
         /** The rooms and their logos; returns the id each id of the file has now. */

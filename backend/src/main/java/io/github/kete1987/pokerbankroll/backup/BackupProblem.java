@@ -10,6 +10,8 @@ enum BackupProblem {
     REQUIRED,
     /** Two rooms, or two variants, with the same id: what names them would be ambiguous. */
     DUPLICATE_ID,
+    /** Two exchange rates typed by hand of the same currency and day. */
+    DUPLICATE_EXCHANGE_RATE,
     /** A variant with both a code and a name, or with neither. */
     VARIANT_CODE_OR_NAME,
     /** A game of a built-in variant this installation does not have. */
