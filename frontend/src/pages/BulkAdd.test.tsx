@@ -22,6 +22,7 @@ const EXPRESSO = game({
   prize: 10,
   bounty: 1,
   paidWithTicket: true,
+  tags: [{ id: 30, name: 'Challenge' }],
   notes: 'x5',
   net: 7,
 });
@@ -123,6 +124,8 @@ describe('Duplicate a game', () => {
       ticketPrizeValue: null,
       ticketDescription: null,
       notes: null,
+      // A copy keeps the tags.
+      tags: ['Challenge'],
     });
     expect(await screen.findByText('Game saved')).toBeInTheDocument();
   });
@@ -216,6 +219,8 @@ describe('Add several games', () => {
     await userEvent.type(form.getByRole('textbox', { name: 'Prize of game 1' }), '10');
     await userEvent.type(form.getByRole('textbox', { name: 'Prize of game 3' }), '4.5');
     await userEvent.type(form.getByRole('textbox', { name: 'Notes of game 3' }), 'x3');
+    // Tags are common to every game.
+    await userEvent.type(form.getByLabelText('Tags'), 'Expresso session{Enter}');
 
     const totals = within(form.getByRole('group', { name: 'Totals' }));
     expect(totals.getByText('€6.00')).toBeInTheDocument();
@@ -241,6 +246,7 @@ describe('Add several games', () => {
       bounty: null,
       ticketPrizeValue: null,
       ticketDescription: null,
+      tags: ['Expresso session'],
     };
     expect(games).toEqual([
       { ...common, prize: 10, notes: null },

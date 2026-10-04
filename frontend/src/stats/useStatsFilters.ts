@@ -26,6 +26,7 @@ export const DIMENSIONS = [
   'BUY_IN_RANGE',
   'NAME',
   'WEEKDAY',
+  'TAG',
 ] as const satisfies readonly GroupBy[];
 export type Dimension = (typeof DIMENSIONS)[number];
 
@@ -100,6 +101,7 @@ function parse(params: URLSearchParams): StatsFilters {
     gameTypes: parseList(params.get('type'), (text) => parseOneOf(text, GAME_TYPES)),
     roomIds: parseList(params.get('room'), parsePositiveInteger),
     variantIds: parseList(params.get('variant'), parsePositiveInteger),
+    tagIds: parseList(params.get('tag'), parsePositiveInteger),
     currency: params.get('currency')?.trim().toUpperCase() || undefined,
     granularity: parseOneOf(params.get('group')?.toUpperCase() ?? null, GRANULARITIES),
     chart: params.get('chart') === 'period' ? 'period' : 'cumulative',
@@ -136,6 +138,7 @@ function serialize(filters: StatsFilters): URLSearchParams {
     ['type', filters.gameTypes],
     ['room', filters.roomIds],
     ['variant', filters.variantIds],
+    ['tag', filters.tagIds],
   ];
   for (const [key, values] of lists) {
     if (values.length > 0) {
@@ -191,5 +194,6 @@ export function toStatsQuery(filters: StatsFilters): StatsQuery {
     gameType: filters.gameTypes,
     roomId: filters.roomIds,
     variantId: filters.variantIds,
+    tagId: filters.tagIds,
   };
 }

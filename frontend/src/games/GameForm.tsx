@@ -31,6 +31,7 @@ import { amountOrNull, type Amount } from './amount';
 import { loadGameDefaults, saveGameDefaults, todayIso } from './gameDefaults';
 import { variantLabel } from './labels';
 import { NameInput } from './NameInput';
+import { TagsField } from './TagsField';
 import { useNameSuggestions } from './useNameSuggestions';
 
 const GAME_TYPES: readonly GameType[] = ['TOURNAMENT', 'SIT_AND_GO', 'CASH'];
@@ -55,6 +56,7 @@ interface GameFormValues {
   ticketPrizeValue: Amount;
   ticketDescription: string;
   notes: string;
+  tags: string[];
 }
 
 interface GameFormProps {
@@ -63,8 +65,8 @@ interface GameFormProps {
   /** The game being edited; a new one is recorded when absent. */
   game?: Game;
   /**
-   * A new game like this one (duplicate): same room, type, variant, modality, name and buy-in,
-   * but today and without its result, entries or notes.
+   * A new game like this one (duplicate): same room, type, variant, modality, name, buy-in and
+   * tags, but today and without its result, entries or notes.
    */
   copyOf?: Game;
   /** Saves the game; rejects with an `ApiError` when the backend refuses it. */
@@ -169,7 +171,8 @@ export function GameForm({
         });
       }
       if (addAnother) {
-        // The next game is usually like this one: keep where and what, clear its result.
+        // The next game is usually like this one: keep where and what (and its tags), clear its
+        // result.
         form.setValues({
           playedAt: '',
           name: '',
@@ -191,9 +194,10 @@ export function GameForm({
       onSaved(saved, addAnother);
     } catch (error) {
       if (error instanceof ApiError) {
-        const fieldErrors = error.errors.filter(
-          (violation) => violation.field && violation.field in form.values,
-        );
+        // A tag is named by its position (`tags[2]`): the error goes on the field of the tags.
+        const fieldErrors = error.errors
+          .map((violation) => ({ ...violation, field: violation.field?.replace(/\[\d+\]$/, '') }))
+          .filter((violation) => violation.field && violation.field in form.values);
         fieldErrors.forEach((violation) => form.setFieldError(violation.field!, violation.message));
         // Anything that cannot be shown next to a field goes on top.
         setFailure(fieldErrors.length > 0 ? null : error.message);
@@ -419,6 +423,8 @@ export function GameForm({
           {...form.getInputProps('notes')}
         />
 
+        <TagsField {...form.getInputProps('tags')} />
+
         <Group justify="flex-end" gap="sm">
           <Button variant="subtle" color="gray" onClick={onCancel} disabled={saving !== null}>
             {t('gameForm.cancel')}
@@ -471,6 +477,7 @@ function initialValues(activeRooms: Room[]): GameFormValues {
     ticketPrizeValue: '',
     ticketDescription: '',
     notes: '',
+    tags: [],
   };
 }
 
@@ -489,6 +496,7 @@ function copyValues(original: Game, activeRooms: Room[], variants: Variant[]): G
     modality: original.modality,
     name: original.name ?? '',
     buyIn: original.buyIn,
+    tags: original.tags.map((tag) => tag.name),
   };
 }
 
@@ -512,6 +520,7 @@ function valuesOf(game: Game): GameFormValues {
     ticketPrizeValue: game.ticketPrizeValue === 0 ? '' : game.ticketPrizeValue,
     ticketDescription: game.ticketDescription ?? '',
     notes: game.notes ?? '',
+    tags: game.tags.map((tag) => tag.name),
   };
 }
 
@@ -537,5 +546,6 @@ function toRequest(values: GameFormValues): GameRequest {
     ticketPrizeValue: wonTicket ? amountOrNull(values.ticketPrizeValue) : null,
     ticketDescription: wonTicket ? values.ticketDescription.trim() || null : null,
     notes: values.notes.trim() || null,
+    tags: values.tags,
   };
 }

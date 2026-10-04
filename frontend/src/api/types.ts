@@ -19,6 +19,10 @@ export type Variant = Schemas['VariantResponse'];
 export type VariantCreateRequest = Schemas['VariantCreateRequest'];
 export type VariantUpdateRequest = Schemas['VariantUpdateRequest'];
 
+export type Tag = Schemas['TagResponse'];
+export type TagRef = Schemas['TagRef'];
+export type TagRequest = Schemas['TagRequest'];
+
 export type Game = Schemas['GameResponse'];
 export type GameRequest = Schemas['GameRequest'];
 export type GameBatchRequest = Schemas['GameBatchRequest'];

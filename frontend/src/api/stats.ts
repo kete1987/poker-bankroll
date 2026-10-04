@@ -8,10 +8,11 @@ import type { GameType, GroupBy, StatsGroups, StatsSummary } from './types';
 export interface StatsQuery {
   from?: string;
   to?: string;
-  /** Games of any of these types, rooms or variants; an empty list is every one. */
+  /** Games of any of these types, rooms, variants or tags; an empty list is every one. */
   gameType?: GameType[];
   roomId?: number[];
   variantId?: number[];
+  tagId?: number[];
   currency?: string;
 }
 

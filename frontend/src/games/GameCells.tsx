@@ -1,4 +1,4 @@
-import { Group, Text, Tooltip } from '@mantine/core';
+import { Badge, Group, Text, Tooltip } from '@mantine/core';
 import { IconNote, IconTicket } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 
@@ -23,7 +23,7 @@ export function GameDate({ game, inline = false }: { game: Game; inline?: boolea
   );
 }
 
-/** Name of a game (its type when it has none) and, below, type, variant and modality. */
+/** Name of a game (its type when it has none) and, below, type, variant, modality and tags. */
 export function GameName({ game }: { game: Game }) {
   const { t } = useTranslation();
   const type = t(`gameTypes.${game.gameType}`);
@@ -55,6 +55,15 @@ export function GameName({ game }: { game: Game }) {
         <Text size="xs" c="dimmed">
           {details.join(' · ')}
         </Text>
+      )}
+      {game.tags.length > 0 && (
+        <Group gap={4} mt={4} role="list" aria-label={t('tags.ofGame')}>
+          {game.tags.map((tag) => (
+            <Badge key={tag.id} role="listitem" size="xs" variant="light" color="gray" tt="none">
+              {tag.name}
+            </Badge>
+          ))}
+        </Group>
       )}
     </>
   );

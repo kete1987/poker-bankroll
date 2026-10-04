@@ -4,10 +4,11 @@ import { IconSearch, IconX } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { Room, Variant } from '../api/types';
+import type { Room, Tag, Variant } from '../api/types';
 import { FilterBar } from '../components/FilterBar';
 import { PeriodFilter } from '../components/PeriodFilter';
 import { useNarrowScreen } from '../components/useNarrowScreen';
+import { scopeFilterCount } from './scope';
 import { ScopeFilters } from './ScopeFilters';
 import type { GameFilters as Filters } from './useGameFilters';
 
@@ -15,16 +16,20 @@ interface GameFiltersProps {
   filters: Filters;
   rooms: Room[];
   variants: Variant[];
+  tags: Tag[];
   hasFilters: boolean;
   onChange: (changes: Partial<Filters>) => void;
   onClear: () => void;
 }
 
-/** Filters of the games table. Rooms and variants include the inactive ones: they have history. */
+/**
+ * Filters of the games table. Rooms and variants include the inactive ones: they have history.
+ */
 export function GameFilters({
   filters,
   rooms,
   variants,
+  tags,
   hasFilters,
   onChange,
   onClear,
@@ -47,10 +52,7 @@ export function GameFilters({
 
   return (
     <FilterBar
-      activeCount={
-        [filters.gameTypes, filters.roomIds, filters.variantIds].filter((list) => list.length > 0)
-          .length + (filters.q ? 1 : 0)
-      }
+      activeCount={scopeFilterCount(filters) + (filters.q ? 1 : 0)}
       primary={
         // The key resets "Custom" when the filters are cleared.
         <PeriodFilter
@@ -64,8 +66,10 @@ export function GameFilters({
         gameTypes={filters.gameTypes}
         roomIds={filters.roomIds}
         variantIds={filters.variantIds}
+        tagIds={filters.tagIds}
         rooms={rooms}
         variants={variants}
+        tags={tags}
         onChange={onChange}
       />
       <TextInput

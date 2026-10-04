@@ -146,6 +146,12 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
     whatever their origin (won in a satellite, gift from the room...), so the sum of net is always
     the cash result of the games and equals their effect on the bankroll.
   - Cash games are one sitting: one entry, no bounty or ticket fields (enforced by the database).
+- **Tag**: free-form label of games (`challenge`, `with friends`...); a game has up to 10. Table
+  `tag` (name unique ignoring case, 1 to 40 characters, no `;`, which separates them in CSV files)
+  and `game_tag`. A game is given its tags **by name** (`GameRequest.tags`): existing ones are
+  matched ignoring case and keep their spelling, missing ones are created (`TagService.resolve`,
+  `insert ... on conflict do nothing`, so two requests creating the same tag both succeed). A tag
+  without games stays until it is deleted. Renaming a tag to the name of another **merges** them.
 - **ITM** (in the money): `prize > 0` or `ticket_prize_value > 0`. **With prize** also counts
   bounties (ITM or `bounty > 0`). Neither applies to cash games, nor does the average buy-in: in
   totals mixing types they are computed on the other games only.
@@ -160,7 +166,9 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   `WEEK` from Monday, `MONTH`, `YEAR`), `GAME_TYPE`, `VARIANT`, `ROOM`, `MODALITY`, `BUY_IN`,
   `BUY_IN_RANGE` (fixed ranges: free, below 1, and from 1, 2, 5, 10, 20 and 50; each one leaves its
   upper end out), `NAME` (ignoring case and surrounding spaces, written as most of its games write
-  it; games without a name are one group, listed last) or `WEEKDAY` (1 Monday to 7 Sunday); both
+  it; games without a name are one group, listed last), `WEEKDAY` (1 Monday to 7 Sunday) or `TAG`
+  (a game is in the group of **each** of its tags, so the groups do not add up to the total; games
+  without tags are one group, listed last); both
   take the filters of the games list. With `byGameType=true` each group is also broken down by
   game type. Periods carry the **cumulative net**, which starts from zero
   at the beginning of the filtered range. A new grouping is a `GroupBy` constant plus its `Grouping`
@@ -221,8 +229,8 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   Aggregates are the exception: `/stats/groups` returns every group, because a chart needs the whole
   series and the cumulative net of a page would be meaningless. Its size is bounded by the grouping
   (at most one small row per day played), and `from`/`to` narrow it.
-- A filter that takes several values (`gameType`, `roomId`, `variantId` of the games filters) is a
-  `List` parameter: repeated or comma-separated, its values combined with OR, the filters with each
+- A filter that takes several values (`gameType`, `roomId`, `variantId`, `tagId` of the games
+  filters, built once in `GameFilter`) is a `List` parameter: repeated or comma-separated, its values combined with OR, the filters with each
   other with AND; empty is no filter.
 - Optional fields omitted in a request take their documented default; `PUT` replaces the whole resource.
 - State changes that are a single user gesture are their own `POST` sub-resource instead of a
@@ -231,6 +239,11 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - Every change to a game loads it with `GameRepository.findForUpdateById` (row lock), so simultaneous
   requests on the same game (a double click, a re-entry racing a finish) run one after another and
   none is lost.
+- `GameRequest.tags` (names) is optional: omitted or `null` is no tags, and a `PUT` replaces them.
+  `GameResponse.tags` are `TagRef`s (`{id, name}`) by name. `GET /tags` lists every tag with its
+  number of games (a plain list), `PUT /tags/{id}` renames (or merges) and `DELETE /tags/{id}`
+  takes it off its games. Tags of games are loaded in batches (`Game.TAG_BATCH`), also by
+  `GameService.forEach`, which hands games over a batch at a time.
 - `GET /games/names?q=&gameType=&limit=` suggests names of recorded games while one is typed: those
   containing `q` (ignoring case, literally; nothing below 2 characters), most used first. Names that
   differ only in case or surrounding spaces are one, written as in its most recent game, whose
@@ -261,6 +274,7 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   - The CSV of games is the format of the import, written by `GameCsv.Writer` next to what reads
     it: exporting and importing into an empty database gives the same games (pinned by
     `ExportApiTests`). A new column of a game goes in `GameCsv`, both ways, and in `docs/import.md`.
+    The tags of a game are one column, `tags`, separated by `;`; in Excel, by `, `.
   - The CSV of movements has its own columns (`ExportService.MOVEMENT_CSV_COLUMNS`, the amount
     signed); there is no import for it.
   - Excel files are made to be read: typed cells (`export/ExcelSheet`), and headers and values in
@@ -281,7 +295,8 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
     `BackupFormat.read`: every older version stays readable, a newer one is refused
     (`BACKUP_FORMAT_TOO_NEW`). A new column of a game, a room... that must survive a backup goes
     in `BackupData` and in the records of the current version (optional there, so files made
-    before it still restore), both ways in `BackupService`.
+    before it still restore), both ways in `BackupService`. Tags are not a list of the file: each
+    game names its own (`tags`), and the restore creates them after writing the games.
   - Rooms and variants have ids that only mean something inside the file; built-in variants are
     named by game type and code and only their `active` is restored (the ones the file does not
     name are active). Amounts are JSON numbers read as `BigDecimal`. The mapper is the one of
@@ -348,7 +363,7 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 ### Demo data
 - The Spring profile `demo` (`demo/DemoDataSeeder`) fills an **empty** database on startup with a
   year of made-up results ending today: four rooms (EUR and USD, one inactive, three with a logo), a user-defined
-  variant, about 400 games of every type, three games in play and bankroll movements. It does
+  variant, about 400 games of every type (some with tags), three games in play and bankroll movements. It does
   nothing when the database already has a room, a game, a movement or a user-defined variant, and
   is never active by default.
 - It creates everything through the services, so it also exercises the rules of the API. When a
@@ -403,8 +418,14 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - Filters, order and page of a list live in the URL (`games/useGameFilters.ts`): they survive a
   reload and the back button. Lists are written with commas (`room=1,2`). Invalid values in the
   URL are ignored.
-- Type, room and variant are chosen with `games/ScopeFilters`, and anything read from the URL goes
-  through `components/urlParams` (invalid values are dropped there).
+- Type, room, variant and tag are chosen with `games/ScopeFilters` (`tag=1,2` in the URL; the
+  filter of tags only shows when there are tags; `games/scope.ts` counts the ones set for a
+  `FilterBar`), and anything read from the URL goes through `components/urlParams` (invalid values
+  are dropped there).
+- Tags of a game are typed in `games/TagsField` (a `TagsInput` suggesting `useTags`, also in the
+  form of several games, where they go to every game); they are shown as small gray badges under its
+  name (`GameName`). Settings has a tab of tags (`settings/TagsSettings`): rename, with the merge
+  said before saving, and delete. Changing a tag invalidates every query (`api/tags.ts`).
 - The name of a game is a `games/NameInput` fed by `games/useNameSuggestions` (debounced, from 2
   characters, for the type of the form), shared by the game form and the bulk add. Picking a name
   fills the buy-in, variant and modality of a **new** game, except the ones the user has set by hand
@@ -424,8 +445,8 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   components a new chart needs). Colouring a line by value needs closed ranges in `visualMap`.
   Tests replace `Chart` with a stub and assert on the option (see `pages/StatsPage.test.tsx`).
 - The statistics screen has two views kept in the URL (`view`): results over time, and breakdowns
-  (`stats/Breakdown.tsx`) by room, type, variant, modality, buy-in range, tournament name or day of
-  the week, as bars and a table sorted on the client (`by`, `sort=<column>,<asc|desc>` in the URL).
+  (`stats/Breakdown.tsx`) by room, type, variant, modality, buy-in range, tournament name, day of
+  the week or tag (with a note: a game counts in each of its tags), as bars and a table sorted on the client (`by`, `sort=<column>,<asc|desc>` in the URL).
   A new breakdown is a `GroupBy` of the backend, its entry in `DIMENSIONS` (`stats/useStatsFilters.ts`),
   its label in `Breakdown` and its name in both locale files. Names are asked for tournaments
   unless the filter already names types or variants.
@@ -487,8 +508,8 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   are named all over the app.
 - A room is always rendered with `components/RoomLabel`: its logo (or its initial when it has
   none) and its name. It takes the `logoVersion` from the shared list of rooms (`useRooms`).
-- A mutation invalidates every query its data affects (a game changes `games`, `stats` and
-  `bankroll`): see `api/games.ts`.
+- A mutation invalidates every query its data affects (a game changes `games`, `stats`,
+  `bankroll` and `tags`): see `api/games.ts`.
 - The light/dark and language choices are stored in `localStorage` under `poker-bankroll.*` keys.
 
 ### Internationalisation

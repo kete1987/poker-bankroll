@@ -193,7 +193,8 @@
     "active": "Active",
     "tabs": {
       "rooms": "Rooms",
-      "variants": "Variants"
+      "variants": "Variants",
+      "tags": "Tags"
     },
     "rooms": {
       "add": "Add room",
@@ -247,6 +248,27 @@
         "title": "Delete variant",
         "confirm": "Delete the variant {{variant}}? This cannot be undone.",
         "done": "Variant deleted"
+      }
+    },
+    "tags": {
+      "empty": "There are no tags yet. Give a game a tag when you record it, and it shows here.",
+      "help": "Tags are created when a game is given one. Renaming a tag to the name of another one merges them.",
+      "name": "Name",
+      "games": "Games",
+      "actions": "Actions",
+      "rename": "Rename tag",
+      "renameTag": "Rename {{tag}}",
+      "deleteTag": "Delete {{tag}}",
+      "noSemicolon": "A tag cannot have a semicolon.",
+      "willMerge": "There is already a tag called {{target}}: the games of {{tag}} will get {{target}}, and {{tag}} will be deleted.",
+      "merge": "Merge",
+      "merged": "Tags merged",
+      "saved": "Tag renamed",
+      "delete": {
+        "title": "Delete tag",
+        "confirm_one": "Delete the tag {{tag}}? {{formatted}} game loses it; the game is kept.",
+        "confirm_other": "Delete the tag {{tag}}? {{formatted}} games lose it; the games are kept.",
+        "done": "Tag deleted"
       }
     }
   },
@@ -429,13 +451,16 @@
         "MODALITY": "Modality",
         "BUY_IN_RANGE": "Buy-in range",
         "NAME": "Tournament name",
-        "WEEKDAY": "Day of the week"
+        "WEEKDAY": "Day of the week",
+        "TAG": "Tag"
       },
       "below": "Below {{amount}}",
       "view": "What is shown",
       "evolution": "Over time",
       "loading": "Loading",
-      "noMatch": "No name contains that text."
+      "noMatch": "No name contains that text.",
+      "noTag": "No tag",
+      "tagNote": "A game with several tags counts in each of them, so the tags add up to more than the total."
     }
   },
   "games": {
@@ -582,7 +607,8 @@
       "thisYear": "This year",
       "custom": "Custom"
     },
-    "more": "Filters"
+    "more": "Filters",
+    "tag": "Tag"
   },
   "gameForm": {
     "gameType": "Game type",
@@ -642,5 +668,11 @@
   },
   "compactTable": {
     "details": "Details of {{row}}"
+  },
+  "tags": {
+    "label": "Tags",
+    "help": "To group games as you like: write a new one or pick one you have. Up to {{max}}.",
+    "placeholder": "Challenge, with friends...",
+    "ofGame": "Tags"
   }
 }
