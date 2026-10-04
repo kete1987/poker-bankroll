@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useRooms } from '../api/rooms';
 import { useStatsOverTime, useStatsSummary } from '../api/stats';
+import { useTags } from '../api/tags';
 import type { GameType, StatsFigures, StatsGroup } from '../api/types';
 import { useVariants } from '../api/variants';
 import { FilterBar } from '../components/FilterBar';
@@ -22,6 +23,7 @@ import { isSingleDay } from '../components/period';
 import { PeriodFilter } from '../components/PeriodFilter';
 import { StatCard } from '../components/StatCard';
 import { useFormat } from '../format/useFormat';
+import { scopeFilterCount } from '../games/scope';
 import { ScopeFilters } from '../games/ScopeFilters';
 import { Breakdown } from '../stats/Breakdown';
 import { NetEvolutionChart, type NetPoint } from '../stats/NetEvolutionChart';
@@ -60,6 +62,7 @@ export function StatsPage() {
 
   const rooms = useRooms();
   const variants = useVariants();
+  const tags = useTags();
   // Each view asks only for what it shows: the breakdowns need the summary (which currencies
   // there are) and not the periods.
   const onBreakdown = filters.view === 'breakdown';
@@ -71,17 +74,16 @@ export function StatsPage() {
   const filterBar = (extra?: ReactNode) => (
     <FilterBar
       primary={<PeriodFilter range={filters.range} onChange={(range) => update({ range })} />}
-      activeCount={
-        [filters.gameTypes, filters.roomIds, filters.variantIds].filter((list) => list.length > 0)
-          .length
-      }
+      activeCount={scopeFilterCount(filters)}
     >
       <ScopeFilters
         gameTypes={filters.gameTypes}
         roomIds={filters.roomIds}
         variantIds={filters.variantIds}
+        tagIds={filters.tagIds}
         rooms={rooms.data ?? []}
         variants={variants.data ?? []}
+        tags={tags.data ?? []}
         onChange={update}
       />
       {extra}

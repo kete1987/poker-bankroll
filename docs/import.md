@@ -41,6 +41,7 @@ so it can be imported as it is.
 | `ticketDescription` | no | What the ticket won is for. Needs `ticketPrizeValue` |
 | `paidWithTicket` | no | `true` when one entry was paid with a ticket instead of cash. Default `false` |
 | `notes` | no | Free text |
+| `tags` | no | Tags of the game separated by semicolons: `Challenge;With friends` |
 
 Amounts are plain numbers with a point for decimals and at most two of them: `1234.56`, never
 `1.234,56 €`. They are in the currency of the room; no symbol is written.
@@ -66,6 +67,14 @@ your own for that game type.
 | `CASH` | none |
 
 The current list, with the variants you have added, is in *Settings → Variants*.
+
+### Tags
+
+`tags` holds the tags of the game separated by **semicolons** (`;`); spaces around each one are
+removed and empty ones are skipped. Each tag has at most 40 characters, no commas, and a game at
+most 10 tags.
+A tag is looked up among the existing ones ignoring upper and lower case, and **created** when there
+is none. Tags are in *Settings → Tags*.
 
 ## Rules
 
@@ -111,7 +120,7 @@ their `currency`, variants by code (built-in) or by name (yours).
 - A file with more than 50,000 games is over the limit of an import: export it by periods.
 
 The Excel file of the same button is made to be read, not to be imported: it has translated
-headers and values and two computed columns (invested and net). The bankroll screen exports its
+headers and values, two computed columns (invested and net), and the tags separated by commas. The bankroll screen exports its
 movements too (CSV or Excel), but there is no import for them.
 
 With the API it is `GET /api/exports/games?format=CSV` (or `XLSX`) with the filters of

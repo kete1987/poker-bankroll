@@ -31,9 +31,9 @@ export const BARS_SHOWN = 15;
 
 /**
  * Groups that come in an order of their own, kept until a column is chosen: ranges from the
- * lowest, days from Monday, names by games with those without a name last.
+ * lowest, days from Monday, names and tags by games with the games without them last.
  */
-const ORDERED: readonly Dimension[] = ['BUY_IN_RANGE', 'WEEKDAY', 'NAME'];
+const ORDERED: readonly Dimension[] = ['BUY_IN_RANGE', 'WEEKDAY', 'NAME', 'TAG'];
 
 interface Row {
   key: string;
@@ -143,6 +143,8 @@ export function Breakdown({ query, currencyCode, dimension, sort, onChange }: Br
           return key.name ?? t('stats.breakdown.noName');
         case 'WEEKDAY':
           return key.weekday ? format.weekday(key.weekday) : '';
+        case 'TAG':
+          return key.tag?.name ?? t('stats.breakdown.noTag');
       }
     }
     const ofCurrency =
@@ -266,6 +268,12 @@ export function Breakdown({ query, currencyCode, dimension, sort, onChange }: Br
         )}
         {groups.isFetching && <Loader size="sm" aria-label={t('stats.breakdown.loading')} />}
       </Group>
+      {drawn === 'TAG' && (
+        // The groups of tags do not add up to the total: say why.
+        <Text size="xs" c="dimmed">
+          {t('stats.breakdown.tagNote')}
+        </Text>
+      )}
 
       {groups.isError ? (
         <Alert color="red">{t('games.loadError')}</Alert>

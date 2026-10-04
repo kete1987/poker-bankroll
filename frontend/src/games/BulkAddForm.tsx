@@ -23,6 +23,7 @@ import { amountOrNull, type Amount } from './amount';
 import { loadGameDefaults, saveGameDefaults, todayIso } from './gameDefaults';
 import { variantLabel } from './labels';
 import { NameInput } from './NameInput';
+import { TagsField } from './TagsField';
 import { useNameSuggestions, type NameFields } from './useNameSuggestions';
 
 /** Several games of one sitting: tournaments or Sit & Go (a cash game is one sitting already). */
@@ -52,6 +53,8 @@ interface BulkAddValues extends NameFields {
   playedOn: string;
   count: Amount;
   status: GameStatus;
+  /** Given to every game. */
+  tags: string[];
   /** Always {@link MAX_GAMES} rows: those past `count` keep what was typed but are not sent. */
   rows: BulkRow[];
 }
@@ -153,6 +156,7 @@ export function BulkAddForm({ rooms, variants, onSave, onSaved, onCancel }: Bulk
       ticketPrizeValue: null,
       ticketDescription: null,
       notes: row.notes.trim() || null,
+      tags: values.tags,
     }));
   }
 
@@ -160,7 +164,8 @@ export function BulkAddForm({ rooms, variants, onSave, onSaved, onCancel }: Bulk
   function showFieldErrors(error: ApiError): boolean {
     let shown = false;
     for (const violation of error.errors) {
-      const match = /^games\[(\d+)\]\.(\w+)$/.exec(violation.field ?? '');
+      // A tag is named by its position too (`games[3].tags[0]`): it goes on the field of the tags.
+      const match = /^games\[(\d+)\]\.(\w+)(?:\[\d+\])?$/.exec(violation.field ?? '');
       if (!match) {
         continue;
       }
@@ -350,6 +355,8 @@ export function BulkAddForm({ rooms, variants, onSave, onSaved, onCancel }: Bulk
           </Stack>
         </SimpleGrid>
 
+        <TagsField {...form.getInputProps('tags')} />
+
         <Divider />
 
         <Stack gap={4}>
@@ -517,6 +524,7 @@ function initialValues(activeRooms: Room[]): BulkAddValues {
     buyIn: '',
     count: MIN_GAMES,
     status: defaults.status ?? 'IN_PLAY',
+    tags: [],
     rows: Array.from({ length: MAX_GAMES }, () => ({ prize: '', bounty: '', notes: '' })),
   };
 }

@@ -41,6 +41,8 @@ class BackupApiTests extends ApiIntegrationTest {
             "/stats/summary",
             "/stats/groups?groupBy=MONTH",
             "/stats/groups?groupBy=GAME_TYPE",
+            "/stats/groups?groupBy=TAG",
+            "/tags",
             "/bankroll/summary",
             "/bankroll/summary?from=2026-02-01&to=2026-02-28");
 
@@ -87,6 +89,9 @@ class BackupApiTests extends ApiIntegrationTest {
         JsonNode first = document.get("games").get(0);
         assertThat(first.get("roomId")).isEqualTo(winamax.get("id"));
         assertThat(first.get("status").asString()).isEqualTo("FINISHED");
+        // Each game names its tags, by name; a game without tags has no such property.
+        assertThat(first.get("tags").toString()).isEqualTo("[\"challenge\",\"Series\"]");
+        assertThat(document.get("games").get(1).has("tags")).isFalse();
     }
 
     @Test
@@ -127,8 +132,10 @@ class BackupApiTests extends ApiIntegrationTest {
         json.extractingPath("$.current.empty").isEqualTo(true);
         json.extractingPath("$.errorCount").isEqualTo(0);
 
-        // Rooms, variants, games, movements, statistics and bankroll: all as they were.
+        // Rooms, variants, games and their tags, movements, statistics and bankroll: all as they were.
         assertThat(views()).isEqualTo(before);
+        assertThat(jdbc.queryForList("select name from tag order by name", String.class))
+                .containsExactly("Friends", "Series", "challenge");
         // And a backup of the restored installation holds the same.
         assertThat(comparable(JSON.readTree(backup()))).isEqualTo(comparable(JSON.readTree(file)));
     }
@@ -211,6 +218,7 @@ class BackupApiTests extends ApiIntegrationTest {
         json.extractingPath("$.current.empty").isEqualTo(false);
         assertThat(views()).isEqualTo(before);
         assertThat(jdbc.queryForObject("select count(*) from room where name = 'Other room'", Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from tag where name = 'Other tag'", Integer.class)).isZero();
         // A built-in variant the file has as active is active again.
         assertThat(jdbc.queryForObject("select active from variant where code = 'SPACE_KO'", Boolean.class)).isTrue();
     }
@@ -302,7 +310,7 @@ class BackupApiTests extends ApiIntegrationTest {
                    {"id": 6, "gameType": "SIT_AND_GO", "name": "Flash"}],
                  "games": [
                    {"playedOn": "2026-01-19", "roomId": 1, "gameType": "TOURNAMENT", "variantId": 1,
-                    "status": "FINISHED", "buyIn": 10},
+                    "status": "FINISHED", "buyIn": 10, "tags": ["fine", "a;b", null]},
                    {"playedOn": "2026-01-19", "roomId": 1, "gameType": "TOURNAMENT", "variantId": 2,
                     "status": "FINISHED", "buyIn": 10},
                    {"playedOn": "2026-01-19", "roomId": 1, "gameType": "TOURNAMENT", "variantId": 6,
@@ -325,6 +333,8 @@ class BackupApiTests extends ApiIntegrationTest {
                         "rooms[3] REQUIRED",
                         "variants[3].name VARIANT_NAME_TAKEN",
                         "variants[4] VARIANT_CODE_OR_NAME",
+                        "games[0].tags[1] TagName",
+                        "games[0].tags[2] NotNull",
                         "games[1].variantId UNKNOWN_BUILT_IN_VARIANT",
                         "games[2].variantId VARIANT_GAME_TYPE_MISMATCH",
                         "games[2].prize InPlayGameHasNoResult",
@@ -417,6 +427,8 @@ class BackupApiTests extends ApiIntegrationTest {
         game.extractingPath("$.items[0].buyIn").isEqualTo(10.5);
         game.extractingPath("$.items[0].net").isEqualTo(19.5);
         game.extractingPath("$.items[0].paidWithTicket").isEqualTo(false);
+        // A file made before tags existed: its games have none.
+        game.extractingPath("$.items[0].tags").asArray().isEmpty();
         assertThat(jdbc.queryForObject("select active from room", Boolean.class)).isTrue();
         assertThat(jdbc.queryForList("select code from variant where not active", String.class)).containsExactly("KO");
     }
@@ -493,15 +505,16 @@ class BackupApiTests extends ApiIntegrationTest {
         game("""
                 {"playedOn": "2026-01-19", "playedAt": "21:30", "roomId": %d, "gameType": "TOURNAMENT",
                  "variantId": %d, "modality": "PLO", "name": "Kill The Fish", "buyIn": 10, "entries": 3,
-                 "prize": 80.5, "bounty": 12.25, "notes": "Final table"}""".formatted(winamax, ko));
+                 "prize": 80.5, "bounty": 12.25, "notes": "Final table", "tags": ["Series", "challenge"]}"""
+                .formatted(winamax, ko));
         game("""
                 {"playedOn": "2026-01-19", "playedAt": "19:00", "roomId": %d, "gameType": "TOURNAMENT",
                  "name": "Satellite", "buyIn": 2, "status": "FINISHED", "ticketPrizeValue": 20,
                  "ticketDescription": "Series 20"}""".formatted(winamax));
         game("""
                 {"playedOn": "2026-01-20", "roomId": %d, "gameType": "TOURNAMENT", "variantId": %d,
-                 "name": "Series", "buyIn": 20, "entries": 2, "paidWithTicket": true, "status": "FINISHED"}"""
-                .formatted(winamax, mysteryKo));
+                 "name": "Series", "buyIn": 20, "entries": 2, "paidWithTicket": true, "status": "FINISHED",
+                 "tags": ["series"]}""".formatted(winamax, mysteryKo));
         game("""
                 {"playedOn": "2026-02-03", "roomId": %d, "gameType": "SIT_AND_GO", "variantId": %d,
                  "buyIn": 5, "prize": 15}""".formatted(tripleEight, hyperTurbo));
@@ -517,7 +530,8 @@ class BackupApiTests extends ApiIntegrationTest {
                 .formatted(pokerStars, builtInVariantId("SIT_AND_GO", "EXPRESSO")));
         game("""
                 {"playedOn": "2026-03-02", "playedAt": "20:00", "roomId": %d, "gameType": "TOURNAMENT",
-                 "variantId": %d, "name": "Main Event", "buyIn": 50, "entries": 2}""".formatted(winamax, ko));
+                 "variantId": %d, "name": "Main Event", "buyIn": 50, "entries": 2, "tags": ["Friends"]}"""
+                .formatted(winamax, ko));
         game("""
                 {"playedOn": "2026-03-02", "roomId": %d, "gameType": "CASH", "buyIn": 40}""".formatted(pokerStars));
 
@@ -553,7 +567,7 @@ class BackupApiTests extends ApiIntegrationTest {
         long variant = variant("TOURNAMENT", "Other variant");
         game("""
                 {"playedOn": "2025-05-05", "roomId": %d, "gameType": "TOURNAMENT", "variantId": %d,
-                 "buyIn": 7, "prize": 70}""".formatted(room, variant));
+                 "buyIn": 7, "prize": 70, "tags": ["Other tag", "Friends"]}""".formatted(room, variant));
         game("""
                 {"playedOn": "2025-05-06", "roomId": %d, "gameType": "CASH", "buyIn": 25}""".formatted(room));
         movement("""
@@ -565,6 +579,7 @@ class BackupApiTests extends ApiIntegrationTest {
     /** Leaves the database as a new installation has it. */
     private void wipe() {
         jdbc.update("delete from game");
+        jdbc.update("delete from tag");
         jdbc.update("delete from bankroll_movement");
         jdbc.update("delete from room");
         jdbc.update("delete from variant where code is null");

@@ -59,6 +59,8 @@ class GameController {
             @RequestParam(required = false) @Nullable List<Long> roomId,
             @Parameter(description = "One or more variants: games of any of them")
             @RequestParam(required = false) @Nullable List<Long> variantId,
+            @Parameter(description = "One or more tags: games that have any of them")
+            @RequestParam(required = false) @Nullable List<Long> tagId,
             @RequestParam(required = false) @Nullable GameStatus status,
             @Parameter(description = "Currency of the room, e.g. EUR")
             @RequestParam(required = false) @Nullable String currency,
@@ -69,7 +71,7 @@ class GameController {
             @RequestParam(defaultValue = "50") @Min(1) @Max(MAX_PAGE_SIZE) int size,
             @Parameter(description = "`<field>,<asc|desc>` with field one of playedOn, net, buyIn, prize, won, createdAt")
             @RequestParam(defaultValue = GameSort.DEFAULT) String sort) {
-        GameFilter filter = new GameFilter(from, to, gameType, modality, roomId, variantId, status, currency, q);
+        GameFilter filter = new GameFilter(from, to, gameType, modality, roomId, variantId, tagId, status, currency, q);
         return service.list(filter, page, size, GameSort.parse(sort));
     }
 

@@ -67,12 +67,14 @@ class ExportController {
             @RequestParam(required = false) @Nullable List<Long> roomId,
             @Parameter(description = "One or more variants: games of any of them")
             @RequestParam(required = false) @Nullable List<Long> variantId,
+            @Parameter(description = "One or more tags: games that have any of them")
+            @RequestParam(required = false) @Nullable List<Long> tagId,
             @Parameter(description = "Currency of the room, e.g. EUR")
             @RequestParam(required = false) @Nullable String currency,
             @Parameter(description = "Text contained in the name or the notes, ignoring case")
             @RequestParam(required = false) @Nullable String q) {
         // The status is not a filter here: the service only exports finished games.
-        GameFilter filter = new GameFilter(from, to, gameType, modality, roomId, variantId, null, currency, q);
+        GameFilter filter = new GameFilter(from, to, gameType, modality, roomId, variantId, tagId, null, currency, q);
         return download(service.games(format, filter));
     }
 

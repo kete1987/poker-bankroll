@@ -193,7 +193,8 @@
     "active": "Activa",
     "tabs": {
       "rooms": "Salas",
-      "variants": "Variantes"
+      "variants": "Variantes",
+      "tags": "Etiquetas"
     },
     "rooms": {
       "add": "Añadir sala",
@@ -247,6 +248,27 @@
         "title": "Borrar variante",
         "confirm": "¿Borrar la variante {{variant}}? No se puede deshacer.",
         "done": "Variante borrada"
+      }
+    },
+    "tags": {
+      "empty": "Aún no hay etiquetas. Ponle una etiqueta a una partida al registrarla y aparecerá aquí.",
+      "help": "Las etiquetas se crean al ponérselas a una partida. Si renombras una etiqueta con el nombre de otra, se fusionan.",
+      "name": "Nombre",
+      "games": "Partidas",
+      "actions": "Acciones",
+      "rename": "Renombrar etiqueta",
+      "renameTag": "Renombrar {{tag}}",
+      "deleteTag": "Eliminar {{tag}}",
+      "noSemicolon": "Una etiqueta no puede tener punto y coma.",
+      "willMerge": "Ya hay una etiqueta {{target}}: las partidas de {{tag}} pasarán a tener {{target}} y {{tag}} se eliminará.",
+      "merge": "Fusionar",
+      "merged": "Etiquetas fusionadas",
+      "saved": "Etiqueta renombrada",
+      "delete": {
+        "title": "Eliminar etiqueta",
+        "confirm_one": "¿Eliminar la etiqueta {{tag}}? {{formatted}} partida la pierde; la partida se conserva.",
+        "confirm_other": "¿Eliminar la etiqueta {{tag}}? {{formatted}} partidas la pierden; las partidas se conservan.",
+        "done": "Etiqueta eliminada"
       }
     }
   },
@@ -429,13 +451,16 @@
         "MODALITY": "Modalidad",
         "BUY_IN_RANGE": "Rango de buy-in",
         "NAME": "Nombre de torneo",
-        "WEEKDAY": "Día de la semana"
+        "WEEKDAY": "Día de la semana",
+        "TAG": "Etiqueta"
       },
       "below": "Menos de {{amount}}",
       "view": "Qué se muestra",
       "evolution": "Evolución",
       "loading": "Cargando",
-      "noMatch": "Ningún nombre contiene ese texto."
+      "noMatch": "Ningún nombre contiene ese texto.",
+      "noTag": "Sin etiqueta",
+      "tagNote": "Una partida con varias etiquetas cuenta en cada una, así que las etiquetas suman más que el total."
     }
   },
   "games": {
@@ -582,7 +607,8 @@
       "thisYear": "Este año",
       "custom": "Personalizado"
     },
-    "more": "Filtros"
+    "more": "Filtros",
+    "tag": "Etiqueta"
   },
   "gameForm": {
     "gameType": "Tipo de partida",
@@ -642,5 +668,11 @@
   },
   "compactTable": {
     "details": "Detalle de {{row}}"
+  },
+  "tags": {
+    "label": "Etiquetas",
+    "help": "Para agrupar partidas a tu manera: escribe una nueva o elige una que ya tengas. Hasta {{max}}.",
+    "placeholder": "Reto, con amigos...",
+    "ofGame": "Etiquetas"
   }
 }

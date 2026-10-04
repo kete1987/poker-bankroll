@@ -67,6 +67,7 @@ export function stubApi(handlers: Record<string, ApiHandler>) {
     // What every screen asks for, empty unless the test says otherwise.
     'GET /rooms': [],
     'GET /variants': [],
+    'GET /tags': [],
     'GET /stats/summary': { currencies: [] },
     'GET /stats/groups': (call: ApiCall) => ({
       groupBy: call.query.get('groupBy'),

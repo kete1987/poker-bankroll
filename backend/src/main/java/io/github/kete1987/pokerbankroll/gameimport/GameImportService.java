@@ -197,9 +197,10 @@ public class GameImportService {
                 return;
             }
 
+            List<String> tags = GameCsv.tags(row.get(GameCsv.TAGS));
             GameRequest unplaced = new GameRequest(playedOn, playedAt, NO_ROOM_YET, gameType, modality, null,
                     GameStatus.FINISHED, row.get(GameCsv.NAME), buyIn, entries, prize, bounty, ticketPrizeValue,
-                    row.get(GameCsv.TICKET_DESCRIPTION), paidWithTicket, row.get(GameCsv.NOTES));
+                    row.get(GameCsv.TICKET_DESCRIPTION), paidWithTicket, row.get(GameCsv.NOTES), tags);
             Set<ConstraintViolation<GameRequest>> violations = validator.validate(unplaced);
             if (!violations.isEmpty()) {
                 violations.forEach(violation -> violation(row, violation));
@@ -213,7 +214,7 @@ public class GameImportService {
             }
             GameRequest request = new GameRequest(playedOn, playedAt, room.id(), gameType, modality, variantId,
                     GameStatus.FINISHED, unplaced.name(), buyIn, entries, prize, bounty, ticketPrizeValue,
-                    unplaced.ticketDescription(), paidWithTicket, unplaced.notes());
+                    unplaced.ticketDescription(), paidWithTicket, unplaced.notes(), tags);
             String currencyCode;
             try {
                 // The currency the game was recorded in: the one the room has now, read under its lock.
@@ -348,7 +349,10 @@ public class GameImportService {
         }
 
         private void violation(Row row, ConstraintViolation<?> violation) {
-            violation(row, violation.getPropertyPath().toString(), violation);
+            // The column, also for a value of a list (tags[2].<list element> is the column tags).
+            String path = violation.getPropertyPath().toString();
+            int index = path.indexOf('[');
+            violation(row, index < 0 ? path : path.substring(0, index), violation);
         }
 
         private void violation(Row row, String field, ConstraintViolation<?> violation) {

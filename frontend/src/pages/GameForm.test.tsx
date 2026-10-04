@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { Game, GameRequest, Room } from '../api/types';
 import { todayIso } from '../games/gameDefaults';
-import { game, page, room, ROOMS, VARIANTS } from '../test/fixtures';
+import { game, page, room, ROOMS, TAGS, VARIANTS } from '../test/fixtures';
 import { problem, renderApp, stubApi, type ApiCall } from '../test/renderApp';
 
 /** The API with the given rooms; saving a game echoes it back as the backend would. */
@@ -12,6 +12,7 @@ function stubGamesApi(options: { rooms?: Room[]; games?: Game[]; onCreate?: unkn
   return stubApi({
     'GET /rooms': options.rooms ?? ROOMS,
     'GET /variants': VARIANTS,
+    'GET /tags': TAGS,
     'GET /games': page(options.games ?? []),
     'POST /games':
       options.onCreate ??
@@ -110,6 +111,7 @@ describe('Add game form', () => {
       ticketPrizeValue: null,
       ticketDescription: null,
       notes: null,
+      tags: [],
     });
     expect(await screen.findByText('Game saved')).toBeInTheDocument();
     expect(
@@ -139,6 +141,14 @@ describe('Add game form', () => {
     await userEvent.type(form.getByRole('textbox', { name: 'Ticket value' }), '20');
     await userEvent.type(form.getByRole('textbox', { name: 'Ticket description' }), 'Main Event');
     await userEvent.type(form.getByRole('textbox', { name: 'Notes' }), 'final table');
+    // The existing tags are suggested; a new one is just typed.
+    await userEvent.click(form.getByLabelText('Tags'));
+    expect(
+      (await screen.findAllByRole('option', { hidden: true }))
+        .map((option) => option.textContent)
+        .filter((text) => text === 'Challenge' || text === 'Friends'),
+    ).toEqual(expect.arrayContaining(['Challenge', 'Friends']));
+    await userEvent.type(form.getByLabelText('Tags'), 'Series{Enter}Challenge{Enter}');
     await userEvent.click(form.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(created(calls)).toHaveLength(1));
@@ -159,6 +169,7 @@ describe('Add game form', () => {
       ticketPrizeValue: 20,
       ticketDescription: 'Main Event',
       notes: 'final table',
+      tags: ['Series', 'Challenge'],
     });
     expect(await screen.findByText('Net: +€27.75')).toBeInTheDocument();
   });
