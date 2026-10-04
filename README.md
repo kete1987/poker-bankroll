@@ -13,7 +13,7 @@ your results evolve over time.
 ## Why
 
 Many players track results in a spreadsheet. It works until it doesn't: formulas break,
-summaries have to be maintained by hand and different currencies cannot be mixed.
+summaries have to be maintained by hand and different currencies are hard to mix.
 poker-bankroll replaces that spreadsheet with a small app you run on your own machine.
 
 It is **not** a hand-history analyser: tools like PokerTracker 4 already do that. The focus
@@ -27,7 +27,9 @@ here is results and bankroll management.
 - Dashboard with net result, ROI and ITM, broken down by game type
 - Daily and monthly results, net evolution chart
 - Poker bankroll per room and currency: deposits, withdrawals, bonuses and the result of your games
-- Multiple currencies (EUR and USD out of the box, extensible)
+- Multiple currencies (EUR and USD out of the box, extensible): each room keeps its own, and what
+  mixes them is shown in a base currency, converted with the ECB rate of each day
+  ([details](docs/currencies.md))
 - English and Spanish UI
 - Import of games from a CSV file ([format](docs/import.md)), to bring your history from a spreadsheet
 - Export of the games and the bankroll movements you are looking at, as CSV or Excel
@@ -75,6 +77,11 @@ and `BACKUP_DIR` as an absolute path of the host).
 To build the images from the source instead:
 `docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build`.
 Versions, updates and rollbacks are explained in [docs/releasing.md](docs/releasing.md).
+
+The API downloads the exchange rates of the European Central Bank from
+[Frankfurter](https://frankfurter.dev) (`api.frankfurter.dev`), so it needs outgoing internet
+access for them; everything else works without it. Set `EXCHANGE_RATES_ENABLED=false` in `.env`
+to turn the downloads off (see [docs/currencies.md](docs/currencies.md)).
 
 > The app has no login. Run it on your local network and do not expose it to the internet
 > without putting authentication in front of it.
