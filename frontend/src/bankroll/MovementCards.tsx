@@ -1,8 +1,9 @@
-import { ActionIcon, Card, Group, Menu, Stack, Text } from '@mantine/core';
+import { Card, Group, Menu, Stack, Text } from '@mantine/core';
 import { IconDotsVertical, IconPencil, IconTrash } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 
 import type { Movement } from '../api/types';
+import { IconButton } from '../components/IconButton';
 import { RoomLabel } from '../components/RoomLabel';
 import { useFormat } from '../format/useFormat';
 import { describeMovement } from './labels';
@@ -49,13 +50,13 @@ export function MovementCards({ movements, onEdit, onDelete }: MovementCardsProp
                   )}
                   <Menu position="bottom-end" withinPortal>
                     <Menu.Target>
-                      <ActionIcon
+                      <IconButton
                         variant="subtle"
                         color="gray"
-                        aria-label={t('bankroll.actions.moreFor', { movement: name })}
+                        label={t('bankroll.actions.moreFor', { movement: name })}
                       >
                         <IconDotsVertical size={18} stroke={1.5} />
-                      </ActionIcon>
+                      </IconButton>
                     </Menu.Target>
                     <Menu.Dropdown>
                       <Menu.Item

@@ -378,6 +378,10 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   language as `Accept-Language` and turns error responses into `ApiError` (`status`, `code`,
   `message`, `errors`, `index`). Wrap calls in TanStack Query hooks next to it (see `src/api/health.ts`).
 - UI components come from Mantine; icons from `@tabler/icons-react`; charts through `src/components/Chart.tsx`.
+- A button that only shows an icon is a `components/IconButton`, never a bare `ActionIcon`: its
+  `label` is both its accessible name and a tooltip shown on hover and keyboard focus (none where
+  the pointer cannot hover, so a tap leaves nothing on a phone screen); `tooltip` replaces the
+  text shown when there is more to say (why a delete does nothing). It also works as `Menu.Target`.
 - Sections of the app are listed once in `src/layout/navigation.ts` (menu and routes), each with
   its page in `src/pages/` (`routes.tsx`). Wrap every page in `components/Page` (heading and
   browser tab title).

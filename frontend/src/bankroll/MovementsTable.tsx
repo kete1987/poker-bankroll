@@ -1,8 +1,9 @@
-import { ActionIcon, Group, Table, Text } from '@mantine/core';
+import { Group, Table, Text } from '@mantine/core';
 import { IconPencil, IconTrash } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 
 import type { Movement } from '../api/types';
+import { IconButton } from '../components/IconButton';
 import { RoomLabel } from '../components/RoomLabel';
 import { useFormat } from '../format/useFormat';
 import { describeMovement } from './labels';
@@ -74,22 +75,22 @@ export function MovementsTable({ movements, onEdit, onDelete }: MovementsTablePr
                 </Table.Td>
                 <Table.Td>
                   <Group gap={4} wrap="nowrap" justify="flex-end">
-                    <ActionIcon
+                    <IconButton
                       variant="subtle"
                       color="gray"
-                      aria-label={t('bankroll.actions.editMovement', { movement: name })}
+                      label={t('bankroll.actions.editMovement', { movement: name })}
                       onClick={() => onEdit(movement)}
                     >
                       <IconPencil size={16} stroke={1.5} />
-                    </ActionIcon>
-                    <ActionIcon
+                    </IconButton>
+                    <IconButton
                       variant="subtle"
                       color="red"
-                      aria-label={t('bankroll.actions.deleteMovement', { movement: name })}
+                      label={t('bankroll.actions.deleteMovement', { movement: name })}
                       onClick={() => onDelete(movement)}
                     >
                       <IconTrash size={16} stroke={1.5} />
-                    </ActionIcon>
+                    </IconButton>
                   </Group>
                 </Table.Td>
               </Table.Tr>
