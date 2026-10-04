@@ -26,6 +26,7 @@ import io.github.kete1987.pokerbankroll.backup.BackupData.GameData;
 import io.github.kete1987.pokerbankroll.backup.BackupData.LogoData;
 import io.github.kete1987.pokerbankroll.backup.BackupData.MovementData;
 import io.github.kete1987.pokerbankroll.backup.BackupData.RoomData;
+import io.github.kete1987.pokerbankroll.backup.BackupData.TemplateData;
 import io.github.kete1987.pokerbankroll.backup.BackupData.VariantData;
 import io.github.kete1987.pokerbankroll.backup.BackupRestoreResponse.BackupContents;
 import io.github.kete1987.pokerbankroll.backup.BackupRestoreResponse.BackupError;
@@ -46,6 +47,9 @@ import io.github.kete1987.pokerbankroll.room.RoomLogoRepository;
 import io.github.kete1987.pokerbankroll.room.RoomLogoService;
 import io.github.kete1987.pokerbankroll.room.RoomRepository;
 import io.github.kete1987.pokerbankroll.room.RoomRequest;
+import io.github.kete1987.pokerbankroll.template.GameTemplate;
+import io.github.kete1987.pokerbankroll.template.GameTemplateRepository;
+import io.github.kete1987.pokerbankroll.template.GameTemplateRequest;
 import io.github.kete1987.pokerbankroll.variant.Variant;
 import io.github.kete1987.pokerbankroll.variant.VariantCreateRequest;
 import io.github.kete1987.pokerbankroll.variant.VariantRepository;
@@ -92,6 +96,7 @@ public class BackupService {
     private final RoomLogoService logoService;
     private final VariantRepository variants;
     private final BankrollMovementRepository movements;
+    private final GameTemplateRepository templates;
     private final CurrencyRepository currencies;
     private final Validator validator;
     private final MessageSource messages;
@@ -102,14 +107,15 @@ public class BackupService {
     private final String appVersion;
 
     BackupService(RoomRepository rooms, RoomLogoRepository logos, RoomLogoService logoService,
-            VariantRepository variants, BankrollMovementRepository movements, CurrencyRepository currencies,
-            Validator validator, MessageSource messages, EntityManager entityManager, JdbcTemplate jdbc,
+            VariantRepository variants, BankrollMovementRepository movements, GameTemplateRepository templates,
+            CurrencyRepository currencies, Validator validator, MessageSource messages, EntityManager entityManager, JdbcTemplate jdbc,
             PlatformTransactionManager transactionManager, ObjectProvider<BuildProperties> build) {
         this.rooms = rooms;
         this.logos = logos;
         this.logoService = logoService;
         this.variants = variants;
         this.movements = movements;
+        this.templates = templates;
         this.currencies = currencies;
         this.validator = validator;
         this.messages = messages;
@@ -147,6 +153,13 @@ public class BackupService {
             variantData.add(new VariantData(variant.getId(), variant.getGameType(), variant.getCode(),
                     variant.getName(), variant.isActive()));
         }
+        List<@Nullable TemplateData> templateData = new ArrayList<>();
+        for (GameTemplate template : templates.findAll(Sort.by("id"))) {
+            Variant variant = template.getVariant();
+            templateData.add(new TemplateData(template.getLabel(), template.getRoom().getId(),
+                    template.getGameType(), template.getModality(), variant == null ? null : variant.getId(),
+                    template.getGameName(), template.getBuyIn()));
+        }
         entityManager.clear();
 
         // In the order they were recorded, which is the order they are restored in: games of the
@@ -183,7 +196,7 @@ public class BackupService {
                     movement.getAmount(), movement.getNotes()));
         }
         return new BackupData(BackupFormat.CURRENT_VERSION, appVersion, Instant.now().truncatedTo(ChronoUnit.SECONDS),
-                roomData, variantData, gameData, movementData);
+                roomData, variantData, gameData, movementData, templateData);
     }
 
     // ---- restore ----
@@ -207,7 +220,7 @@ public class BackupService {
             // Nothing is recorded while the installation is replaced: writers wait, readers do not.
             // Rooms first, as recording a game or a movement locks its room before it writes.
             entityManager.createNativeQuery(
-                    "lock table room, room_logo, variant, game, bankroll_movement in exclusive mode").executeUpdate();
+                    "lock table room, room_logo, variant, game, bankroll_movement, game_template in exclusive mode").executeUpdate();
             BackupContents current = currentContents();
             if (!dryRun && !replace && !current.empty()) {
                 throw new ApiException(ErrorCode.BACKUP_REPLACE_NOT_CONFIRMED);
@@ -233,10 +246,11 @@ public class BackupService {
                        (select count(*) from game) as games,
                        (select count(*) from game where status = 'IN_PLAY') as games_in_play,
                        (select count(*) from bankroll_movement) as movements,
+                       (select count(*) from game_template) as templates,
                        (select min(played_on) from game) as first_game,
                        (select max(played_on) from game) as last_game
                 """, (row, number) -> contents(row.getInt("rooms"), row.getInt("variants"), row.getInt("games"),
-                        row.getInt("games_in_play"), row.getInt("movements"),
+                        row.getInt("games_in_play"), row.getInt("movements"), row.getInt("templates"),
                         row.getObject("first_game", LocalDate.class), row.getObject("last_game", LocalDate.class))));
     }
 
@@ -248,13 +262,15 @@ public class BackupService {
                 data.games().size(),
                 (int) games.stream().filter(game -> game.status() == GameStatus.IN_PLAY).count(),
                 data.movements().size(),
+                data.templates().size(),
                 dates.isEmpty() ? null : dates.getFirst(),
                 dates.isEmpty() ? null : dates.getLast());
     }
 
+    /** Templates do not count to say whether it is empty: there are none without a room. */
     private static BackupContents contents(int rooms, int variants, int games, int gamesInPlay, int movements,
-            @Nullable LocalDate from, @Nullable LocalDate to) {
-        return new BackupContents(rooms, variants, games, gamesInPlay, movements, from, to,
+            int templates, @Nullable LocalDate from, @Nullable LocalDate to) {
+        return new BackupContents(rooms, variants, games, gamesInPlay, movements, templates, from, to,
                 rooms + variants + games + movements == 0);
     }
 
@@ -291,6 +307,7 @@ public class BackupService {
             checkVariants();
             checkGames();
             checkMovements();
+            checkTemplates();
         }
 
         private void checkRooms() {
@@ -363,16 +380,16 @@ public class BackupService {
                     apiError(path + ".roomId", ErrorCode.UNKNOWN_ROOM, String.valueOf(game.roomId()));
                 }
                 if (game.variantId() != null) {
-                    checkVariantOf(path + ".variantId", game);
+                    checkVariantOf(path + ".variantId", game.variantId(), game.gameType());
                 }
             }
         }
 
-        private void checkVariantOf(String path, GameData game) {
-            VariantData variant = variantsById.get(game.variantId());
+        private void checkVariantOf(String path, Long variantId, @Nullable GameType gameType) {
+            VariantData variant = variantsById.get(variantId);
             if (variant == null) {
-                apiError(path, ErrorCode.UNKNOWN_VARIANT, String.valueOf(game.variantId()));
-            } else if (variant.gameType() != null && game.gameType() != null && variant.gameType() != game.gameType()) {
+                apiError(path, ErrorCode.UNKNOWN_VARIANT, String.valueOf(variantId));
+            } else if (variant.gameType() != null && gameType != null && variant.gameType() != gameType) {
                 apiError(path, ErrorCode.VARIANT_GAME_TYPE_MISMATCH);
             } else if (variant.gameType() != null && variant.code() != null && variant.name() == null
                     && !builtIn.contains(builtInKey(variant.gameType(), variant.code()))) {
@@ -400,6 +417,26 @@ public class BackupService {
             }
         }
 
+        private void checkTemplates() {
+            for (int i = 0; i < data.templates().size(); i++) {
+                String path = "templates[" + i + "]";
+                TemplateData template = data.templates().get(i);
+                if (template == null) {
+                    problem(path, BackupProblem.REQUIRED);
+                    continue;
+                }
+                // The constraints of a template created by hand.
+                violations(path, new GameTemplateRequest(template.label(), template.roomId(), template.gameType(),
+                        template.modality(), template.variantId(), template.name(), template.buyIn()));
+                if (template.roomId() != null && !roomIds.contains(template.roomId())) {
+                    apiError(path + ".roomId", ErrorCode.UNKNOWN_ROOM, String.valueOf(template.roomId()));
+                }
+                if (template.variantId() != null) {
+                    checkVariantOf(path + ".variantId", template.variantId(), template.gameType());
+                }
+            }
+        }
+
         /** Whether the id is there and is the first with its value. */
         private boolean checkId(String path, @Nullable Long id, Set<Long> ids) {
             if (id == null) {
@@ -422,7 +459,7 @@ public class BackupService {
         void write() {
             entityManager.clear();
             // Logos go with their rooms.
-            for (String table : List.of("game", "bankroll_movement", "room")) {
+            for (String table : List.of("game_template", "game", "bankroll_movement", "room")) {
                 entityManager.createNativeQuery("delete from " + table).executeUpdate();
             }
             entityManager.createNativeQuery("delete from variant where code is null").executeUpdate();
@@ -433,6 +470,7 @@ public class BackupService {
             }
             Map<Long, Long> newVariantIds = writeVariants();
             writeMovements(newRoomIds);
+            writeTemplates(newRoomIds, newVariantIds);
             entityManager.flush();
             entityManager.clear();
             writeGames(newRoomIds, newVariantIds);
@@ -543,6 +581,22 @@ public class BackupService {
                 movement.setAmount(source.amount());
                 movement.setNotes(blankToNull(source.notes()));
                 entityManager.persist(movement);
+            }
+        }
+
+        /** As they are, also in an inactive room or with an inactive variant. */
+        private void writeTemplates(Map<Long, Long> newRoomIds, Map<Long, Long> newVariantIds) {
+            for (TemplateData source : data.templates()) {
+                GameTemplate template = new GameTemplate();
+                template.setLabel(blankToNull(source.label()));
+                template.setRoom(entityManager.getReference(Room.class, newRoomIds.get(source.roomId())));
+                template.setGameType(source.gameType());
+                template.setModality(source.modality() == null ? Modality.NLHE : source.modality());
+                Long variantId = source.variantId() == null ? null : newVariantIds.get(source.variantId());
+                template.setVariant(variantId == null ? null : entityManager.getReference(Variant.class, variantId));
+                template.setGameName(blankToNull(source.name()));
+                template.setBuyIn(source.buyIn());
+                entityManager.persist(template);
             }
         }
 

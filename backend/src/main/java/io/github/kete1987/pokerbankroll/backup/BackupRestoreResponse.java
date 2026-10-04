@@ -34,6 +34,8 @@ public record BackupRestoreResponse(
      * @param variants    variants defined by the user (the built-in ones are always there)
      * @param games       every game, those in play included
      * @param gamesInPlay how many of the games are in play
+     * @param templates   templates of games, which do not count to say it is empty (there are none
+     *                    without a room)
      * @param empty       nothing recorded: no rooms, user-defined variants, games or movements
      */
     public record BackupContents(
@@ -42,6 +44,7 @@ public record BackupRestoreResponse(
             int games,
             int gamesInPlay,
             int movements,
+            int templates,
             @Schema(description = "Date of the first game")
             @Nullable LocalDate from,
             @Schema(description = "Date of the last game")

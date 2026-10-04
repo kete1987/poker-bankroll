@@ -11,6 +11,7 @@ import io.github.kete1987.pokerbankroll.backup.BackupData.GameData;
 import io.github.kete1987.pokerbankroll.backup.BackupData.LogoData;
 import io.github.kete1987.pokerbankroll.backup.BackupData.MovementData;
 import io.github.kete1987.pokerbankroll.backup.BackupData.RoomData;
+import io.github.kete1987.pokerbankroll.backup.BackupData.TemplateData;
 import io.github.kete1987.pokerbankroll.backup.BackupData.VariantData;
 import io.github.kete1987.pokerbankroll.bankroll.MovementType;
 import io.github.kete1987.pokerbankroll.catalog.GameType;
@@ -42,17 +43,23 @@ final class BackupV1 {
             @Nullable List<@Nullable Room> rooms,
             @Nullable List<@Nullable Variant> variants,
             @Nullable List<@Nullable Game> games,
-            @Nullable List<@Nullable Movement> movements) {
+            @Nullable List<@Nullable Movement> movements,
+            // Optional: added before the format was released, files made without it still restore.
+            @Nullable List<@Nullable Template> templates) {
 
         static File of(BackupData data) {
             return new File(VERSION, data.appVersion(), data.exportedAt(),
                     map(data.rooms(), Room::of),
                     map(data.variants(), Variant::of),
                     map(data.games(), Game::of),
-                    map(data.movements(), Movement::of));
+                    map(data.movements(), Movement::of),
+                    map(data.templates(), Template::of));
         }
 
-        /** The lists must be there, even empty: a document without them is not a backup. */
+        /**
+         * The lists must be there, even empty: a document without them is not a backup. Templates
+         * are the exception: without them there are none.
+         */
         @Nullable String missingList() {
             if (rooms == null) {
                 return "rooms";
@@ -71,7 +78,8 @@ final class BackupV1 {
                     map(rooms, Room::toData),
                     map(variants, Variant::toData),
                     map(games, Game::toData),
-                    map(movements, Movement::toData));
+                    map(movements, Movement::toData),
+                    map(templates, Template::toData));
         }
     }
 
@@ -160,6 +168,25 @@ final class BackupV1 {
 
         MovementData toData() {
             return new MovementData(occurredOn, type, roomId, currencyCode, amount, notes);
+        }
+    }
+
+    record Template(
+            @Nullable String label,
+            @Nullable Long roomId,
+            @Nullable GameType gameType,
+            @Nullable Modality modality,
+            @Nullable Long variantId,
+            @Nullable String name,
+            @Nullable BigDecimal buyIn) {
+
+        static Template of(TemplateData template) {
+            return new Template(template.label(), template.roomId(), template.gameType(), template.modality(),
+                    template.variantId(), template.name(), template.buyIn());
+        }
+
+        TemplateData toData() {
+            return new TemplateData(label, roomId, gameType, modality, variantId, name, buyIn);
         }
     }
 

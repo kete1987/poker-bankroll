@@ -20,11 +20,11 @@ In the app, open **Import / Export** and go to *Backup of everything*.
 
 - **Download backup** saves one file, `poker-bankroll-backup-<date>.json`, with everything you
   created: rooms and their logos, your own variants and which built-in ones are active, every
-  game (those in play too) and every bankroll movement. It is not encrypted: it holds all your
-  data, so keep it where only you can read it.
+  game (those in play too), every bankroll movement and the templates of the games you play
+  often. It is not encrypted: it holds all your data, so keep it where only you can read it.
 - **Choose backup file** takes such a file and only checks it: the page shows what it holds
-  (rooms, variants, games, movements, dates) next to what the installation holds now. Nothing
-  changes yet.
+  (rooms, variants, games, movements, templates, dates) next to what the installation holds now.
+  Nothing changes yet.
 - **Restore this backup** replaces **everything** the installation holds with the content of the
   file. When the installation has data, the page says in red what will be deleted, and the
   confirmation only goes on after ticking a box. There is no undo: download a backup of the
@@ -70,12 +70,19 @@ A JSON document, readable with any text editor:
   "movements": [
     {"occurredOn": "2026-01-01", "type": "DEPOSIT", "roomId": 1, "amount": 500.00},
     {"occurredOn": "2026-01-01", "type": "DEPOSIT", "currencyCode": "EUR", "amount": 1000.00}
+  ],
+  "templates": [
+    {"roomId": 1, "gameType": "SIT_AND_GO", "modality": "NLHE", "variantId": 13, "buyIn": 5.00},
+    {"label": "Sunday KO", "roomId": 1, "gameType": "TOURNAMENT", "modality": "NLHE",
+     "variantId": 2, "name": "Kill The Fish", "buyIn": 10.00}
   ]
 }
 ```
 
-- The `id` of a room or a variant only means something inside the file: games and movements name
-  them by it. The ids of the database, and the dates the rows were created, are not kept.
+- The `id` of a room or a variant only means something inside the file: games, movements and
+  templates name them by it. The ids of the database, and the dates the rows were created, are
+  not kept.
+- `templates` may be missing (files made before templates existed): then there are none.
 - Built-in variants (those with a `code`) are only there to say whether they are active; the
   ones with a `name` are yours.
 - Currencies are named by their code. A file with a currency the installation does not have is

@@ -201,6 +201,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/game-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List templates
+         * @description Ordered by label or, without one, by the name of the room (ignoring case), then by game type and buy-in. Those in an inactive room or with an inactive variant are listed too, with `usable: false`.
+         */
+        get: operations["listTemplates"];
+        put?: never;
+        /**
+         * Create a template
+         * @description The rules of a game apply: a variant of the game type, and no inactive room or variant.
+         */
+        post: operations["createTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/game-templates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update a template
+         * @description Replaces every field; omitted optional fields take their default. It can keep an inactive room or variant it already has, but not choose a new one.
+         */
+        put: operations["updateTemplate"];
+        post?: never;
+        /**
+         * Delete a template
+         * @description The games started from it are not affected.
+         */
+        delete: operations["deleteTemplate"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/games": {
         parameters: {
             query?: never;
@@ -563,6 +611,8 @@ export interface components {
             movements: number;
             /** Format: int32 */
             rooms: number;
+            /** Format: int32 */
+            templates: number;
             /**
              * Format: date
              * @description Date of the last game
@@ -867,6 +917,52 @@ export interface components {
             variant?: components["schemas"]["VariantRef"] | null;
             /** @description Money won: prize + bounty */
             won: number;
+        };
+        GameTemplateRequest: {
+            /** @description Price of one entry. Cash game: amount brought to the table */
+            buyIn: number;
+            /** @enum {string} */
+            gameType: "TOURNAMENT" | "SIT_AND_GO" | "CASH";
+            /** @description Optional; without it, clients name the template after its room, variant and buy-in */
+            label?: string | null;
+            /**
+             * @description Defaults to NLHE
+             * @enum {string|null}
+             */
+            modality?: "NLHE" | "PLO" | null;
+            /** @description Name of the games started from it */
+            name?: string | null;
+            /** Format: int64 */
+            roomId: number;
+            /**
+             * Format: int64
+             * @description Optional; must be a variant of the game type
+             */
+            variantId?: number | null;
+        };
+        GameTemplateResponse: {
+            /** @description Price of one entry. Cash game: amount brought to the table */
+            buyIn: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** @description Currency of the buy-in (the one of its room) */
+            currencyCode: string;
+            /** @enum {string} */
+            gameType: "TOURNAMENT" | "SIT_AND_GO" | "CASH";
+            /** Format: int64 */
+            id: number;
+            /** @description Null when the user gave none: clients name it after its room, variant and buy-in */
+            label?: string | null;
+            /** @enum {string} */
+            modality: "NLHE" | "PLO";
+            /** @description Name of the games started from it */
+            name?: string | null;
+            room: components["schemas"]["RoomRef"];
+            /** Format: date-time */
+            updatedAt: string;
+            /** @description Games can be started from it: neither its room nor its variant is inactive */
+            usable: boolean;
+            variant?: components["schemas"]["VariantRef"] | null;
         };
         GameTypeSummary: {
             figures: components["schemas"]["StatsFigures"];
@@ -1477,6 +1573,96 @@ export interface operations {
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
                     "text/csv": string;
                 };
+            };
+        };
+    };
+    listTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GameTemplateResponse"][];
+                };
+            };
+        };
+    };
+    createTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GameTemplateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GameTemplateResponse"];
+                };
+            };
+        };
+    };
+    updateTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GameTemplateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GameTemplateResponse"];
+                };
+            };
+        };
+    };
+    deleteTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
