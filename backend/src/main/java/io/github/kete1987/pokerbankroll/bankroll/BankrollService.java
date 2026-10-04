@@ -558,9 +558,15 @@ public class BankrollService {
         return new EvolutionSeries(startingBankroll, result);
     }
 
-    /** The day whose rates value the bankroll at the end of a period: its last day, or {@code to} if earlier. */
+    /**
+     * The day whose rates value the bankroll at the end of a period: its last day, or {@code to} if
+     * earlier, and never after today. A balance is worth what today's rates say, as in the summary,
+     * also when the period ends later (the current month) or holds games dated after today.
+     */
     private static LocalDate rateDayOf(PeriodTotals period, @Nullable LocalDate to) {
-        return to != null && to.isBefore(period.endsOn) ? to : period.endsOn;
+        LocalDate day = to != null && to.isBefore(period.endsOn) ? to : period.endsOn;
+        LocalDate today = LocalDate.now();
+        return day.isAfter(today) ? today : day;
     }
 
     /** The bankroll before the range and what changed it in each period, keyed by the first day of the period. */

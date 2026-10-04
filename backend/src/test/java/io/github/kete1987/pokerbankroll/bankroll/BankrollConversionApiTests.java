@@ -169,6 +169,20 @@ class BankrollConversionApiTests extends ApiIntegrationTest {
         assertNumbers(evolution("?groupBy=MONTH"), "$.converted.total.periods[*].bankroll", "150", "150", "91.25");
     }
 
+    @Test
+    void theCurrentPeriodHasTheRatesOfTodayAsTheSummary() {
+        januaryToMarch();
+        LocalDate today = LocalDate.now();
+        movement(today.toString(), "BONUS", pokerStars, null, "5");
+        // A rate typed for a day still to come, inside the current month.
+        insertRate("USD", today.plusDays(5).toString(), "8.00", "MANUAL");
+
+        String evolution = evolution("?groupBy=MONTH");
+        List<Object> bankrolls = JsonPath.read(evolution, "$.converted.total.periods[*].bankroll");
+        assertNumber(evolution, "$.converted.total.periods[" + (bankrolls.size() - 1) + "].bankroll",
+                JsonPath.<Object>read(summary(""), "$.converted.total.bankroll").toString());
+    }
+
     private void movement(String occurredOn, String type, Long roomId, String currencyCode, String amount) {
         jdbc.update("""
                 insert into bankroll_movement (occurred_on, type, room_id, currency_code, amount)

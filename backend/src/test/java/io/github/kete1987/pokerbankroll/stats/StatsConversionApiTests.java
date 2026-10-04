@@ -104,6 +104,16 @@ class StatsConversionApiTests extends ApiIntegrationTest {
     }
 
     @Test
+    void aFreerollWithoutARateNeedsNone() {
+        // Before the first rate of the dollar, but no money at all: it still counts as a game.
+        game(pokerStars, "2026-01-10", "0", "0", null);
+        String json = summary("");
+        assertNumber(json, "$.converted.total.games", "5");
+        assertNumber(json, "$.converted.total.net", "20");
+        assertThat(JsonPath.<List<Object>>read(json, "$.converted.missingRates")).isEmpty();
+    }
+
+    @Test
     void theBaseCurrencyCanBeTheOneWithoutARate() {
         jdbc.update("delete from exchange_rate");
         chooseBaseCurrency("USD");

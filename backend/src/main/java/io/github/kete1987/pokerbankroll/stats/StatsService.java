@@ -92,7 +92,7 @@ public class StatsService {
             boolean finished = row.get(FIRST_KEY, GameStatus.class) == GameStatus.FINISHED;
             currencies.computeIfAbsent(currency, code -> new CurrencyTotals()).add(row, rows.firstSum, finished,
                     BigDecimal.ONE);
-            BigDecimal factor = converter.factor(currency, rows.dayOf(row));
+            BigDecimal factor = rows.factor(converter, row, currency);
             if (factor != null) {
                 converted.add(row, rows.firstSum, finished, factor);
             }
@@ -125,7 +125,7 @@ public class StatsService {
                     : null;
             currencies.computeIfAbsent(currency, code -> new GroupTotals())
                     .add(row, rows.firstSum, groupKey, written, BigDecimal.ONE, byGameType);
-            BigDecimal factor = converter.factor(currency, rows.dayOf(row));
+            BigDecimal factor = rows.factor(converter, row, currency);
             if (factor != null) {
                 converted.add(row, rows.firstSum, convertedKey(groupBy, groupKey, row, currency, factor), written,
                         factor, byGameType);
@@ -318,6 +318,19 @@ public class StatsService {
         /** The day of a row; {@code null} when they do not come per day (then all are in the base currency). */
         @Nullable LocalDate dayOf(Tuple row) {
             return byDay ? row.get(firstSum - 1, LocalDate.class) : null;
+        }
+
+        /**
+         * What converts the amounts of a row, {@code null} when a rate is missing. A row without
+         * money (freerolls that won nothing) needs no rate: its games still count.
+         */
+        @Nullable BigDecimal factor(Converter converter, Tuple row, String currency) {
+            for (int index = firstSum; index < row.getElements().size(); index++) {
+                if (row.get(index) instanceof BigDecimal amount && amount.signum() != 0) {
+                    return converter.factor(currency, dayOf(row));
+                }
+            }
+            return BigDecimal.ZERO;
         }
 
         /** A converter with the rates of the currencies and days of the rows. */
