@@ -124,6 +124,10 @@ class BankrollConversionApiTests extends ApiIntegrationTest {
         String json = summary("?to=2025-12-31");
         assertNumber(json, "$.converted.total.bankroll", "10");
         assertThat(JsonPath.<List<Object>>read(json, "$.converted.missingRates")).isEmpty();
+
+        // Nor does a freeroll in dollars that won nothing.
+        game(pokerStars, "2025-12-21", "0", "0");
+        assertThat(JsonPath.<List<Object>>read(summary("?to=2025-12-31"), "$.converted.missingRates")).isEmpty();
     }
 
     @Test

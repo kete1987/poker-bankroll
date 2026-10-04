@@ -307,7 +307,10 @@ public class BankrollService {
                         converter.convertOrZero(movement.amount(), movement.currencyCode(), movement.day()));
             }
             for (GameDay game : gameDays) {
-                BigDecimal factor = converter.factor(game.currencyCode(), game.day());
+                // Days without money (freerolls that won nothing) need no rate: their games still count.
+                boolean noMoney = game.net().signum() == 0 && game.ticketsWon().signum() == 0
+                        && game.investedInPlay().signum() == 0;
+                BigDecimal factor = noMoney ? BigDecimal.ZERO : converter.factor(game.currencyCode(), game.day());
                 BigDecimal rate = factor == null ? BigDecimal.ZERO : factor;
                 convertedByRoom.computeIfAbsent(game.roomId(), id -> new Totals()).addGames(
                         game.net().multiply(rate), game.ticketsWon().multiply(rate), game.gamesInPlay(),
