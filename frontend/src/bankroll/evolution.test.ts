@@ -137,6 +137,28 @@ describe('chart data', () => {
     ).toEqual(['2026-09-01', '2026-09-30', '2026-10-02']);
   });
 
+  it('draws a period dated after today at its first day, so the line ends with the bankroll now', () => {
+    const ahead: CurrencyEvolution = {
+      currencyCode: 'EUR',
+      total: {
+        startingBankroll: 0,
+        periods: [
+          period({ period: '2026-09', startsOn: '2026-09-01', endsOn: '2026-09-30', bankroll: 5 }),
+          period({ period: '2026-11', startsOn: '2026-11-01', endsOn: '2026-11-30', bankroll: 9 }),
+        ],
+      },
+      rooms: [],
+    };
+
+    const data = chartData(ahead, {}, '2026-10-04')!;
+    expect(data.points.map((point) => point.date)).toEqual([
+      '2026-09-01',
+      '2026-09-30',
+      '2026-11-01',
+    ]);
+    expect(data.total.values).toEqual([0, 5, 9]);
+  });
+
   it('is nothing without a point to start from', () => {
     const empty: CurrencyEvolution = {
       currencyCode: 'EUR',

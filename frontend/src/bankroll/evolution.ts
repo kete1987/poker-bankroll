@@ -71,6 +71,10 @@ const latest = (a: string, b: string) => (a > b ? a : b);
  * day, or at the last day of the range or today when it ends later. The lines start with the
  * bankroll when the range starts (at the first period without one) and go on to the end of the
  * range, or today. Nothing when there is no point to start from.
+ *
+ * Games and movements may be dated after today, and they count in the bankroll as it is now: a
+ * period that starts after today is drawn at its first day, so the last point is still that
+ * bankroll.
  */
 export function chartData(
   currency: CurrencyEvolution,
