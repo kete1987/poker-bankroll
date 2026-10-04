@@ -42,6 +42,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { FilterBar } from '../components/FilterBar';
 import { ExportMenu } from '../components/ExportMenu';
 import { Page } from '../components/Page';
+import { isSingleDay } from '../components/period';
 import { PeriodFilter } from '../components/PeriodFilter';
 import { StatCard } from '../components/StatCard';
 import { useNarrowScreen } from '../components/useNarrowScreen';
@@ -190,7 +191,9 @@ export function BankrollPage() {
             </StatCard>
           </SimpleGrid>
 
-          {currencyCode && (
+          {/* Over a single day the bankroll only goes from where it starts to where it ends,
+              which the cards already say. */}
+          {currencyCode && !isSingleDay(range) && (
             <BankrollEvolutionChart
               range={range}
               roomIds={roomIds}

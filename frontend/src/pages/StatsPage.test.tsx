@@ -412,6 +412,58 @@ describe('Statistics page', () => {
     expect(screen.queryByRole('region', { name: /Best/ })).not.toBeInTheDocument();
   });
 
+  it('shows no chart for a single day, but the cards and the table', async () => {
+    stubStats();
+    renderApp('/stats?from=2026-01-20&to=2026-01-20');
+
+    expect(await screen.findByRole('table')).toBeInTheDocument();
+    expect(card('Net of the period').getByText('+€25.50')).toBeInTheDocument();
+    expect(screen.queryByTestId('chart')).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: 'Per period' })).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Period' })).toHaveValue('Custom');
+  });
+
+  it('names today in the URL and hides the chart for it', async () => {
+    stubStats();
+    const today = rangeOf('today');
+    renderApp(`/stats?from=${today.from}&to=${today.to}`);
+
+    expect(await screen.findByRole('table')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Period' })).toHaveValue('Today');
+    expect(screen.queryByTestId('chart')).not.toBeInTheDocument();
+  });
+
+  it('hides the chart when yesterday is chosen, and draws it again for this week', async () => {
+    const calls = stubStats();
+    renderApp('/stats');
+    await chartOption();
+
+    await userEvent.click(screen.getByRole('combobox', { name: 'Period' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Yesterday', hidden: true }));
+
+    const yesterday = rangeOf('yesterday');
+    await waitFor(() =>
+      expect(queriesTo(calls, '/stats/groups').at(-1)).toMatchObject({
+        groupBy: 'DAY',
+        from: yesterday.from,
+        to: yesterday.to,
+      }),
+    );
+    await waitFor(() => expect(screen.queryByTestId('chart')).not.toBeInTheDocument());
+    expect(screen.getByRole('table')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('combobox', { name: 'Period' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'This week', hidden: true }));
+
+    const thisWeek = rangeOf('thisWeek');
+    expect(await screen.findByTestId('chart')).toBeInTheDocument();
+    expect(queriesTo(calls, '/stats/groups').at(-1)).toMatchObject({
+      from: thisWeek.from,
+      to: thisWeek.to,
+    });
+    expect(screen.getByRole('radio', { name: 'Per period' })).toBeInTheDocument();
+  });
+
   it('says so when the period has no games', async () => {
     stubStats({ 'GET /stats/summary': { currencies: [] } });
     renderApp('/stats');

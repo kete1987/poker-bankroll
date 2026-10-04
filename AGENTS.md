@@ -448,7 +448,12 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   A new table or row of filters needs its phone layout; tests run as on a phone with
   `onANarrowScreen()` (`test/narrowScreen.ts`, see `pages/Phone.test.tsx`).
 - A period is chosen with `components/PeriodFilter` (`components/period.ts` has the predefined
-  ranges). A screen shows one currency at a time: amounts in different currencies are never added.
+  ranges, from today to all time, in the time zone of the browser; this week goes from Monday to
+  Sunday, like the `WEEK` grouping). `periodOf` names the range of the URL, so no two predefined
+  periods may give the same dates. A screen shows one currency at a time: amounts in different
+  currencies are never added.
+- A chart over time is not drawn for a single day (`isSingleDay`): the statistics keep their cards
+  and table without it, and the bankroll screen leaves its evolution out.
 - A logo can also come from a URL: the browser cannot read images of other sites, so
   `POST /rooms/logo-fetch` downloads it (`room/RemoteImageFetcher`) and hands it back; it then
   follows the same path as a file. That endpoint only fetches `http`/`https` URLs of **public**

@@ -18,6 +18,7 @@ import type { GameType, StatsFigures, StatsGroup } from '../api/types';
 import { useVariants } from '../api/variants';
 import { FilterBar } from '../components/FilterBar';
 import { Page } from '../components/Page';
+import { isSingleDay } from '../components/period';
 import { PeriodFilter } from '../components/PeriodFilter';
 import { StatCard } from '../components/StatCard';
 import { useFormat } from '../format/useFormat';
@@ -171,6 +172,8 @@ export function StatsPage() {
     (found, point) => (!found || point.net < found.net ? point : found),
     undefined,
   );
+  // A single day is one point at most: the chart has nothing to show over time.
+  const oneDay = isSingleDay(filters.range);
 
   return (
     <Page title={t('nav.stats')}>
@@ -222,16 +225,18 @@ export function StatsPage() {
             <Title order={3} size="h4">
               {t('stats.net.title')}
             </Title>
-            <SegmentedControl
-              size="xs"
-              aria-label={t('stats.chart.label')}
-              data={[
-                { value: 'cumulative', label: t('stats.chart.cumulative') },
-                { value: 'period', label: t('stats.chart.period') },
-              ]}
-              value={filters.chart}
-              onChange={(value) => update({ chart: value as ChartMode })}
-            />
+            {!oneDay && (
+              <SegmentedControl
+                size="xs"
+                aria-label={t('stats.chart.label')}
+                data={[
+                  { value: 'cumulative', label: t('stats.chart.cumulative') },
+                  { value: 'period', label: t('stats.chart.period') },
+                ]}
+                value={filters.chart}
+                onChange={(value) => update({ chart: value as ChartMode })}
+              />
+            )}
           </Group>
           {!currencyCode || !total || points.length === 0 ? (
             <Text c="dimmed">{t('dashboard.noGames')}</Text>
@@ -273,7 +278,13 @@ export function StatsPage() {
                   </>
                 )}
               </SimpleGrid>
-              <NetEvolutionChart points={points} currencyCode={currencyCode} mode={filters.chart} />
+              {!oneDay && (
+                <NetEvolutionChart
+                  points={points}
+                  currencyCode={currencyCode}
+                  mode={filters.chart}
+                />
+              )}
               <Title order={3} size="h4" mt="md">
                 {t(`stats.table.title.${drawn}`)}
               </Title>

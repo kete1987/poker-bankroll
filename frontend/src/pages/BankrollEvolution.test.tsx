@@ -10,6 +10,7 @@ import type {
   EvolutionPeriod,
   TimePeriod,
 } from '../api/types';
+import { rangeOf } from '../components/period';
 import { room } from '../test/fixtures';
 import { onANarrowScreen } from '../test/narrowScreen';
 import { problem, renderApp, stubApi, type ApiCall } from '../test/renderApp';
@@ -351,6 +352,31 @@ describe('Bankroll evolution', () => {
 
     expect(await screen.findByText('Nothing to show for these filters.')).toBeInTheDocument();
     expect(screen.queryByTestId('chart')).not.toBeInTheDocument();
+  });
+
+  it('is left out for a single day, which the cards already sum up', async () => {
+    const calls = stubEvolution();
+    renderApp('/bankroll?from=2026-01-20&to=2026-01-20');
+
+    expect(await screen.findByRole('heading', { name: 'Per room' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Evolution' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Group by' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('chart')).not.toBeInTheDocument();
+    expect(evolutionQueries(calls)).toEqual([]);
+  });
+
+  it('is drawn for this week', async () => {
+    const calls = stubEvolution();
+    const thisWeek = rangeOf('thisWeek');
+    renderApp(`/bankroll?from=${thisWeek.from}&to=${thisWeek.to}`);
+
+    await drawn();
+    expect(evolutionQueries(calls).at(-1)).toMatchObject({
+      groupBy: 'DAY',
+      from: thisWeek.from,
+      to: thisWeek.to,
+    });
+    expect(screen.getByRole('combobox', { name: 'Period' })).toHaveValue('This week');
   });
 
   describe('on a phone', () => {
