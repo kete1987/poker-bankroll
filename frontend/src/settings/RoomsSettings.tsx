@@ -1,14 +1,4 @@
-import {
-  ActionIcon,
-  Alert,
-  Button,
-  Group,
-  Stack,
-  Switch,
-  Table,
-  Text,
-  Tooltip,
-} from '@mantine/core';
+import { Alert, Button, Group, Stack, Switch, Table, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconPencil, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useState } from 'react';
@@ -18,6 +8,7 @@ import { ApiError } from '../api/client';
 import { useDeleteRoom, useUpdateRoom } from '../api/rooms';
 import type { Currency, Room } from '../api/types';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { IconButton } from '../components/IconButton';
 import { RoomLabel } from '../components/RoomLabel';
 import { RoomDialog } from './RoomDialog';
 import { useNarrowScreen } from '../components/useNarrowScreen';
@@ -91,33 +82,32 @@ export function RoomsSettings({ rooms, currencies }: RoomsSettingsProps) {
                   </Table.Td>
                   <Table.Td>
                     <Group gap={4} wrap="nowrap" justify="flex-end">
-                      <ActionIcon
+                      <IconButton
                         variant="subtle"
                         color="gray"
-                        aria-label={t('settings.rooms.editRoom', { room: room.name })}
+                        label={t('settings.rooms.editRoom', { room: room.name })}
                         disabled={updateRoom.isPending}
                         onClick={() => setDialog({ kind: 'edit', room })}
                       >
                         <IconPencil size={16} stroke={1.5} />
-                      </ActionIcon>
+                      </IconButton>
                       {/* A room with history is deactivated, not deleted: the button says why. */}
-                      <Tooltip label={t('settings.rooms.inUse')} disabled={!room.inUse} withArrow>
-                        <ActionIcon
-                          variant="subtle"
-                          color="red"
-                          // Not `disabled`: a disabled button cannot show its tooltip.
-                          data-disabled={room.inUse || undefined}
-                          aria-disabled={room.inUse}
-                          aria-label={t('settings.rooms.deleteRoom', { room: room.name })}
-                          onClick={() => {
-                            if (!room.inUse) {
-                              setDialog({ kind: 'delete', room });
-                            }
-                          }}
-                        >
-                          <IconTrash size={16} stroke={1.5} />
-                        </ActionIcon>
-                      </Tooltip>
+                      <IconButton
+                        variant="subtle"
+                        color="red"
+                        // Not `disabled`: a disabled button cannot show its tooltip.
+                        data-disabled={room.inUse || undefined}
+                        aria-disabled={room.inUse}
+                        label={t('settings.rooms.deleteRoom', { room: room.name })}
+                        tooltip={room.inUse ? t('settings.rooms.inUse') : undefined}
+                        onClick={() => {
+                          if (!room.inUse) {
+                            setDialog({ kind: 'delete', room });
+                          }
+                        }}
+                      >
+                        <IconTrash size={16} stroke={1.5} />
+                      </IconButton>
                     </Group>
                   </Table.Td>
                 </Table.Tr>

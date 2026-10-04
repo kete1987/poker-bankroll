@@ -1,4 +1,4 @@
-import { ActionIcon, Center, Group, Table, Text, UnstyledButton } from '@mantine/core';
+import { Center, Group, Table, Text, UnstyledButton } from '@mantine/core';
 import {
   IconChevronDown,
   IconChevronUp,
@@ -11,6 +11,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { Game } from '../api/types';
+import { IconButton } from '../components/IconButton';
 import { RoomLabel } from '../components/RoomLabel';
 import { GameBuyIn, GameDate, GameName, GameNet, GameWinnings } from './GameCells';
 import { describeGame } from './labels';
@@ -104,30 +105,30 @@ export function GamesTable({
               </Table.Td>
               <Table.Td>
                 <RowActions>
-                  <ActionIcon
+                  <IconButton
                     variant="subtle"
                     color="gray"
-                    aria-label={t('games.actions.editGame', { game: describeGame(t, game) })}
+                    label={t('games.actions.editGame', { game: describeGame(t, game) })}
                     onClick={() => onEdit(game)}
                   >
                     <IconPencil size={16} stroke={1.5} />
-                  </ActionIcon>
-                  <ActionIcon
+                  </IconButton>
+                  <IconButton
                     variant="subtle"
                     color="gray"
-                    aria-label={t('games.actions.duplicateGame', { game: describeGame(t, game) })}
+                    label={t('games.actions.duplicateGame', { game: describeGame(t, game) })}
                     onClick={() => onDuplicate(game)}
                   >
                     <IconCopy size={16} stroke={1.5} />
-                  </ActionIcon>
-                  <ActionIcon
+                  </IconButton>
+                  <IconButton
                     variant="subtle"
                     color="red"
-                    aria-label={t('games.actions.deleteGame', { game: describeGame(t, game) })}
+                    label={t('games.actions.deleteGame', { game: describeGame(t, game) })}
                     onClick={() => onDelete(game)}
                   >
                     <IconTrash size={16} stroke={1.5} />
-                  </ActionIcon>
+                  </IconButton>
                 </RowActions>
               </Table.Td>
             </Table.Tr>

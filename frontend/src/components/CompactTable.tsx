@@ -1,7 +1,9 @@
-import { ActionIcon, SimpleGrid, Table, Text } from '@mantine/core';
+import { SimpleGrid, Table, Text } from '@mantine/core';
 import { IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 import { Fragment, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+
+import { IconButton } from './IconButton';
 
 /** One row of a {@link CompactTable}: what is always in sight and what unfolds under it. */
 export interface CompactRow {
@@ -59,16 +61,16 @@ export function CompactTable({ head, rows, foot }: CompactTableProps) {
           ))}
           <Table.Td w={28} p={0}>
             {row.details.length > 0 && (
-              <ActionIcon
+              <IconButton
                 variant="subtle"
                 color="gray"
                 size="sm"
                 aria-expanded={unfolded}
-                aria-label={t('compactTable.details', { row: row.name })}
+                label={t('compactTable.details', { row: row.name })}
                 onClick={() => toggle(row.key)}
               >
                 {unfolded ? <IconChevronUp size={16} /> : <IconChevronDown size={16} />}
-              </ActionIcon>
+              </IconButton>
             )}
           </Table.Td>
         </Table.Tr>

@@ -1,5 +1,4 @@
 import {
-  ActionIcon,
   Alert,
   Badge,
   Button,
@@ -12,7 +11,6 @@ import {
   Text,
   TextInput,
   Title,
-  Tooltip,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconPencil, IconPlus, IconTrash } from '@tabler/icons-react';
@@ -23,6 +21,7 @@ import { ApiError } from '../api/client';
 import type { GameType, Variant } from '../api/types';
 import { useCreateVariant, useDeleteVariant, useUpdateVariant } from '../api/variants';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { IconButton } from '../components/IconButton';
 import { useSubmit } from '../components/useSubmit';
 import { variantLabel } from '../games/labels';
 
@@ -105,38 +104,31 @@ export function VariantsSettings({ variants }: { variants: Variant[] }) {
                         <Table.Td w={80}>
                           {!variant.builtIn && (
                             <Group gap={4} wrap="nowrap" justify="flex-end">
-                              <ActionIcon
+                              <IconButton
                                 variant="subtle"
                                 color="gray"
-                                aria-label={t('settings.variants.editVariant', { variant: name })}
+                                label={t('settings.variants.editVariant', { variant: name })}
                                 disabled={updateVariant.isPending}
                                 onClick={() => setDialog({ kind: 'edit', variant })}
                               >
                                 <IconPencil size={16} stroke={1.5} />
-                              </ActionIcon>
-                              <Tooltip
-                                label={t('settings.variants.inUse')}
-                                disabled={!variant.inUse}
-                                withArrow
+                              </IconButton>
+                              <IconButton
+                                variant="subtle"
+                                color="red"
+                                // Not `disabled`: a disabled button cannot show its tooltip.
+                                data-disabled={variant.inUse || undefined}
+                                aria-disabled={variant.inUse}
+                                label={t('settings.variants.deleteVariant', { variant: name })}
+                                tooltip={variant.inUse ? t('settings.variants.inUse') : undefined}
+                                onClick={() => {
+                                  if (!variant.inUse) {
+                                    setDialog({ kind: 'delete', variant });
+                                  }
+                                }}
                               >
-                                <ActionIcon
-                                  variant="subtle"
-                                  color="red"
-                                  // Not `disabled`: a disabled button cannot show its tooltip.
-                                  data-disabled={variant.inUse || undefined}
-                                  aria-disabled={variant.inUse}
-                                  aria-label={t('settings.variants.deleteVariant', {
-                                    variant: name,
-                                  })}
-                                  onClick={() => {
-                                    if (!variant.inUse) {
-                                      setDialog({ kind: 'delete', variant });
-                                    }
-                                  }}
-                                >
-                                  <IconTrash size={16} stroke={1.5} />
-                                </ActionIcon>
-                              </Tooltip>
+                                <IconTrash size={16} stroke={1.5} />
+                              </IconButton>
                             </Group>
                           )}
                         </Table.Td>

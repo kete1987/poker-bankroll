@@ -1,4 +1,4 @@
-import { ActionIcon, Card, Group, Menu, Select, SimpleGrid, Stack, Text } from '@mantine/core';
+import { Card, Group, Menu, Select, SimpleGrid, Stack, Text } from '@mantine/core';
 import {
   IconCopy,
   IconDotsVertical,
@@ -11,6 +11,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { Game } from '../api/types';
+import { IconButton } from '../components/IconButton';
 import { RoomLabel } from '../components/RoomLabel';
 import { GameBuyIn, GameDate, GameName, GameNet, GameWinnings } from './GameCells';
 import { describeGame } from './labels';
@@ -54,13 +55,13 @@ export function GameMenu({
   return (
     <Menu position="bottom-end" withinPortal>
       <Menu.Target>
-        <ActionIcon
+        <IconButton
           variant="subtle"
           color="gray"
-          aria-label={t('games.actions.moreFor', { game: describeGame(t, game) })}
+          label={t('games.actions.moreFor', { game: describeGame(t, game) })}
         >
           <IconDotsVertical size={18} stroke={1.5} />
-        </ActionIcon>
+        </IconButton>
       </Menu.Target>
       <Menu.Dropdown>
         <Menu.Item leftSection={<IconPencil size={16} />} onClick={() => onEdit(game)}>
@@ -109,14 +110,14 @@ export function GameCards({
           value={sortField}
           onChange={(value) => onSort(value as SortField, true)}
         />
-        <ActionIcon
+        <IconButton
           variant="default"
           size="input-sm"
-          aria-label={sortDescending ? t('games.sort.descending') : t('games.sort.ascending')}
+          label={sortDescending ? t('games.sort.descending') : t('games.sort.ascending')}
           onClick={() => onSort(sortField, !sortDescending)}
         >
           {sortDescending ? <IconSortDescending size={18} /> : <IconSortAscending size={18} />}
-        </ActionIcon>
+        </IconButton>
       </Group>
 
       <Stack gap="xs" component="ul" p={0} m={0} style={{ listStyle: 'none' }}>

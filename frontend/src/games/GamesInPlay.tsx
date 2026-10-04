@@ -1,8 +1,9 @@
-import { ActionIcon, Button, Card, Group, Stack, Table, Text, Title } from '@mantine/core';
+import { Button, Card, Group, Stack, Table, Text, Title } from '@mantine/core';
 import { IconCopy, IconFlag, IconPencil, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 
 import type { Game } from '../api/types';
+import { IconButton } from '../components/IconButton';
 import { RoomLabel } from '../components/RoomLabel';
 import { useNarrowScreen } from '../components/useNarrowScreen';
 import { useFormat } from '../format/useFormat';
@@ -176,30 +177,30 @@ export function GamesInPlay({
                       <Table.Td>
                         <Group gap="xs" wrap="nowrap" justify="flex-end">
                           {mainActions(game, name, false)}
-                          <ActionIcon
+                          <IconButton
                             variant="subtle"
                             color="gray"
-                            aria-label={t('games.actions.editGame', { game: name })}
+                            label={t('games.actions.editGame', { game: name })}
                             onClick={() => onEdit(game)}
                           >
                             <IconPencil size={16} stroke={1.5} />
-                          </ActionIcon>
-                          <ActionIcon
+                          </IconButton>
+                          <IconButton
                             variant="subtle"
                             color="gray"
-                            aria-label={t('games.actions.duplicateGame', { game: name })}
+                            label={t('games.actions.duplicateGame', { game: name })}
                             onClick={() => onDuplicate(game)}
                           >
                             <IconCopy size={16} stroke={1.5} />
-                          </ActionIcon>
-                          <ActionIcon
+                          </IconButton>
+                          <IconButton
                             variant="subtle"
                             color="red"
-                            aria-label={t('games.actions.deleteGame', { game: name })}
+                            label={t('games.actions.deleteGame', { game: name })}
                             onClick={() => onDelete(game)}
                           >
                             <IconTrash size={16} stroke={1.5} />
-                          </ActionIcon>
+                          </IconButton>
                         </Group>
                       </Table.Td>
                     </Table.Tr>
