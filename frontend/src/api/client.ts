@@ -10,12 +10,13 @@ export interface FieldViolation {
   message: string;
 }
 
-/** Error body of the backend: RFC 9457 problem details plus `code` and `errors`. */
+/** Error body of the backend: RFC 9457 problem details plus `code`, `errors` and `index`. */
 interface ProblemBody {
   status?: number;
   detail?: string;
   code?: string;
   errors?: FieldViolation[];
+  index?: number;
 }
 
 /** A failed API call. Show `message` (already localized by the backend) or map `code` to i18n keys. */
@@ -23,13 +24,22 @@ export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
   readonly errors: FieldViolation[];
+  /** In a request with several items (a batch of games), the position of the one that failed. */
+  readonly index: number | null;
 
-  constructor(status: number, code: string, message: string, errors: FieldViolation[] = []) {
+  constructor(
+    status: number,
+    code: string,
+    message: string,
+    errors: FieldViolation[] = [],
+    index: number | null = null,
+  ) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
     this.errors = errors;
+    this.index = index;
   }
 }
 
@@ -96,6 +106,7 @@ async function toApiError(response: Response): Promise<ApiError> {
         body.code ?? fallbackCode,
         body.detail ?? response.statusText,
         body.errors ?? [],
+        typeof body.index === 'number' ? body.index : null,
       );
     } catch {
       // Not the JSON it claimed to be: fall through to a generic error.

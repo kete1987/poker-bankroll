@@ -21,6 +21,8 @@ export type VariantUpdateRequest = Schemas['VariantUpdateRequest'];
 
 export type Game = Schemas['GameResponse'];
 export type GameRequest = Schemas['GameRequest'];
+export type GameBatchRequest = Schemas['GameBatchRequest'];
+export type GameBatchResponse = Schemas['GameBatchResponse'];
 export type FinishGameRequest = Schemas['FinishGameRequest'];
 export type RebuyRequest = Schemas['RebuyRequest'];
 export type GamePage = Schemas['PageResponseGameResponse'];

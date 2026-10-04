@@ -206,7 +206,8 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - Errors are RFC 9457 `application/problem+json` built by `GlobalExceptionHandler`, with a
   `code` property (`ErrorCode` enum) and, for validation errors, an `errors` list of
   `{field, code, message}` (`field` is `null` for object-level constraints).
-  Business errors throw `ApiException(ErrorCode, args...)`.
+  Business errors throw `ApiException(ErrorCode, args...)`; one about an item of a request with
+  several (a batch of games) is `ex.atIndex(i)` and its problem carries that `index` (zero-based).
   The `detail` is resolved from `messages.properties` (English, default) /
   `messages_es.properties` using `Accept-Language`; add every new key to both files.
 - Lists that can grow are paginated with `page` (zero-based) and `size`, and return a
@@ -230,6 +231,10 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   differ only in case or surrounding spaces are one, written as in its most recent game, whose
   buy-in (with its `currencyCode`), variant and modality come with it. It is a plain list bounded by `limit` (8, at most 20),
   not a `PageResponse`.
+- `POST /games/batch` records 1 to 50 games (`GameBatchRequest.MAX_GAMES`) in one transaction, all
+  of them or none, each one through `GameService.create` (same rules as `POST /games`), in the order
+  sent, so their ids follow it. It answers `201` with them in that order (`GameBatchResponse`).
+  Validation errors name the game (`games[3].prize`); a business error of one game has its `index`.
 - Recording a game or a bankroll movement in a room loads it with `RoomRepository.findToRecordInById`
   (shared row lock), so a simultaneous change of the room's currency waits and is rejected.
 - A body that is not JSON (the logo of a room) is read from the `InputStream` up to its limit plus
@@ -366,7 +371,7 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   and the app uses TypeScript 7.
 - Talk to the backend only through `src/api/client.ts` (`apiFetch`): it adds `/api`, sends the UI
   language as `Accept-Language` and turns error responses into `ApiError` (`status`, `code`,
-  `message`, `errors`). Wrap calls in TanStack Query hooks next to it (see `src/api/health.ts`).
+  `message`, `errors`, `index`). Wrap calls in TanStack Query hooks next to it (see `src/api/health.ts`).
 - UI components come from Mantine; icons from `@tabler/icons-react`; charts through `src/components/Chart.tsx`.
 - Sections of the app are listed once in `src/layout/navigation.ts` (menu and routes), each with
   its page in `src/pages/` (`routes.tsx`). Wrap every page in `components/Page` (heading and
@@ -391,12 +396,21 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   URL are ignored.
 - Type, room and variant are chosen with `games/ScopeFilters`, and anything read from the URL goes
   through `components/urlParams` (invalid values are dropped there).
-- The name of a game is an `Autocomplete` fed by `useGameNames` (debounced, from 2 characters, for
-  the type of the form). Picking a name fills the buy-in, variant and modality of a **new** game,
-  except the ones the user has set by hand in that form (`setByHand` in `games/GameForm.tsx`: give
-  such a field its props with `filledByName`); a game being edited only takes the name. The buy-in
-  is only filled when it is in the currency of the chosen room, and is emptied again if the room
-  then changes to another currency.
+- The name of a game is a `games/NameInput` fed by `games/useNameSuggestions` (debounced, from 2
+  characters, for the type of the form), shared by the game form and the bulk add. Picking a name
+  fills the buy-in, variant and modality of a **new** game, except the ones the user has set by hand
+  in that form (give such a field its props with `filledByName`); a game being edited only takes
+  the name. The buy-in is only filled when it is in the currency of the chosen room, and is emptied
+  again if the room then changes to another currency.
+- **Duplicate** (an action of every game) opens the add game form with `copyOf`: room, type,
+  variant, modality, name and buy-in of the game, today, the status a new game gets, and nothing of
+  its result, entries or notes. What it copied counts as set by hand (a name picked afterwards does
+  not replace it), its buy-in is emptied if the room changes to another currency, and an inactive
+  room or variant is left to choose.
+- **Add several** (`games/BulkAddForm.tsx`) records 2 to 50 tournaments or Sit & Go alike in one
+  `POST /games/batch`: what they share once, then one row per game (prize, bounties for tournaments,
+  notes; an empty prize is 0; only notes when they are in play) and the totals of what is about to
+  be recorded. Errors of the backend go on the row of their game (`games[2].prize` is row 3).
 - Charts are built as an ECharts option passed to `components/Chart` (register there the ECharts
   components a new chart needs). Colouring a line by value needs closed ranges in `visualMap`.
   Tests replace `Chart` with a stub and assert on the option (see `pages/StatsPage.test.tsx`).

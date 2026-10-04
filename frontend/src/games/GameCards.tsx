@@ -1,5 +1,6 @@
 import { ActionIcon, Card, Group, Menu, Select, SimpleGrid, Stack, Text } from '@mantine/core';
 import {
+  IconCopy,
   IconDotsVertical,
   IconPencil,
   IconSortAscending,
@@ -21,6 +22,7 @@ interface GameCardsProps {
   sortDescending: boolean;
   onSort: (field: SortField, descending: boolean) => void;
   onEdit: (game: Game) => void;
+  onDuplicate: (game: Game) => void;
   onDelete: (game: Game) => void;
 }
 
@@ -36,14 +38,16 @@ export function CardFigure({ label, children }: { label: string; children: React
   );
 }
 
-/** Edit and delete, behind one button: a card has no room for both. */
+/** Edit, duplicate and delete, behind one button: a card has no room for them. */
 export function GameMenu({
   game,
   onEdit,
+  onDuplicate,
   onDelete,
 }: {
   game: Game;
   onEdit: (game: Game) => void;
+  onDuplicate: (game: Game) => void;
   onDelete: (game: Game) => void;
 }) {
   const { t } = useTranslation();
@@ -61,6 +65,9 @@ export function GameMenu({
       <Menu.Dropdown>
         <Menu.Item leftSection={<IconPencil size={16} />} onClick={() => onEdit(game)}>
           {t('games.actions.edit')}
+        </Menu.Item>
+        <Menu.Item leftSection={<IconCopy size={16} />} onClick={() => onDuplicate(game)}>
+          {t('games.actions.duplicate')}
         </Menu.Item>
         <Menu.Item color="red" leftSection={<IconTrash size={16} />} onClick={() => onDelete(game)}>
           {t('games.actions.delete')}
@@ -80,6 +87,7 @@ export function GameCards({
   sortDescending,
   onSort,
   onEdit,
+  onDuplicate,
   onDelete,
 }: GameCardsProps) {
   const { t } = useTranslation();
@@ -128,7 +136,12 @@ export function GameCards({
                 </Group>
                 <Group gap={4} wrap="nowrap">
                   <RoomLabel room={game.room} />
-                  <GameMenu game={game} onEdit={onEdit} onDelete={onDelete} />
+                  <GameMenu
+                    game={game}
+                    onEdit={onEdit}
+                    onDuplicate={onDuplicate}
+                    onDelete={onDelete}
+                  />
                 </Group>
               </Group>
               <div>

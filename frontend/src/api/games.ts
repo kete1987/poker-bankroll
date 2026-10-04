@@ -5,6 +5,8 @@ import { toQueryString } from './query';
 import type {
   FinishGameRequest,
   Game,
+  GameBatchRequest,
+  GameBatchResponse,
   GameName,
   GamePage,
   GameRequest,
@@ -86,6 +88,13 @@ function send<T>(method: string, path: string, body?: unknown): Promise<T> {
 
 export function useCreateGame() {
   return useGameMutation((game: GameRequest) => send<Game>('POST', '/games', game));
+}
+
+/** Several games at once, all of them or none; they come back in the order sent. */
+export function useCreateGames() {
+  return useGameMutation((batch: GameBatchRequest) =>
+    send<GameBatchResponse>('POST', '/games/batch', batch),
+  );
 }
 
 export function useUpdateGame() {

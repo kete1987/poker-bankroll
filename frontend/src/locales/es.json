@@ -424,6 +424,8 @@
   },
   "games": {
     "add": "Añadir partida",
+    "addSeveral": "Añadir varias",
+    "duplicate": "Duplicar partida",
     "loadError": "No se han podido cargar los datos. Comprueba que la API está disponible y recarga la página.",
     "saved": {
       "title": "Partida guardada",
@@ -463,7 +465,9 @@
       "deleteGame": "Borrar {{game}}",
       "edit": "Editar",
       "delete": "Borrar",
-      "moreFor": "Acciones de {{game}}"
+      "moreFor": "Acciones de {{game}}",
+      "duplicate": "Duplicar",
+      "duplicateGame": "Duplicar {{game}}"
     },
     "list": {
       "empty": "Todavía no hay partidas finalizadas.",
@@ -509,6 +513,36 @@
       "label": "Ordenar por",
       "descending": "De mayor a menor: invertir el orden",
       "ascending": "De menor a mayor: invertir el orden"
+    }
+  },
+  "bulkAdd": {
+    "title": "Añadir varias partidas",
+    "count": "Número de partidas",
+    "rows": {
+      "title": "Cada partida",
+      "finishedHelp": "El premio y los bounties de cada partida: déjalos vacíos si no ganó nada.",
+      "finishedNoBountyHelp": "El premio de cada partida: déjalo vacío si no ganó nada.",
+      "inPlayHelp": "Se registran en juego: pondrás el resultado de cada una cuando termine.",
+      "label": "Partidas a añadir",
+      "prize": "Premio de la partida {{number}}",
+      "bounty": "Bounties de la partida {{number}}",
+      "notes": "Notas de la partida {{number}}"
+    },
+    "totals": {
+      "label": "Totales",
+      "invested": "Invertido",
+      "won": "Ganado",
+      "net": "Neto"
+    },
+    "save_one": "Añadir {{count}} partida",
+    "save_other": "Añadir {{count}} partidas",
+    "done_one": "{{formatted}} partida añadida",
+    "done_other": "{{formatted}} partidas añadidas",
+    "inPlay": "Están en juego: finaliza cada una cuando sepas su resultado.",
+    "errors": {
+      "count": "De {{min}} a {{max}}",
+      "notSaved": "Las partidas no se han guardado",
+      "ofGame": "Partida {{number}}: {{message}}"
     }
   },
   "filters": {
