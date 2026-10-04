@@ -138,18 +138,21 @@ final class BackupV1 {
             @Nullable BigDecimal ticketPrizeValue,
             @Nullable String ticketDescription,
             @Nullable Boolean paidWithTicket,
-            @Nullable String notes) {
+            @Nullable String notes,
+            // Names of its tags; left out when it has none. Files made before tags existed have no such
+            // property: their games restore without tags.
+            @Nullable List<@Nullable String> tags) {
 
         static Game of(GameData game) {
             return new Game(game.playedOn(), game.playedAt(), game.roomId(), game.gameType(), game.modality(),
                     game.variantId(), game.status(), game.name(), game.buyIn(), game.entries(), game.prize(),
                     game.bounty(), game.ticketPrizeValue(), game.ticketDescription(), game.paidWithTicket(),
-                    game.notes());
+                    game.notes(), game.tags() == null || game.tags().isEmpty() ? null : game.tags());
         }
 
         GameData toData() {
             return new GameData(playedOn, playedAt, roomId, gameType, modality, variantId, status, name, buyIn,
-                    entries, prize, bounty, ticketPrizeValue, ticketDescription, paidWithTicket, notes);
+                    entries, prize, bounty, ticketPrizeValue, ticketDescription, paidWithTicket, notes, tags);
         }
     }
 

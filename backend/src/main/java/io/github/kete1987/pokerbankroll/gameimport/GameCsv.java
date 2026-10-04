@@ -8,6 +8,7 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -18,6 +19,8 @@ import io.github.kete1987.pokerbankroll.common.error.ApiException;
 import io.github.kete1987.pokerbankroll.common.error.ErrorCode;
 import io.github.kete1987.pokerbankroll.game.GameResponse;
 import io.github.kete1987.pokerbankroll.game.GameResponse.VariantRef;
+import io.github.kete1987.pokerbankroll.tag.TagName;
+import io.github.kete1987.pokerbankroll.tag.TagRef;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVPrinter;
@@ -49,10 +52,14 @@ public final class GameCsv {
     public static final String TICKET_DESCRIPTION = "ticketDescription";
     public static final String PAID_WITH_TICKET = "paidWithTicket";
     public static final String NOTES = "notes";
+    public static final String TAGS = "tags";
 
     /** Every column of the format, in the order of the documentation. */
     public static final List<String> COLUMNS = List.of(PLAYED_ON, PLAYED_AT, ROOM, CURRENCY, GAME_TYPE, VARIANT, MODALITY,
-            NAME, BUY_IN, ENTRIES, PRIZE, BOUNTY, TICKET_PRIZE_VALUE, TICKET_DESCRIPTION, PAID_WITH_TICKET, NOTES);
+            NAME, BUY_IN, ENTRIES, PRIZE, BOUNTY, TICKET_PRIZE_VALUE, TICKET_DESCRIPTION, PAID_WITH_TICKET, NOTES, TAGS);
+
+    /** Separates the tags of a game in its cell; a tag cannot contain it. */
+    static final String TAG_SEPARATOR = String.valueOf(TagName.SEPARATOR);
 
     /** The columns a file must have; the others are optional. */
     static final List<String> REQUIRED_COLUMNS = List.of(PLAYED_ON, ROOM, GAME_TYPE, BUY_IN);
@@ -77,6 +84,14 @@ public final class GameCsv {
         @Nullable String get(String column) {
             return values.get(column);
         }
+    }
+
+    /** The tags of a cell: separated by semicolons, stripped, the empty ones left out. */
+    static List<String> tags(@Nullable String value) {
+        if (value == null) {
+            return List.of();
+        }
+        return Arrays.stream(value.split(TAG_SEPARATOR)).map(String::strip).filter(tag -> !tag.isEmpty()).toList();
     }
 
     /** The rows of the file that have something in them, in their order. */
@@ -202,6 +217,8 @@ public final class GameCsv {
             values.put(TICKET_DESCRIPTION, game.ticketDescription());
             values.put(PAID_WITH_TICKET, game.paidWithTicket());
             values.put(NOTES, game.notes());
+            values.put(TAGS, game.tags().isEmpty() ? null
+                    : String.join(TAG_SEPARATOR, game.tags().stream().map(TagRef::name).toList()));
             // Value by value in the order of the header, so they cannot drift apart.
             for (String column : COLUMNS) {
                 printer.print(values.get(column));

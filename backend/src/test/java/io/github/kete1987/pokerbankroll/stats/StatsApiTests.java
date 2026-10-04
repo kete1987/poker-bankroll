@@ -425,6 +425,55 @@ class StatsApiTests extends ApiIntegrationTest {
     }
 
     @Test
+    void groupsByTagWithAGameInTheGroupOfEachOfItsTagsAndTheGamesWithoutTagsLast() {
+        game(winamax, "TOURNAMENT", "2026-01-19").buyIn("5").prize("12").tags("Challenge", "Friends").insert();
+        game(winamax, "TOURNAMENT", "2026-01-20").buyIn("5").tags("Challenge").insert();
+        game(winamax, "CASH", "2026-01-20").buyIn("2").prize("3").tags("Friends").insert();
+        game(winamax, "TOURNAMENT", "2026-01-21").buyIn("9").tags("Challenge").inPlay().insert();
+        for (int i = 0; i < 3; i++) {
+            game(winamax, "SIT_AND_GO", "2026-01-22").buyIn("1").insert();
+        }
+
+        String json = groups("?groupBy=TAG&currency=EUR&byGameType=true");
+
+        String groups = "$.currencies[0].groups";
+        // Most played first (then highest net), but the games without tags last however many; only
+        // finished games.
+        assertThat(JsonPath.<Object>read(json, groups + "[*].key.tag.name"))
+                .hasToString("[\"Friends\",\"Challenge\"]");
+        assertThat(JsonPath.<Object>read(json, groups + "[0].key.tag.id")).isNotNull();
+        assertThat(JsonPath.<Object>read(json, groups + "[2].key.tag")).isNull();
+        // The game with both tags is in both groups: they add up to more games than were played.
+        assertThat(JsonPath.<Object>read(json, groups + "[*].figures.games")).hasToString("[2,2,3]");
+        assertNumber(json, groups + "[0].figures.net", "8");
+        assertNumber(json, groups + "[1].figures.net", "2");
+        assertThat(JsonPath.<Object>read(json, groups + "[0].byGameType[*].gameType"))
+                .hasToString("[\"TOURNAMENT\",\"CASH\"]");
+        assertThat(JsonPath.<Object>read(json, groups + "[2].byGameType[*].gameType"))
+                .hasToString("[\"SIT_AND_GO\"]");
+    }
+
+    @Test
+    void theTagFilterSelectsTheGamesWithAnyOfTheTags() {
+        game(winamax, "TOURNAMENT", "2026-01-19").buyIn("5").prize("12").tags("Challenge", "Friends").insert();
+        game(winamax, "TOURNAMENT", "2026-01-20").buyIn("5").tags("Challenge").insert();
+        game(winamax, "TOURNAMENT", "2026-01-20").buyIn("2").tags("Friends").insert();
+        game(winamax, "TOURNAMENT", "2026-01-21").buyIn("1").insert();
+        long challenge = jdbc.queryForObject("select id from tag where name = 'Challenge'", Long.class);
+        long friends = jdbc.queryForObject("select id from tag where name = 'Friends'", Long.class);
+
+        // Each game once, also the one with both tags.
+        assertNumber(summary("?tagId=" + challenge + "," + friends), "$.currencies[0].total.games", "3");
+        assertNumber(summary("?tagId=" + challenge + "," + friends), "$.currencies[0].total.net", "0");
+        assertNumber(summary("?tagId=" + friends), "$.currencies[0].total.games", "2");
+        // Grouped by tag, the games of a tag also show their other tags.
+        String json = groups("?groupBy=TAG&tagId=" + friends);
+        assertThat(JsonPath.<Object>read(json, "$.currencies[0].groups[*].key.tag.name"))
+                .hasToString("[\"Friends\",\"Challenge\"]");
+        assertThat(JsonPath.<Object>read(json, "$.currencies[0].groups[*].figures.games")).hasToString("[2,1]");
+    }
+
+    @Test
     void groupsTakeTheFiltersOfTheGamesList() {
         recordSampleGames();
 
@@ -501,6 +550,7 @@ class StatsApiTests extends ApiIntegrationTest {
         private String bounty = "0";
         private String ticket = "0";
         private boolean paidWithTicket;
+        private List<String> tags = List.of();
 
         GameRow(long roomId, String gameType, String playedOn) {
             this.roomId = roomId;
@@ -558,13 +608,20 @@ class StatsApiTests extends ApiIntegrationTest {
             return this;
         }
 
+        GameRow tags(String... names) {
+            this.tags = List.of(names);
+            return this;
+        }
+
         void insert() {
-            jdbc.update("""
+            long id = jdbc.queryForObject("""
                     insert into game (played_on, room_id, game_type_code, variant_id, modality_code, status, name,
                                       buy_in, entries, prize, bounty, ticket_prize_value, paid_with_ticket)
                     values (?::date, ?, ?, ?, ?, ?, ?, ?::numeric, ?, ?::numeric, ?::numeric, ?::numeric, ?)
-                    """, playedOn, roomId, gameType, variantId, modality, status, name, buyIn, entries, prize,
-                    bounty, ticket, paidWithTicket);
+                    returning id
+                    """, Long.class, playedOn, roomId, gameType, variantId, modality, status, name, buyIn, entries,
+                    prize, bounty, ticket, paidWithTicket);
+            tags.forEach(tag -> tagGame(id, tag));
         }
     }
 }

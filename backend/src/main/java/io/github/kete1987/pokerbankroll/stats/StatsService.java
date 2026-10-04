@@ -39,6 +39,8 @@ import io.github.kete1987.pokerbankroll.stats.StatsGroupsResponse.GroupKey;
 import io.github.kete1987.pokerbankroll.stats.StatsSummaryResponse.CurrencySummary;
 import io.github.kete1987.pokerbankroll.stats.StatsSummaryResponse.GameTypeSummary;
 import io.github.kete1987.pokerbankroll.stats.StatsSummaryResponse.InPlay;
+import io.github.kete1987.pokerbankroll.tag.Tag;
+import io.github.kete1987.pokerbankroll.tag.TagRef;
 import io.github.kete1987.pokerbankroll.variant.Variant;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
@@ -163,8 +165,9 @@ public class StatsService {
         if (groupBy == GroupBy.WEEKDAY) {
             return Comparator.comparing(group -> group.key().weekday());
         }
-        // Most played first; the rest only makes the order stable. Games without a name go last.
-        return Comparator.<Group, Boolean>comparing(group -> groupBy == GroupBy.NAME && group.key().name() == null)
+        // Most played first; the rest only makes the order stable. Games without a name or a tag go last.
+        return Comparator.<Group, Boolean>comparing(group -> groupBy == GroupBy.NAME && group.key().name() == null
+                        || groupBy == GroupBy.TAG && group.key().tag() == null)
                 .thenComparing(Comparator.<Group>comparingLong(group -> group.figures().games()).reversed())
                 .thenComparing(group -> group.figures().net(), Comparator.reverseOrder())
                 .thenComparing(group -> group.key().toString());
@@ -303,6 +306,14 @@ public class StatsService {
                         row -> GroupKey.ofName(nameKey(row.get(FIRST_KEY, String.class))));
                 case WEEKDAY -> new Grouping(1, (game, cb) -> List.of(game.get("playedOn")),
                         row -> GroupKey.ofWeekday(row.get(FIRST_KEY, LocalDate.class).getDayOfWeek()));
+                // One row per tag of a game: a game with several tags counts in each of their groups.
+                case TAG -> new Grouping(2, (game, cb) -> {
+                    Join<Game, Tag> tag = game.join("tags", JoinType.LEFT);
+                    return List.of(tag.get("id"), tag.get("name"));
+                }, row -> {
+                    Long id = row.get(FIRST_KEY, Long.class);
+                    return GroupKey.ofTag(id == null ? null : new TagRef(id, row.get(FIRST_KEY + 1, String.class)));
+                });
             };
         }
 

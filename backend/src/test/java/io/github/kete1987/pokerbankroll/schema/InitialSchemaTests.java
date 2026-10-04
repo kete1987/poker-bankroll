@@ -31,6 +31,7 @@ class InitialSchemaTests {
     @AfterEach
     void deleteTestData() {
         jdbc.update("delete from game");
+        jdbc.update("delete from tag");
         jdbc.update("delete from bankroll_movement");
         // Their logos go with them.
         jdbc.update("delete from room");

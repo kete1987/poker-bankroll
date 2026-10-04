@@ -3,6 +3,7 @@ package io.github.kete1987.pokerbankroll.game;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -14,6 +15,7 @@ import jakarta.validation.constraints.Size;
 
 import io.github.kete1987.pokerbankroll.catalog.GameType;
 import io.github.kete1987.pokerbankroll.catalog.Modality;
+import io.github.kete1987.pokerbankroll.tag.TagName;
 import org.jspecify.annotations.Nullable;
 
 /** Data to create or update a game. Amounts are in the currency of the room. */
@@ -65,7 +67,16 @@ public record GameRequest(
         @Schema(description = "One entry was paid with a ticket instead of cash. Defaults to false")
         @Nullable Boolean paidWithTicket,
 
-        @Nullable @Size(max = 5000) String notes) implements TicketPrize {
+        @Nullable @Size(max = 5000) String notes,
+
+        @Schema(description = "Names of its tags, at most " + GameRequest.MAX_TAGS + ", each from 1 to 40 characters "
+                + "without commas or semicolons. Matched with the existing tags ignoring case and surrounding spaces; the "
+                + "missing ones are created. Names repeated ignoring case are one tag. Omitted or null: no tags "
+                + "(an update replaces the tags of the game)")
+        @Nullable @Size(max = GameRequest.MAX_TAGS) List<@NotNull @TagName String> tags) implements TicketPrize {
+
+    /** Tags of one game at most. */
+    public static final int MAX_TAGS = 10;
 
     /** Something was won: a prize, a bounty or a ticket. */
     boolean hasResult() {

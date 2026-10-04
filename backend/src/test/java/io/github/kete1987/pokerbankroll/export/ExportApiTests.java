@@ -57,7 +57,7 @@ class ExportApiTests extends ApiIntegrationTest {
                 {"playedOn": "2026-01-19", "playedAt": "21:30", "roomId": %d, "gameType": "TOURNAMENT",
                  "variantId": %d, "modality": "PLO", "name": "Kill The Fish", "buyIn": 10, "entries": 3,
                  "prize": 80, "bounty": 12.5, "ticketPrizeValue": 109, "ticketDescription": "Sunday Million",
-                 "paidWithTicket": true, "notes": "Final table"}"""
+                 "paidWithTicket": true, "notes": "Final table", "tags": ["series", "Challenge"]}"""
                 .formatted(winamax, builtInVariantId("TOURNAMENT", "KO")));
 
         MvcTestResult result = export("/exports/games?format=CSV");
@@ -66,7 +66,7 @@ class ExportApiTests extends ApiIntegrationTest {
         assertThat(lines(result)).containsExactly(
                 CSV_HEADER,
                 "2026-01-19,21:30,Winamax,EUR,TOURNAMENT,KO,PLO,Kill The Fish,10.00,3,80.00,12.50,109.00,"
-                        + "Sunday Million,true,Final table");
+                        + "Sunday Million,true,Final table,Challenge;series");
     }
 
     @Test
@@ -158,7 +158,8 @@ class ExportApiTests extends ApiIntegrationTest {
                 {"playedOn": "2026-01-19", "playedAt": "21:30", "roomId": %d, "gameType": "TOURNAMENT",
                  "variantId": %d, "modality": "PLO", "name": "Fish, chips & \\"more\\"", "buyIn": 10, "entries": 3,
                  "prize": 80, "bounty": 12.5, "ticketPrizeValue": 109, "ticketDescription": "Sunday Million",
-                 "paidWithTicket": true, "notes": "Table 12\\nSeat 3; ñandú €"}""".formatted(winamax, ko));
+                 "paidWithTicket": true, "notes": "Table 12\\nSeat 3; ñandú €",
+                 "tags": ["Satélite", "with \\"quoted\\" friends"]}""".formatted(winamax, ko));
         // Only what is required, nothing won.
         game("""
                 {"playedOn": "2026-01-19", "roomId": %d, "gameType": "TOURNAMENT", "buyIn": 2.5,
@@ -175,7 +176,7 @@ class ExportApiTests extends ApiIntegrationTest {
                  "name": "NL10", "buyIn": 10, "prize": 31.5, "notes": "=1+1"}""".formatted(pokerStars));
         game("""
                 {"playedOn": "2026-02-01", "roomId": %d, "gameType": "SIT_AND_GO", "buyIn": 1,
-                 "ticketPrizeValue": 5, "paidWithTicket": true}""".formatted(winamax));
+                 "ticketPrizeValue": 5, "paidWithTicket": true, "tags": ["satélite"]}""".formatted(winamax));
         // In play: it is not exported, so it is not there afterwards.
         game("""
                 {"playedOn": "2026-02-02", "roomId": %d, "gameType": "TOURNAMENT", "buyIn": 50}""".formatted(winamax));
@@ -184,6 +185,7 @@ class ExportApiTests extends ApiIntegrationTest {
 
         byte[] file = export("/exports/games?format=CSV").getResponse().getContentAsByteArray();
         jdbc.update("delete from game");
+        jdbc.update("delete from tag");
         jdbc.update("delete from room");
         jdbc.update("delete from variant where code is null");
         var imported = assertThat(mvc.post().uri("/imports/games").contentType("text/csv").content(file))
@@ -209,7 +211,7 @@ class ExportApiTests extends ApiIntegrationTest {
                 {"playedOn": "2026-01-19", "playedAt": "21:30", "roomId": %d, "gameType": "TOURNAMENT",
                  "variantId": %d, "modality": "PLO", "name": "Kill The Fish", "buyIn": 10, "entries": 3,
                  "prize": 80, "bounty": 12.5, "ticketPrizeValue": 109, "ticketDescription": "Sunday Million",
-                 "paidWithTicket": true, "notes": "Final table"}"""
+                 "paidWithTicket": true, "notes": "Final table", "tags": ["Series", "challenge"]}"""
                 .formatted(winamax, builtInVariantId("TOURNAMENT", "KO")));
         game("""
                 {"playedOn": "2026-01-20", "roomId": %d, "gameType": "CASH", "buyIn": 20, "prize": 5.5}"""
@@ -224,7 +226,7 @@ class ExportApiTests extends ApiIntegrationTest {
         assertThat(rows).hasSize(3);
         assertThat(texts(rows.get(0))).containsExactly("Date", "Time", "Room", "Currency", "Type", "Variant", "Game",
                 "Name", "Buy-in", "Entries", "Paid with ticket", "Invested", "Prize", "Bounties", "Net", "Ticket won",
-                "Ticket description", "Notes");
+                "Ticket description", "Tags", "Notes");
 
         Row game = rows.get(1);
         // A real date: a number for Excel, shown as a date.
@@ -253,11 +255,12 @@ class ExportApiTests extends ApiIntegrationTest {
         assertThat(amount(game, 14)).isEqualByComparingTo("72.5");
         assertThat(amount(game, 15)).isEqualByComparingTo("109");
         assertThat(game.getCellText(16)).isEqualTo("Sunday Million");
-        assertThat(game.getCellText(17)).isEqualTo("Final table");
+        assertThat(game.getCellText(17)).isEqualTo("challenge, Series");
+        assertThat(game.getCellText(18)).isEqualTo("Final table");
 
         Row cash = rows.get(2);
-        // No time, variant, name, ticket description or notes: empty cells.
-        assertThat(List.of(1, 5, 7, 16, 17)).allSatisfy(empty -> assertThat(cash.getOptionalCell(empty)
+        // No time, variant, name, ticket description, tags or notes: empty cells.
+        assertThat(List.of(1, 5, 7, 16, 17, 18)).allSatisfy(empty -> assertThat(cash.getOptionalCell(empty)
                 .filter(cell -> cell.getType() != CellType.EMPTY)).isEmpty());
         assertThat(cash.getCellText(3)).isEqualTo("USD");
         assertThat(cash.getCellText(4)).isEqualTo("Cash");
@@ -283,7 +286,7 @@ class ExportApiTests extends ApiIntegrationTest {
         List<Row> rows = sheet.read();
         assertThat(texts(rows.get(0))).containsExactly("Fecha", "Hora", "Sala", "Moneda", "Tipo", "Variante", "Juego",
                 "Nombre", "Buy-in", "Entradas", "Pagada con ticket", "Invertido", "Premio", "Bounties", "Neto",
-                "Ticket ganado", "Descripción del ticket", "Notas");
+                "Ticket ganado", "Descripción del ticket", "Etiquetas", "Notas");
         Row regular = rows.get(1);
         assertThat(regular.getCell(0).asDate().toLocalDate()).isEqualTo(LocalDate.of(2026, 1, 19));
         assertThat(regular.getCell(0).getDataFormatString()).isEqualTo("dd/mm/yyyy");
@@ -294,7 +297,7 @@ class ExportApiTests extends ApiIntegrationTest {
         Row custom = rows.get(2);
         assertThat(custom.getCellText(5)).isEqualTo("Turbo");
         assertThat(custom.getCellText(10)).isEqualTo("No");
-        assertThat(custom.getCellText(17)).isEqualTo("Yes");
+        assertThat(custom.getCellText(18)).isEqualTo("Yes");
     }
 
     @Test
@@ -302,7 +305,7 @@ class ExportApiTests extends ApiIntegrationTest {
         List<Row> rows = sheet(export("/exports/games?format=XLSX")).read();
 
         assertThat(rows).hasSize(1);
-        assertThat(texts(rows.get(0))).hasSize(18);
+        assertThat(texts(rows.get(0))).hasSize(19);
     }
 
     @Test
@@ -482,6 +485,7 @@ class ExportApiTests extends ApiIntegrationTest {
             game.keySet().removeAll(List.of("id", "createdAt", "updatedAt"));
             withoutId(game.get("room"));
             withoutId(game.get("variant"));
+            ((List<?>) game.get("tags")).forEach(ExportApiTests::withoutId);
         }
         return games;
     }

@@ -6,16 +6,20 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
+import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 
 import io.github.kete1987.pokerbankroll.catalog.GameType;
 import io.github.kete1987.pokerbankroll.catalog.Modality;
+import io.github.kete1987.pokerbankroll.tag.Tag;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.jpa.domain.Specification;
 
 /**
  * Criteria to select games; every field is optional and they are combined with AND. The ones that
- * take several values (game types, rooms, variants) select the games matching any of them; an
+ * take several values (game types, rooms, variants, tags) select the games matching any of them; an
  * empty list is no filter.
  */
 public record GameFilter(
@@ -25,6 +29,7 @@ public record GameFilter(
         @Nullable Modality modality,
         @Nullable List<Long> roomIds,
         @Nullable List<Long> variantIds,
+        @Nullable List<Long> tagIds,
         @Nullable GameStatus status,
         @Nullable String currencyCode,
         @Nullable String text) {
@@ -36,6 +41,12 @@ public record GameFilter(
         gameTypes = withoutNulls(gameTypes);
         roomIds = withoutNulls(roomIds);
         variantIds = withoutNulls(variantIds);
+        tagIds = withoutNulls(tagIds);
+    }
+
+    /** The same criteria with another status. */
+    public GameFilter withStatus(@Nullable GameStatus newStatus) {
+        return new GameFilter(from, to, gameTypes, modality, roomIds, variantIds, tagIds, newStatus, currencyCode, text);
     }
 
     private static <T> @Nullable List<T> withoutNulls(@Nullable List<T> values) {
@@ -62,6 +73,14 @@ public record GameFilter(
             }
             if (isGiven(variantIds)) {
                 predicates.add(game.get("variant").get("id").in(variantIds));
+            }
+            if (isGiven(tagIds)) {
+                // A game with several of the tags is still one game.
+                Subquery<Long> tagged = query.subquery(Long.class);
+                Root<Game> same = tagged.correlate(game);
+                Join<Game, Tag> tag = same.join("tags");
+                tagged.select(tag.get("id")).where(tag.get("id").in(tagIds));
+                predicates.add(cb.exists(tagged));
             }
             if (status != null) {
                 predicates.add(cb.equal(game.get("status"), status));

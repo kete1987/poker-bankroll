@@ -16,6 +16,7 @@ export interface GameFilters {
   gameTypes: GameType[];
   roomIds: number[];
   variantIds: number[];
+  tagIds: number[];
   q?: string;
   /** Zero-based. */
   page: number;
@@ -34,6 +35,7 @@ function parse(params: URLSearchParams): GameFilters {
     gameTypes: parseList(params.get('type'), (text) => parseOneOf(text, GAME_TYPES)),
     roomIds: parseList(params.get('room'), parsePositiveInteger),
     variantIds: parseList(params.get('variant'), parsePositiveInteger),
+    tagIds: parseList(params.get('tag'), parsePositiveInteger),
     q: params.get('q')?.trim() || undefined,
     // The page is one-based in the URL, as people count.
     page: (parsePositiveInteger(params.get('page')) ?? 1) - 1,
@@ -57,6 +59,7 @@ function serialize(filters: GameFilters): URLSearchParams {
   set('type', filters.gameTypes.join(','));
   set('room', filters.roomIds.join(','));
   set('variant', filters.variantIds.join(','));
+  set('tag', filters.tagIds.join(','));
   set('q', filters.q);
   // Defaults are left out, so the plain URL is the plain list.
   if (filters.sortField !== 'playedOn' || !filters.sortDescending) {
@@ -96,6 +99,7 @@ export function useGameFilters() {
     filters.gameTypes.length ||
     filters.roomIds.length ||
     filters.variantIds.length ||
+    filters.tagIds.length ||
     filters.q,
   );
 
@@ -110,6 +114,7 @@ export function toGameQuery(filters: GameFilters): GameQuery {
     gameType: filters.gameTypes,
     roomId: filters.roomIds,
     variantId: filters.variantIds,
+    tagId: filters.tagIds,
     q: filters.q,
     status: 'FINISHED',
     page: filters.page,

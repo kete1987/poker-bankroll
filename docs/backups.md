@@ -20,8 +20,9 @@ In the app, open **Import / Export** and go to *Backup of everything*.
 
 - **Download backup** saves one file, `poker-bankroll-backup-<date>.json`, with everything you
   created: rooms and their logos, your own variants and which built-in ones are active, every
-  game (those in play too), every bankroll movement and the templates of the games you play
-  often. It is not encrypted: it holds all your data, so keep it where only you can read it.
+  game (those in play too) with its tags, every bankroll movement and the templates of the games
+  you play often. It is not encrypted: it holds all your data, so keep it where only you can read
+  it.
 - **Choose backup file** takes such a file and only checks it: the page shows what it holds
   (rooms, variants, games, movements, templates, dates) next to what the installation holds now.
   Nothing changes yet.
@@ -65,7 +66,7 @@ A JSON document, readable with any text editor:
     {"playedOn": "2026-01-19", "playedAt": "21:30:00", "roomId": 1, "gameType": "TOURNAMENT",
      "modality": "NLHE", "variantId": 2, "status": "FINISHED", "name": "Kill The Fish",
      "buyIn": 10.00, "entries": 2, "prize": 80.50, "bounty": 12.25, "ticketPrizeValue": 0.00,
-     "paidWithTicket": false, "notes": "Final table"}
+     "paidWithTicket": false, "notes": "Final table", "tags": ["Challenge", "Satellite"]}
   ],
   "movements": [
     {"occurredOn": "2026-01-01", "type": "DEPOSIT", "roomId": 1, "amount": 500.00},
@@ -85,6 +86,8 @@ A JSON document, readable with any text editor:
 - `templates` may be missing (files made before templates existed): then there are none.
 - Built-in variants (those with a `code`) are only there to say whether they are active; the
   ones with a `name` are yours.
+- Each game names its tags (`tags`, left out when it has none), and restoring creates them: a tag
+  that no game has is not kept. Files made before tags existed restore with games without tags.
 - Currencies are named by their code. A file with a currency the installation does not have is
   an error.
 - The file can be up to 32 MB, which is more than 100,000 games with their notes and dozens of

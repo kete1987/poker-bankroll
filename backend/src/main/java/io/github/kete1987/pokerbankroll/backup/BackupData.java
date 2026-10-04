@@ -18,8 +18,9 @@ import org.jspecify.annotations.Nullable;
  * (see {@link BackupV1}) that are mapped to and from these, so the restore only knows this model.
  *
  * <p>Rooms and variants have an {@code id} that only means something inside the backup: games,
- * movements and templates name them by it. Everything can be missing, since it may come from a
- * file: the restore checks it.
+ * movements and templates name them by it. Tags are not apart: each game names its own, and the
+ * restore creates them. Everything can be missing, since it may come from a file: the restore
+ * checks it.
  *
  * @param formatVersion version of the format of the file it was read from
  * @param appVersion    version of the application that made the backup
@@ -78,7 +79,8 @@ record BackupData(
             @Nullable BigDecimal ticketPrizeValue,
             @Nullable String ticketDescription,
             @Nullable Boolean paidWithTicket,
-            @Nullable String notes) {
+            @Nullable String notes,
+            @Nullable List<@Nullable String> tags) {
     }
 
     /** A bankroll movement: of a room, or of no room and then with its own currency. */

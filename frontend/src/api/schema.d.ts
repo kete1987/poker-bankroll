@@ -516,7 +516,7 @@ export interface paths {
         };
         /**
          * Results of the finished games per group, for each currency
-         * @description Groups by period (day, week, month, year), game type, variant, room, modality, buy-in or range of buy-ins, name of the game or day of the week, with the same figures as the summary. Ranges of buy-ins are fixed: free, below 1, and from 1, 2, 5, 10, 20 and 50. Names are grouped ignoring case and surrounding spaces. Takes the filters of the games list, so e.g. `groupBy=MONTH&gameType=TOURNAMENT` gives the tournaments per month. Periods without games are not returned.
+         * @description Groups by period (day, week, month, year), game type, variant, room, modality, buy-in or range of buy-ins, name of the game, day of the week or tag, with the same figures as the summary. Ranges of buy-ins are fixed: free, below 1, and from 1, 2, 5, 10, 20 and 50. Names are grouped ignoring case and surrounding spaces. A game with several tags is in the group of each, so groups by tag do not add up to the total; games without tags are one group. Takes the filters of the games list, so e.g. `groupBy=MONTH&gameType=TOURNAMENT` gives the tournaments per month. Periods without games are not returned.
          */
         get: operations["groups"];
         put?: never;
@@ -542,6 +542,50 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List tags
+         * @description Every tag with its number of games, by name ignoring case. Tags are created when a game is given a name that no tag has.
+         */
+        get: operations["listTags"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tags/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Rename a tag
+         * @description When another tag already has the new name (ignoring case), this tag is merged into it: its games get the other tag and this one is deleted. Returns the tag the games have now.
+         */
+        put: operations["renameTag"];
+        post?: never;
+        /**
+         * Delete a tag
+         * @description Its games lose it; nothing else changes.
+         */
+        delete: operations["deleteTag"];
         options?: never;
         head?: never;
         patch?: never;
@@ -712,7 +756,7 @@ export interface components {
         };
         CurrencyGroups: {
             currencyCode: string;
-            /** @description Groups with finished games. Periods from oldest to newest, buy-ins and their ranges from lowest to highest, days of the week from Monday, anything else from most to fewest games (games without a name last) */
+            /** @description Groups with finished games. Periods from oldest to newest, buy-ins and their ranges from lowest to highest, days of the week from Monday, anything else from most to fewest games (games without a name or without tags last) */
             groups: components["schemas"]["Group"][];
         };
         CurrencyResponse: {
@@ -868,6 +912,8 @@ export interface components {
              * @enum {string|null}
              */
             status?: "IN_PLAY" | "FINISHED" | null;
+            /** @description Names of its tags, at most 10, each from 1 to 40 characters without commas or semicolons. Matched with the existing tags ignoring case and surrounding spaces; the missing ones are created. Names repeated ignoring case are one tag. Omitted or null: no tags (an update replaces the tags of the game) */
+            tags?: string[] | null;
             ticketDescription?: string | null;
             /** @description Value of a tournament ticket won as a prize; informative, not part of net. Defaults to 0 */
             ticketPrizeValue?: number | null;
@@ -910,6 +956,8 @@ export interface components {
              * @enum {string}
              */
             status: "IN_PLAY" | "FINISHED";
+            /** @description Its tags, by name ignoring case */
+            tags: components["schemas"]["TagRef"][];
             ticketDescription?: string | null;
             ticketPrizeValue: number;
             /** Format: date-time */
@@ -998,6 +1046,8 @@ export interface components {
             period?: string | null;
             /** @description ROOM */
             room?: components["schemas"]["RoomRef"] | null;
+            /** @description TAG; null for the games without tags */
+            tag?: components["schemas"]["TagRef"] | null;
             /** @description VARIANT; null for the games of the type without a variant */
             variant?: components["schemas"]["VariantRef"] | null;
             /**
@@ -1207,10 +1257,29 @@ export interface components {
         StatsGroupsResponse: {
             currencies: components["schemas"]["CurrencyGroups"][];
             /** @enum {string} */
-            groupBy: "DAY" | "WEEK" | "MONTH" | "YEAR" | "GAME_TYPE" | "VARIANT" | "ROOM" | "MODALITY" | "BUY_IN" | "BUY_IN_RANGE" | "NAME" | "WEEKDAY";
+            groupBy: "DAY" | "WEEK" | "MONTH" | "YEAR" | "GAME_TYPE" | "VARIANT" | "ROOM" | "MODALITY" | "BUY_IN" | "BUY_IN_RANGE" | "NAME" | "WEEKDAY" | "TAG";
         };
         StatsSummaryResponse: {
             currencies: components["schemas"]["CurrencySummary"][];
+        };
+        TagRef: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+        };
+        TagRequest: {
+            /** @description New name, from 1 to 40 characters without commas or semicolons; surrounding spaces are removed. When another tag already has it (ignoring case), this tag is merged into that one */
+            name: string;
+        };
+        TagResponse: {
+            /**
+             * Format: int64
+             * @description Games that have the tag, in play or finished
+             */
+            games: number;
+            /** Format: int64 */
+            id: number;
+            name: string;
         };
         VariantCreateRequest: {
             /** @enum {string} */
@@ -1519,6 +1588,8 @@ export interface operations {
                 roomId?: number[];
                 /** @description One or more variants: games of any of them */
                 variantId?: number[];
+                /** @description One or more tags: games that have any of them */
+                tagId?: number[];
                 /** @description Currency of the room, e.g. EUR */
                 currency?: string;
                 /** @description Text contained in the name or the notes, ignoring case */
@@ -1680,6 +1751,8 @@ export interface operations {
                 roomId?: number[];
                 /** @description One or more variants: games of any of them */
                 variantId?: number[];
+                /** @description One or more tags: games that have any of them */
+                tagId?: number[];
                 status?: "IN_PLAY" | "FINISHED";
                 /** @description Currency of the room, e.g. EUR */
                 currency?: string;
@@ -2176,7 +2249,7 @@ export interface operations {
     groups: {
         parameters: {
             query: {
-                groupBy: "DAY" | "WEEK" | "MONTH" | "YEAR" | "GAME_TYPE" | "VARIANT" | "ROOM" | "MODALITY" | "BUY_IN" | "BUY_IN_RANGE" | "NAME" | "WEEKDAY";
+                groupBy: "DAY" | "WEEK" | "MONTH" | "YEAR" | "GAME_TYPE" | "VARIANT" | "ROOM" | "MODALITY" | "BUY_IN" | "BUY_IN_RANGE" | "NAME" | "WEEKDAY" | "TAG";
                 /** @description Also break each group down by game type */
                 byGameType?: boolean;
                 /** @description Played on or after this date */
@@ -2190,6 +2263,8 @@ export interface operations {
                 roomId?: number[];
                 /** @description One or more variants: games of any of them */
                 variantId?: number[];
+                /** @description One or more tags: games that have any of them */
+                tagId?: number[];
                 /** @description Currency of the room, e.g. EUR */
                 currency?: string;
                 /** @description Text contained in the name or the notes, ignoring case */
@@ -2226,6 +2301,8 @@ export interface operations {
                 roomId?: number[];
                 /** @description One or more variants: games of any of them */
                 variantId?: number[];
+                /** @description One or more tags: games that have any of them */
+                tagId?: number[];
                 /** @description Currency of the room, e.g. EUR */
                 currency?: string;
                 /** @description Text contained in the name or the notes, ignoring case */
@@ -2245,6 +2322,72 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["StatsSummaryResponse"];
                 };
+            };
+        };
+    };
+    listTags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TagResponse"][];
+                };
+            };
+        };
+    };
+    renameTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TagRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TagResponse"];
+                };
+            };
+        };
+    };
+    deleteTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

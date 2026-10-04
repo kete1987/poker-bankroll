@@ -30,6 +30,7 @@ public abstract class ApiIntegrationTest {
     void restoreDatabase() {
         jdbc.update("delete from game_template");
         jdbc.update("delete from game");
+        jdbc.update("delete from tag");
         jdbc.update("delete from bankroll_movement");
         jdbc.update("delete from room");
         jdbc.update("delete from variant where code is null");
@@ -57,6 +58,14 @@ public abstract class ApiIntegrationTest {
     protected long builtInVariantId(String gameType, String code) {
         return jdbc.queryForObject(
                 "select id from variant where game_type_code = ? and code = ?", Long.class, gameType, code);
+    }
+
+    /** Gives the game the tag with this name, created if there is none. Returns the id of the tag. */
+    protected long tagGame(long gameId, String tag) {
+        jdbc.update("insert into tag (name) values (?) on conflict ((lower(name))) do nothing", tag);
+        long tagId = jdbc.queryForObject("select id from tag where lower(name) = lower(?)", Long.class, tag);
+        jdbc.update("insert into game_tag (game_id, tag_id) values (?, ?)", gameId, tagId);
+        return tagId;
     }
 
     /** Inserts a game of the given type with a buy-in of 1; {@code variantId} may be null. */

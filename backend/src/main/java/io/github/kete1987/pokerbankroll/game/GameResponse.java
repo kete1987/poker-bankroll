@@ -4,11 +4,14 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import io.github.kete1987.pokerbankroll.catalog.GameType;
 import io.github.kete1987.pokerbankroll.catalog.Modality;
+import io.github.kete1987.pokerbankroll.tag.Tag;
+import io.github.kete1987.pokerbankroll.tag.TagRef;
 import io.github.kete1987.pokerbankroll.variant.Variant;
 import org.jspecify.annotations.Nullable;
 
@@ -39,6 +42,8 @@ public record GameResponse(
         @Schema(description = "Real money won or lost: won - invested")
         BigDecimal net,
         @Nullable String notes,
+        @Schema(description = "Its tags, by name ignoring case")
+        List<TagRef> tags,
         Instant createdAt,
         Instant updatedAt) {
 
@@ -73,6 +78,7 @@ public record GameResponse(
                 game.getWon(),
                 game.getNet(),
                 game.getNotes(),
+                game.getTags().stream().map(Tag::toRef).sorted(TagRef.BY_NAME).toList(),
                 game.getCreatedAt(),
                 game.getUpdatedAt());
     }

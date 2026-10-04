@@ -1,34 +1,34 @@
 import { MultiSelect } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 
-import type { GameType, Room, Variant } from '../api/types';
+import type { GameType, Room, Tag, Variant } from '../api/types';
 import { variantLabel } from './labels';
+import type { GameScope } from './scope';
+
+export type { GameScope } from './scope';
 
 const GAME_TYPES: readonly GameType[] = ['TOURNAMENT', 'SIT_AND_GO', 'CASH'];
-
-/** Which games: of any of these types, rooms and variants (an empty list is every one). */
-export interface GameScope {
-  gameTypes: GameType[];
-  roomIds: number[];
-  variantIds: number[];
-}
 
 interface ScopeFiltersProps extends GameScope {
   rooms: Room[];
   variants: Variant[];
+  tags: Tag[];
   onChange: (changes: Partial<GameScope>) => void;
 }
 
 /**
- * Multi-select filters by game type, room and variant, side by side, to be placed in a row of
- * filters. Rooms and variants include the inactive ones: they have history.
+ * Multi-select filters by game type, room, variant and tag, side by side, to be placed in a row
+ * of filters. Rooms and variants include the inactive ones: they have history. The filter of tags
+ * only shows when there are tags.
  */
 export function ScopeFilters({
   gameTypes,
   roomIds,
   variantIds,
+  tagIds,
   rooms,
   variants,
+  tags,
   onChange,
 }: ScopeFiltersProps) {
   const { t } = useTranslation();
@@ -89,6 +89,19 @@ export function ScopeFilters({
         value={variantIds.map(String)}
         onChange={(values) => onChange({ variantIds: values.map(Number) })}
       />
+      {(tags.length > 0 || tagIds.length > 0) && (
+        <MultiSelect
+          label={t('filters.tag')}
+          miw={180}
+          maw={360}
+          clearable
+          searchable
+          placeholder={tagIds.length === 0 ? t('filters.any') : undefined}
+          data={tags.map((tag) => ({ value: String(tag.id), label: tag.name }))}
+          value={tagIds.map(String)}
+          onChange={(values) => onChange({ tagIds: values.map(Number) })}
+        />
+      )}
     </>
   );
 }

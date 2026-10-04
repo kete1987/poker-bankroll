@@ -7,12 +7,14 @@ import { variantLabel } from './labels';
 
 /**
  * What a new game can start from: a game recorded before (duplicate) or a template. Its room,
- * type, variant, modality, name and buy-in (in `currencyCode`) are copied into the form.
+ * type, variant, modality, name and buy-in (in `currencyCode`) are copied into the form, and the
+ * tags of a game (a template has none).
  */
 export type GameStart = Pick<
   Game,
   'room' | 'gameType' | 'variant' | 'modality' | 'name' | 'buyIn' | 'currencyCode'
->;
+> &
+  Partial<Pick<Game, 'tags'>>;
 
 /**
  * Name of a template: its label, or what it is made of, e.g. "Winamax · Expresso · 5,00 €" (the

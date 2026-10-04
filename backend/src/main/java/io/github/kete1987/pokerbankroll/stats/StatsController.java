@@ -43,19 +43,23 @@ class StatsController {
             @RequestParam(required = false) @Nullable List<Long> roomId,
             @Parameter(description = "One or more variants: games of any of them")
             @RequestParam(required = false) @Nullable List<Long> variantId,
+            @Parameter(description = "One or more tags: games that have any of them")
+            @RequestParam(required = false) @Nullable List<Long> tagId,
             @Parameter(description = "Currency of the room, e.g. EUR")
             @RequestParam(required = false) @Nullable String currency,
             @Parameter(description = "Text contained in the name or the notes, ignoring case")
             @RequestParam(required = false) @Nullable String q) {
-        return service.summary(new GameFilter(from, to, gameType, modality, roomId, variantId, null, currency, q));
+        return service.summary(new GameFilter(from, to, gameType, modality, roomId, variantId, tagId, null, currency, q));
     }
 
     @GetMapping("/groups")
     @Operation(summary = "Results of the finished games per group, for each currency",
             description = "Groups by period (day, week, month, year), game type, variant, room, modality, "
-                    + "buy-in or range of buy-ins, name of the game or day of the week, with the same figures as "
+                    + "buy-in or range of buy-ins, name of the game, day of the week or tag, with the same figures as "
                     + "the summary. Ranges of buy-ins are fixed: free, below 1, and from 1, 2, 5, 10, 20 and 50. "
-                    + "Names are grouped ignoring case and surrounding spaces. Takes the filters of the games list, so "
+                    + "Names are grouped ignoring case and surrounding spaces. A game with several tags is in the "
+                    + "group of each, so groups by tag do not add up to the total; games without tags are one group. "
+                    + "Takes the filters of the games list, so "
                     + "e.g. `groupBy=MONTH&gameType=TOURNAMENT` gives the tournaments per month. "
                     + "Periods without games are not returned.")
     StatsGroupsResponse groups(
@@ -73,11 +77,13 @@ class StatsController {
             @RequestParam(required = false) @Nullable List<Long> roomId,
             @Parameter(description = "One or more variants: games of any of them")
             @RequestParam(required = false) @Nullable List<Long> variantId,
+            @Parameter(description = "One or more tags: games that have any of them")
+            @RequestParam(required = false) @Nullable List<Long> tagId,
             @Parameter(description = "Currency of the room, e.g. EUR")
             @RequestParam(required = false) @Nullable String currency,
             @Parameter(description = "Text contained in the name or the notes, ignoring case")
             @RequestParam(required = false) @Nullable String q) {
-        GameFilter filter = new GameFilter(from, to, gameType, modality, roomId, variantId, null, currency, q);
+        GameFilter filter = new GameFilter(from, to, gameType, modality, roomId, variantId, tagId, null, currency, q);
         return service.groups(filter, groupBy, byGameType);
     }
 }

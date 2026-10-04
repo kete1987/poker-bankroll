@@ -267,7 +267,7 @@
             "type" : "string"
           },
           "groups" : {
-            "description" : "Groups with finished games. Periods from oldest to newest, buy-ins and their ranges from lowest to highest, days of the week from Monday, anything else from most to fewest games (games without a name last)",
+            "description" : "Groups with finished games. Periods from oldest to newest, buy-ins and their ranges from lowest to highest, days of the week from Monday, anything else from most to fewest games (games without a name or without tags last)",
             "items" : {
               "$ref" : "#/components/schemas/Group"
             },
@@ -600,6 +600,15 @@
             "enum" : [ "IN_PLAY", "FINISHED", null ],
             "type" : [ "string", "null" ]
           },
+          "tags" : {
+            "description" : "Names of its tags, at most 10, each from 1 to 40 characters without commas or semicolons. Matched with the existing tags ignoring case and surrounding spaces; the missing ones are created. Names repeated ignoring case are one tag. Omitted or null: no tags (an update replaces the tags of the game)",
+            "items" : {
+              "type" : "string"
+            },
+            "maxItems" : 10,
+            "minItems" : 0,
+            "type" : [ "array", "null" ]
+          },
           "ticketDescription" : {
             "maxLength" : 150,
             "minLength" : 0,
@@ -687,6 +696,13 @@
             "enum" : [ "IN_PLAY", "FINISHED" ],
             "type" : "string"
           },
+          "tags" : {
+            "description" : "Its tags, by name ignoring case",
+            "items" : {
+              "$ref" : "#/components/schemas/TagRef"
+            },
+            "type" : "array"
+          },
           "ticketDescription" : {
             "type" : [ "string", "null" ]
           },
@@ -709,7 +725,7 @@
             "type" : "number"
           }
         },
-        "required" : [ "bounty", "buyIn", "createdAt", "currencyCode", "entries", "gameType", "id", "invested", "modality", "net", "paidWithTicket", "playedOn", "prize", "room", "status", "ticketPrizeValue", "updatedAt", "won" ],
+        "required" : [ "bounty", "buyIn", "createdAt", "currencyCode", "entries", "gameType", "id", "invested", "modality", "net", "paidWithTicket", "playedOn", "prize", "room", "status", "tags", "ticketPrizeValue", "updatedAt", "won" ],
         "type" : "object"
       },
       "GameTemplateRequest" : {
@@ -884,6 +900,14 @@
               "type" : "null"
             } ],
             "description" : "ROOM"
+          },
+          "tag" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/TagRef"
+            }, {
+              "type" : "null"
+            } ],
+            "description" : "TAG; null for the games without tags"
           },
           "variant" : {
             "anyOf" : [ {
@@ -1330,7 +1354,7 @@
             "type" : "array"
           },
           "groupBy" : {
-            "enum" : [ "DAY", "WEEK", "MONTH", "YEAR", "GAME_TYPE", "VARIANT", "ROOM", "MODALITY", "BUY_IN", "BUY_IN_RANGE", "NAME", "WEEKDAY" ],
+            "enum" : [ "DAY", "WEEK", "MONTH", "YEAR", "GAME_TYPE", "VARIANT", "ROOM", "MODALITY", "BUY_IN", "BUY_IN_RANGE", "NAME", "WEEKDAY", "TAG" ],
             "type" : "string"
           }
         },
@@ -1347,6 +1371,47 @@
           }
         },
         "required" : [ "currencies" ],
+        "type" : "object"
+      },
+      "TagRef" : {
+        "properties" : {
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "name" ],
+        "type" : "object"
+      },
+      "TagRequest" : {
+        "properties" : {
+          "name" : {
+            "description" : "New name, from 1 to 40 characters without commas or semicolons; surrounding spaces are removed. When another tag already has it (ignoring case), this tag is merged into that one",
+            "type" : "string"
+          }
+        },
+        "required" : [ "name" ],
+        "type" : "object"
+      },
+      "TagResponse" : {
+        "properties" : {
+          "games" : {
+            "description" : "Games that have the tag, in play or finished",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "games", "id", "name" ],
         "type" : "object"
       },
       "VariantCreateRequest" : {
@@ -1926,6 +1991,18 @@
             "type" : "array"
           }
         }, {
+          "description" : "One or more tags: games that have any of them",
+          "in" : "query",
+          "name" : "tagId",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
           "description" : "Currency of the room, e.g. EUR",
           "in" : "query",
           "name" : "currency",
@@ -2221,6 +2298,18 @@
           "description" : "One or more variants: games of any of them",
           "in" : "query",
           "name" : "variantId",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "description" : "One or more tags: games that have any of them",
+          "in" : "query",
+          "name" : "tagId",
           "required" : false,
           "schema" : {
             "items" : {
@@ -2951,14 +3040,14 @@
     },
     "/stats/groups" : {
       "get" : {
-        "description" : "Groups by period (day, week, month, year), game type, variant, room, modality, buy-in or range of buy-ins, name of the game or day of the week, with the same figures as the summary. Ranges of buy-ins are fixed: free, below 1, and from 1, 2, 5, 10, 20 and 50. Names are grouped ignoring case and surrounding spaces. Takes the filters of the games list, so e.g. `groupBy=MONTH&gameType=TOURNAMENT` gives the tournaments per month. Periods without games are not returned.",
+        "description" : "Groups by period (day, week, month, year), game type, variant, room, modality, buy-in or range of buy-ins, name of the game, day of the week or tag, with the same figures as the summary. Ranges of buy-ins are fixed: free, below 1, and from 1, 2, 5, 10, 20 and 50. Names are grouped ignoring case and surrounding spaces. A game with several tags is in the group of each, so groups by tag do not add up to the total; games without tags are one group. Takes the filters of the games list, so e.g. `groupBy=MONTH&gameType=TOURNAMENT` gives the tournaments per month. Periods without games are not returned.",
         "operationId" : "groups",
         "parameters" : [ {
           "in" : "query",
           "name" : "groupBy",
           "required" : true,
           "schema" : {
-            "enum" : [ "DAY", "WEEK", "MONTH", "YEAR", "GAME_TYPE", "VARIANT", "ROOM", "MODALITY", "BUY_IN", "BUY_IN_RANGE", "NAME", "WEEKDAY" ],
+            "enum" : [ "DAY", "WEEK", "MONTH", "YEAR", "GAME_TYPE", "VARIANT", "ROOM", "MODALITY", "BUY_IN", "BUY_IN_RANGE", "NAME", "WEEKDAY", "TAG" ],
             "type" : "string"
           }
         }, {
@@ -3024,6 +3113,18 @@
           "description" : "One or more variants: games of any of them",
           "in" : "query",
           "name" : "variantId",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "description" : "One or more tags: games that have any of them",
+          "in" : "query",
+          "name" : "tagId",
           "required" : false,
           "schema" : {
             "items" : {
@@ -3132,6 +3233,18 @@
             "type" : "array"
           }
         }, {
+          "description" : "One or more tags: games that have any of them",
+          "in" : "query",
+          "name" : "tagId",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
           "description" : "Currency of the room, e.g. EUR",
           "in" : "query",
           "name" : "currency",
@@ -3162,6 +3275,88 @@
         },
         "summary" : "Results overall and per game type, for each currency",
         "tags" : [ "Statistics" ]
+      }
+    },
+    "/tags" : {
+      "get" : {
+        "description" : "Every tag with its number of games, by name ignoring case. Tags are created when a game is given a name that no tag has.",
+        "operationId" : "listTags",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/TagResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "List tags",
+        "tags" : [ "Tags" ]
+      }
+    },
+    "/tags/{id}" : {
+      "delete" : {
+        "description" : "Its games lose it; nothing else changes.",
+        "operationId" : "deleteTag",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Delete a tag",
+        "tags" : [ "Tags" ]
+      },
+      "put" : {
+        "description" : "When another tag already has the new name (ignoring case), this tag is merged into it: its games get the other tag and this one is deleted. Returns the tag the games have now.",
+        "operationId" : "renameTag",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TagRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TagResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Rename a tag",
+        "tags" : [ "Tags" ]
       }
     },
     "/variants" : {
@@ -3308,6 +3503,9 @@
   }, {
     "description" : "Games and bankroll movements as files",
     "name" : "Export"
+  }, {
+    "description" : "Free-form labels of games",
+    "name" : "Tags"
   }, {
     "description" : "Sub-types within a game type",
     "name" : "Variants"

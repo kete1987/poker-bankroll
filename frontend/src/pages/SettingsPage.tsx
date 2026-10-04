@@ -4,37 +4,35 @@ import { useSearchParams } from 'react-router';
 
 import { useCatalog } from '../api/catalog';
 import { useRooms } from '../api/rooms';
+import { useTags } from '../api/tags';
 import { useTemplates } from '../api/templates';
 import { useVariants } from '../api/variants';
 import { Page } from '../components/Page';
 import { RoomsSettings } from '../settings/RoomsSettings';
+import { TagsSettings } from '../settings/TagsSettings';
 import { TemplatesSettings } from '../settings/TemplatesSettings';
 import { VariantsSettings } from '../settings/VariantsSettings';
 
-const TABS = ['rooms', 'variants', 'templates'] as const;
+const TABS = ['rooms', 'variants', 'tags', 'templates'] as const;
 type Tab = (typeof TABS)[number];
 
-function isTab(value: string | null): value is Tab {
-  return (TABS as readonly (string | null)[]).includes(value);
-}
-
-/** Settings: the rooms, the variants and the templates the rest of the app works with. */
+/** Settings: the rooms, the variants, the tags and the templates the rest of the app works with. */
 export function SettingsPage() {
   const { t } = useTranslation();
   const [params, setParams] = useSearchParams();
-  const requested = params.get('tab');
-  const tab: Tab = isTab(requested) ? requested : 'rooms';
+  const tab: Tab = TABS.find((value) => value === params.get('tab')) ?? 'rooms';
 
   const rooms = useRooms();
   const variants = useVariants();
   const catalog = useCatalog();
+  const tags = useTags();
   const templates = useTemplates();
 
   return (
     <Page title={t('nav.settings')}>
-      {[rooms, variants, catalog, templates].some((query) => query.isError) ? (
+      {[rooms, variants, catalog, tags, templates].some((query) => query.isError) ? (
         <Alert color="red">{t('games.loadError')}</Alert>
-      ) : !rooms.data || !variants.data || !catalog.data || !templates.data ? (
+      ) : !rooms.data || !variants.data || !catalog.data || !tags.data || !templates.data ? (
         <Loader />
       ) : (
         <Tabs
@@ -48,6 +46,7 @@ export function SettingsPage() {
           <Tabs.List mb="md">
             <Tabs.Tab value="rooms">{t('settings.tabs.rooms')}</Tabs.Tab>
             <Tabs.Tab value="variants">{t('settings.tabs.variants')}</Tabs.Tab>
+            <Tabs.Tab value="tags">{t('settings.tabs.tags')}</Tabs.Tab>
             <Tabs.Tab value="templates">{t('settings.tabs.templates')}</Tabs.Tab>
           </Tabs.List>
           <Tabs.Panel value="rooms">
@@ -55,6 +54,9 @@ export function SettingsPage() {
           </Tabs.Panel>
           <Tabs.Panel value="variants">
             <VariantsSettings variants={variants.data} />
+          </Tabs.Panel>
+          <Tabs.Panel value="tags">
+            <TagsSettings tags={tags.data} />
           </Tabs.Panel>
           <Tabs.Panel value="templates">
             <TemplatesSettings

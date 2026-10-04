@@ -4,6 +4,9 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -14,13 +17,17 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 import io.github.kete1987.pokerbankroll.catalog.GameType;
 import io.github.kete1987.pokerbankroll.catalog.Modality;
 import io.github.kete1987.pokerbankroll.room.Room;
+import io.github.kete1987.pokerbankroll.tag.Tag;
 import io.github.kete1987.pokerbankroll.variant.Variant;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Formula;
 import org.hibernate.annotations.Generated;
@@ -34,6 +41,9 @@ import org.jspecify.annotations.Nullable;
 @Entity
 @Table(name = "game")
 public class Game {
+
+    /** Games whose tags are read with one query. */
+    public static final int TAG_BATCH = 200;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -99,6 +109,17 @@ public class Game {
 
     @Column(name = "notes", columnDefinition = "text")
     private @Nullable String notes;
+
+    /**
+     * Loaded when first read, for up to {@value #TAG_BATCH} games of the persistence context at once:
+     * a page of games reads their tags with one query.
+     */
+    @ManyToMany
+    @JoinTable(name = "game_tag",
+            joinColumns = @JoinColumn(name = "game_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id"))
+    @BatchSize(size = TAG_BATCH)
+    private Set<Tag> tags = new HashSet<>();
 
     /** Real money won or lost, computed by PostgreSQL (see the migration). */
     @Generated(event = {EventType.INSERT, EventType.UPDATE})
@@ -262,6 +283,15 @@ public class Game {
 
     public void setNotes(@Nullable String notes) {
         this.notes = notes;
+    }
+
+    public Set<Tag> getTags() {
+        return tags;
+    }
+
+    public void setTags(Collection<Tag> tags) {
+        this.tags.clear();
+        this.tags.addAll(tags);
     }
 
     /** Money won: the prize plus the bounties. */

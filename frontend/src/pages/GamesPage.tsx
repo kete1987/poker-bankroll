@@ -17,6 +17,7 @@ import {
   useUpdateGame,
 } from '../api/games';
 import { useRooms } from '../api/rooms';
+import { useTags } from '../api/tags';
 import { useTemplates } from '../api/templates';
 import type { Game } from '../api/types';
 import { useVariants } from '../api/variants';
@@ -60,6 +61,7 @@ export function GamesPage() {
   const { filters, update, clear, hasFilters } = useGameFilters();
   const rooms = useRooms();
   const variants = useVariants();
+  const tags = useTags();
   const templates = useTemplates();
   const usableTemplates = templates.data?.filter((template) => template.usable) ?? [];
   const inPlay = useGamesInPlay();
@@ -158,6 +160,7 @@ export function GamesPage() {
               gameType: gameQuery.gameType,
               roomId: gameQuery.roomId,
               variantId: gameQuery.variantId,
+              tagId: gameQuery.tagId,
               q: gameQuery.q,
             })
           }
@@ -189,6 +192,7 @@ export function GamesPage() {
         filters={filters}
         rooms={rooms.data ?? []}
         variants={variants.data ?? []}
+        tags={tags.data ?? []}
         hasFilters={hasFilters}
         onChange={update}
         onClear={clear}

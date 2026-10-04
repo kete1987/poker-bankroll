@@ -19,10 +19,11 @@ import type {
 export interface GameQuery {
   from?: string;
   to?: string;
-  /** Games of any of these types (the same goes for rooms and variants); empty is no filter. */
+  /** Games of any of these types (the same goes for rooms, variants and tags); empty is no filter. */
   gameType?: GameType[];
   roomId?: number[];
   variantId?: number[];
+  tagId?: number[];
   status?: GameStatus;
   q?: string;
   page?: number;
@@ -68,10 +69,10 @@ function useGameMutation<TInput, TResult>(mutationFn: (input: TInput) => Promise
   const queryClient = useQueryClient();
   return useMutation<TResult, Error, TInput>({
     mutationFn,
-    // Games change statistics and the bankroll too.
+    // Games change statistics and the bankroll too, and the tags they are given (new ones, counts).
     onSuccess: async () => {
       await Promise.all(
-        ['games', 'stats', 'bankroll'].map((key) =>
+        ['games', 'stats', 'bankroll', 'tags'].map((key) =>
           queryClient.invalidateQueries({ queryKey: [key] }),
         ),
       );
