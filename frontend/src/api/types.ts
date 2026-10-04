@@ -32,6 +32,9 @@ export type RebuyRequest = Schemas['RebuyRequest'];
 export type GamePage = Schemas['PageResponseGameResponse'];
 export type GameName = Schemas['GameNameResponse'];
 
+export type GameTemplate = Schemas['GameTemplateResponse'];
+export type GameTemplateRequest = Schemas['GameTemplateRequest'];
+
 export type StatsFigures = Schemas['StatsFigures'];
 export type StatsSummary = Schemas['StatsSummaryResponse'];
 export type CurrencySummary = Schemas['CurrencySummary'];

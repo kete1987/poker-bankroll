@@ -1,4 +1,4 @@
-import type { Game, GamePage, Room, Tag, Variant } from '../api/types';
+import type { Game, GamePage, GameTemplate, Room, Tag, Variant } from '../api/types';
 
 /** Sample data for the tests; every builder takes the fields that matter to the test. */
 export const ROOMS: Room[] = [
@@ -75,4 +75,22 @@ export const TAGS: Tag[] = [
 
 export function page(items: Game[], overrides: Partial<GamePage> = {}): GamePage {
   return { items, page: 0, size: 25, totalItems: items.length, totalPages: 1, ...overrides };
+}
+
+export function template(overrides: Partial<GameTemplate>): GameTemplate {
+  return {
+    id: 500,
+    label: null,
+    room: { id: 1, name: 'Winamax' },
+    gameType: 'SIT_AND_GO',
+    modality: 'NLHE',
+    variant: { id: 20, code: 'EXPRESSO', name: null },
+    name: null,
+    currencyCode: 'EUR',
+    buyIn: 5,
+    usable: true,
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
+    ...overrides,
+  };
 }

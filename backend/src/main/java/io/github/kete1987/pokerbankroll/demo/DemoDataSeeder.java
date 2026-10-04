@@ -22,6 +22,8 @@ import io.github.kete1987.pokerbankroll.game.GameStatus;
 import io.github.kete1987.pokerbankroll.room.RoomLogoService;
 import io.github.kete1987.pokerbankroll.room.RoomRequest;
 import io.github.kete1987.pokerbankroll.room.RoomService;
+import io.github.kete1987.pokerbankroll.template.GameTemplateRequest;
+import io.github.kete1987.pokerbankroll.template.GameTemplateService;
 import io.github.kete1987.pokerbankroll.variant.VariantCreateRequest;
 import io.github.kete1987.pokerbankroll.variant.VariantResponse;
 import io.github.kete1987.pokerbankroll.variant.VariantService;
@@ -55,6 +57,7 @@ public class DemoDataSeeder implements ApplicationRunner {
     private final VariantService variants;
     private final GameService games;
     private final BankrollService bankroll;
+    private final GameTemplateService templates;
     private final JdbcClient jdbc;
 
     private final Random random = new Random(SEED);
@@ -69,12 +72,13 @@ public class DemoDataSeeder implements ApplicationRunner {
     private LocalDate challengeTo;
 
     DemoDataSeeder(RoomService rooms, RoomLogoService logos, VariantService variants, GameService games,
-            BankrollService bankroll, JdbcClient jdbc) {
+            BankrollService bankroll, GameTemplateService templates, JdbcClient jdbc) {
         this.rooms = rooms;
         this.logos = logos;
         this.variants = variants;
         this.games = games;
         this.bankroll = bankroll;
+        this.templates = templates;
         this.jdbc = jdbc;
     }
 
@@ -96,6 +100,7 @@ public class DemoDataSeeder implements ApplicationRunner {
         challengeTo = start.plusDays(230);
 
         createRoomsAndVariants();
+        createTemplates();
         for (LocalDate day = start; day.isBefore(today); day = day.plusDays(1)) {
             boolean weekend = day.getDayOfWeek().getValue() >= 6;
             int sessions = pick(weekend ? new int[] {15, 25, 30, 20, 10} : new int[] {45, 30, 15, 10, 0});
@@ -129,6 +134,18 @@ public class DemoDataSeeder implements ApplicationRunner {
         }
         long hyperTurbo = variants.create(new VariantCreateRequest(GameType.SIT_AND_GO, "Hyper Turbo 6-max")).id();
         variantIds.put("SIT_AND_GO/HYPER_TURBO", hyperTurbo);
+    }
+
+    /** The games played most, to start them in a click; the one of Unibet stays when it is closed. */
+    private void createTemplates() {
+        templates.create(new GameTemplateRequest(null, winamax, GameType.SIT_AND_GO, Modality.NLHE,
+                variantId(GameType.SIT_AND_GO, "EXPRESSO"), null, money("2")));
+        templates.create(new GameTemplateRequest(null, winamax, GameType.TOURNAMENT, Modality.NLHE,
+                variantId(GameType.TOURNAMENT, "KO"), "Kill The Fish", money("5")));
+        templates.create(new GameTemplateRequest("NL10 Stars", pokerStars, GameType.CASH, Modality.NLHE, null,
+                null, money("10")));
+        templates.create(new GameTemplateRequest(null, unibet, GameType.TOURNAMENT, Modality.NLHE,
+                variantId(GameType.TOURNAMENT, "REGULAR"), "Night Owl", money("2")));
     }
 
     private void recordGame(LocalDate day, boolean unibetOpen) {

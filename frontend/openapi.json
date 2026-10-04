@@ -27,6 +27,10 @@
             "format" : "int32",
             "type" : "integer"
           },
+          "templates" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
           "to" : {
             "description" : "Date of the last game",
             "format" : "date",
@@ -37,7 +41,7 @@
             "type" : "integer"
           }
         },
-        "required" : [ "empty", "games", "gamesInPlay", "movements", "rooms", "variants" ],
+        "required" : [ "empty", "games", "gamesInPlay", "movements", "rooms", "templates", "variants" ],
         "type" : "object"
       },
       "BackupError" : {
@@ -722,6 +726,103 @@
           }
         },
         "required" : [ "bounty", "buyIn", "createdAt", "currencyCode", "entries", "gameType", "id", "invested", "modality", "net", "paidWithTicket", "playedOn", "prize", "room", "status", "tags", "ticketPrizeValue", "updatedAt", "won" ],
+        "type" : "object"
+      },
+      "GameTemplateRequest" : {
+        "properties" : {
+          "buyIn" : {
+            "description" : "Price of one entry. Cash game: amount brought to the table",
+            "minimum" : 0,
+            "type" : "number"
+          },
+          "gameType" : {
+            "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
+            "type" : "string"
+          },
+          "label" : {
+            "description" : "Optional; without it, clients name the template after its room, variant and buy-in",
+            "maxLength" : 80,
+            "minLength" : 0,
+            "type" : [ "string", "null" ]
+          },
+          "modality" : {
+            "description" : "Defaults to NLHE",
+            "enum" : [ "NLHE", "PLO", null ],
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "description" : "Name of the games started from it",
+            "maxLength" : 150,
+            "minLength" : 0,
+            "type" : [ "string", "null" ]
+          },
+          "roomId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "variantId" : {
+            "description" : "Optional; must be a variant of the game type",
+            "format" : "int64",
+            "type" : [ "integer", "null" ]
+          }
+        },
+        "required" : [ "buyIn", "gameType", "roomId" ],
+        "type" : "object"
+      },
+      "GameTemplateResponse" : {
+        "properties" : {
+          "buyIn" : {
+            "description" : "Price of one entry. Cash game: amount brought to the table",
+            "type" : "number"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "currencyCode" : {
+            "description" : "Currency of the buy-in (the one of its room)",
+            "type" : "string"
+          },
+          "gameType" : {
+            "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "label" : {
+            "description" : "Null when the user gave none: clients name it after its room, variant and buy-in",
+            "type" : [ "string", "null" ]
+          },
+          "modality" : {
+            "enum" : [ "NLHE", "PLO" ],
+            "type" : "string"
+          },
+          "name" : {
+            "description" : "Name of the games started from it",
+            "type" : [ "string", "null" ]
+          },
+          "room" : {
+            "$ref" : "#/components/schemas/RoomRef"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "usable" : {
+            "description" : "Games can be started from it: neither its room nor its variant is inactive",
+            "type" : "boolean"
+          },
+          "variant" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/VariantRef"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "buyIn", "createdAt", "currencyCode", "gameType", "id", "modality", "room", "updatedAt", "usable" ],
         "type" : "object"
       },
       "GameTypeSummary" : {
@@ -2029,6 +2130,116 @@
         "tags" : [ "Export" ]
       }
     },
+    "/game-templates" : {
+      "get" : {
+        "description" : "Ordered by label or, without one, by the name of the room (ignoring case), then by game type and buy-in. Those in an inactive room or with an inactive variant are listed too, with `usable: false`.",
+        "operationId" : "listTemplates",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/GameTemplateResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "List templates",
+        "tags" : [ "Game templates" ]
+      },
+      "post" : {
+        "description" : "The rules of a game apply: a variant of the game type, and no inactive room or variant.",
+        "operationId" : "createTemplate",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/GameTemplateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GameTemplateResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "summary" : "Create a template",
+        "tags" : [ "Game templates" ]
+      }
+    },
+    "/game-templates/{id}" : {
+      "delete" : {
+        "description" : "The games started from it are not affected.",
+        "operationId" : "deleteTemplate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Delete a template",
+        "tags" : [ "Game templates" ]
+      },
+      "put" : {
+        "description" : "Replaces every field; omitted optional fields take their default. It can keep an inactive room or variant it already has, but not choose a new one.",
+        "operationId" : "updateTemplate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/GameTemplateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GameTemplateResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Update a template",
+        "tags" : [ "Game templates" ]
+      }
+    },
     "/games" : {
       "get" : {
         "description" : "All filters are optional and combined with AND.",
@@ -3286,6 +3497,9 @@
   }, {
     "description" : "Recorded results",
     "name" : "Games"
+  }, {
+    "description" : "Games played often, to start one in a click",
+    "name" : "Game templates"
   }, {
     "description" : "Games and bankroll movements as files",
     "name" : "Export"

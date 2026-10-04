@@ -194,12 +194,19 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
     currency: then it only counts in the total of that currency (e.g. an initial bankroll not
     split by room).
   - Unlike games, movements are accepted in inactive rooms.
+- **Template** (`game_template`): a game played often (room, type, optional variant, modality,
+  optional name, buy-in in the currency of the room, optional `label`), to start one in a click.
+  It is a shortcut, not a record: it does not make its room or variant "in use", goes with them
+  when they are deleted (database cascade) and does not lock the currency of its room. It is
+  `usable` while its room and variant are active; like games, it cannot newly choose an inactive
+  room or variant, but keeps the ones it has.
 - **Backup**: two different things. The **backup from the app** is one JSON file with everything
   the user created (rooms and logos, user-defined variants and which built-in ones are active,
-  every game, every bankroll movement), downloaded and restored in the Import / Export section;
-  restoring it **replaces everything** the installation holds. The **automatic backups** are the
-  `pg_dump` files of the `backup` service of the stack. An installation is **empty** when it has
-  no rooms, user-defined variants, games or movements.
+  every game, every bankroll movement, every template), downloaded and restored in the Import /
+  Export section; restoring it **replaces everything** the installation holds. The **automatic
+  backups** are the `pg_dump` files of the `backup` service of the stack. An installation is
+  **empty** when it has no rooms, user-defined variants, games or movements (templates do not
+  count: there are none without a room).
 
 ## Conventions
 
@@ -249,6 +256,9 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   differ only in case or surrounding spaces are one, written as in its most recent game, whose
   buy-in (with its `currencyCode`), variant and modality come with it. It is a plain list bounded by `limit` (8, at most 20),
   not a `PageResponse`.
+- `/game-templates` (`template` package): `GET` (a plain list, ordered by label or room name),
+  `POST`, `PUT /{id}`, `DELETE /{id}`, with the rules of a game for room and variant. There is no
+  "start" endpoint: a game is started from a template with `POST /games`.
 - `POST /games/batch` records 1 to 50 games (`GameBatchRequest.MAX_GAMES`) in one transaction, all
   of them or none, each one through `GameService.create` (same rules as `POST /games`), in the order
   sent, so their ids follow it. It answers `201` with them in that order (`GameBatchResponse`).
@@ -363,7 +373,8 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 ### Demo data
 - The Spring profile `demo` (`demo/DemoDataSeeder`) fills an **empty** database on startup with a
   year of made-up results ending today: four rooms (EUR and USD, one inactive, three with a logo), a user-defined
-  variant, about 400 games of every type (some with tags), three games in play and bankroll movements. It does
+  variant, about 400 games of every type (some with tags), three games in play, bankroll movements
+  and four templates (one in the inactive room). It does
   nothing when the database already has a room, a game, a movement or a user-defined variant, and
   is never active by default.
 - It creates everything through the services, so it also exercises the rules of the API. When a
@@ -501,6 +512,14 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
     has data, a red alert says what will be deleted and the confirmation
     (`ConfirmDialog` with `confirmDisabled`) only goes on once a box is ticked; `replace=true` is
     only sent then. Restoring invalidates every query.
+- Templates (`api/templates.ts`, `games/templates.ts`): the games page shows a **quick start**
+  button per usable template (`games/QuickStart`): a click records the game at once
+  (`POST /games`, today, in play; one at a time per button), its arrow opens the add game form
+  filled from it (`copyOf`, as a duplicate). The add game and add several forms have "From
+  template" (`games/TemplatePicker`); what a template fills counts as set by hand
+  (`useNameSuggestions().choose`). Games have "Save as template" in their actions; templates are
+  managed in Settings (`settings/TemplatesSettings`, tab `templates`). Without a label, a
+  template is named after room, name (or variant, or type) and buy-in (`templateLabel`).
 - A logo is resized in the browser before it is uploaded (`settings/resizeImage.ts`, 128 px at
   most, PNG), so the backend only stores small images. Tests replace that module: canvas does not
   exist in jsdom.

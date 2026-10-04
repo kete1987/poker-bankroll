@@ -194,7 +194,8 @@
     "tabs": {
       "rooms": "Salas",
       "variants": "Variantes",
-      "tags": "Etiquetas"
+      "tags": "Etiquetas",
+      "templates": "Plantillas"
     },
     "rooms": {
       "add": "Añadir sala",
@@ -333,7 +334,7 @@
   },
   "backup": {
     "title": "Copia de seguridad de todo",
-    "intro": "Una copia de seguridad es un fichero con todo lo que tiene esta instalación: salas y sus logos, variantes, todas las partidas (también las que están en juego) y los movimientos de bankroll. Guárdala en un lugar seguro, o restáurala en otra instalación para mudarte a otro equipo.",
+    "intro": "Una copia de seguridad es un fichero con todo lo que tiene esta instalación: salas y sus logos, variantes, todas las partidas (también las que están en juego), los movimientos de bankroll y las plantillas de partidas. Guárdala en un lugar seguro, o restáurala en otra instalación para mudarte a otro equipo.",
     "docs": "Copias de seguridad y cuándo usar cada tipo (en inglés)",
     "download": "Descargar copia",
     "downloaded": "Copia descargada",
@@ -354,6 +355,7 @@
       "games": "Partidas",
       "gamesInPlay": "Partidas en juego",
       "movements": "Movimientos de bankroll",
+      "templates": "Plantillas de partidas",
       "dates": "Fechas de las partidas"
     },
     "counts": {
@@ -508,7 +510,9 @@
       "delete": "Borrar",
       "moreFor": "Acciones de {{game}}",
       "duplicate": "Duplicar",
-      "duplicateGame": "Duplicar {{game}}"
+      "duplicateGame": "Duplicar {{game}}",
+      "saveAsTemplate": "Guardar como plantilla",
+      "saveAsTemplateGame": "Guardar {{game}} como plantilla"
     },
     "list": {
       "empty": "Todavía no hay partidas finalizadas.",
@@ -584,6 +588,44 @@
       "count": "De {{min}} a {{max}}",
       "notSaved": "Las partidas no se han guardado",
       "ofGame": "Partida {{number}}: {{message}}"
+    }
+  },
+  "templates": {
+    "from": "Desde plantilla",
+    "fromPlaceholder": "Rellenar el formulario desde una plantilla",
+    "quickStart": {
+      "title": "Inicio rápido",
+      "start": "Empezar {{template}}",
+      "customize": "Cambiar {{template}} antes de empezarla",
+      "started": "{{template}} empezada",
+      "notStarted": "{{template}} no se ha empezado"
+    },
+    "save": {
+      "title": "Guardar como plantilla",
+      "intro": "Una plantilla empieza partidas como esta con un clic, desde la página de partidas: misma sala, tipo, variante, nombre y buy-in.",
+      "submit": "Guardar plantilla",
+      "done": "Plantilla guardada"
+    },
+    "fields": {
+      "label": "Etiqueta",
+      "labelHelp": "Opcional: sin ella, la plantilla se llama como su sala, su partida y su buy-in."
+    },
+    "intro": "Las partidas que juegas a menudo. Cada plantilla es un botón en la página de partidas que empieza su partida con un clic: en juego y con la fecha de hoy. Su flecha abre el formulario relleno con ella, para cambiar algo antes.",
+    "add": "Añadir plantilla",
+    "edit": "Editar plantilla",
+    "created": "Plantilla creada",
+    "saved": "Plantilla guardada",
+    "editTemplate": "Editar {{template}}",
+    "deleteTemplate": "Borrar {{template}}",
+    "unusable": "Sala o variante inactiva",
+    "empty": "Todavía no hay plantillas. Añade una aquí, o guarda una partida como plantilla desde sus acciones.",
+    "columns": {
+      "template": "Plantilla"
+    },
+    "delete": {
+      "title": "Borrar plantilla",
+      "confirm": "¿Borrar la plantilla {{template}}? Las partidas empezadas con ella se mantienen.",
+      "done": "Plantilla borrada"
     }
   },
   "filters": {

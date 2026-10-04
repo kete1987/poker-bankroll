@@ -1,5 +1,6 @@
 import { Center, Group, Table, Text, UnstyledButton } from '@mantine/core';
 import {
+  IconBookmarkPlus,
   IconChevronDown,
   IconChevronUp,
   IconCopy,
@@ -24,6 +25,7 @@ interface GamesTableProps {
   onSort: (field: SortField, descending: boolean) => void;
   onEdit: (game: Game) => void;
   onDuplicate: (game: Game) => void;
+  onSaveAsTemplate: (game: Game) => void;
   onDelete: (game: Game) => void;
 }
 
@@ -35,6 +37,7 @@ export function GamesTable({
   onSort,
   onEdit,
   onDuplicate,
+  onSaveAsTemplate,
   onDelete,
 }: GamesTableProps) {
   const { t } = useTranslation();
@@ -120,6 +123,14 @@ export function GamesTable({
                     onClick={() => onDuplicate(game)}
                   >
                     <IconCopy size={16} stroke={1.5} />
+                  </IconButton>
+                  <IconButton
+                    variant="subtle"
+                    color="gray"
+                    label={t('games.actions.saveAsTemplateGame', { game: describeGame(t, game) })}
+                    onClick={() => onSaveAsTemplate(game)}
+                  >
+                    <IconBookmarkPlus size={16} stroke={1.5} />
                   </IconButton>
                   <IconButton
                     variant="subtle"

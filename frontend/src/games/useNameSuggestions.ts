@@ -141,5 +141,15 @@ export function useNameSuggestions<V extends NameFields>(
     suggestedBuyInCurrency.current = null;
   }
 
-  return { suggestions, filledByName, fillFromName, roomChanged, forget, reset };
+  /**
+   * The fields were all filled at once from something chosen (a template), as `chosen` does when
+   * the form starts: a suggested name does not replace them, and the buy-in, in `buyInCurrency`,
+   * is emptied if the room changes to another currency.
+   */
+  function choose(buyInCurrency: string) {
+    setByHand.current = new Set<FilledByName>(['buyIn', 'variantId', 'modality']);
+    suggestedBuyInCurrency.current = buyInCurrency;
+  }
+
+  return { suggestions, filledByName, fillFromName, roomChanged, forget, reset, choose };
 }

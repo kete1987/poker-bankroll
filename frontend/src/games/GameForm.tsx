@@ -21,6 +21,7 @@ import type {
   Game,
   GameRequest,
   GameStatus,
+  GameTemplate,
   GameType,
   Modality,
   Room,
@@ -32,6 +33,8 @@ import { loadGameDefaults, saveGameDefaults, todayIso } from './gameDefaults';
 import { variantLabel } from './labels';
 import { NameInput } from './NameInput';
 import { TagsField } from './TagsField';
+import { TemplatePicker } from './TemplatePicker';
+import type { GameStart } from './templates';
 import { useNameSuggestions } from './useNameSuggestions';
 
 const GAME_TYPES: readonly GameType[] = ['TOURNAMENT', 'SIT_AND_GO', 'CASH'];
@@ -65,10 +68,12 @@ interface GameFormProps {
   /** The game being edited; a new one is recorded when absent. */
   game?: Game;
   /**
-   * A new game like this one (duplicate): same room, type, variant, modality, name, buy-in and
-   * tags, but today and without its result, entries or notes.
+   * A new game like this one (a duplicate, or a template): same room, type, variant, modality,
+   * name, buy-in and tags (a duplicate has them), but today and without result, entries or notes.
    */
-  copyOf?: Game;
+  copyOf?: GameStart;
+  /** Templates a new game can be filled from ("From template"); unusable ones are not offered. */
+  templates?: GameTemplate[];
   /** Saves the game; rejects with an `ApiError` when the backend refuses it. */
   onSave: (game: GameRequest) => Promise<Game>;
   /** Called after a save; `addAnother` when the form stays open for the next game. */
@@ -85,6 +90,7 @@ export function GameForm({
   variants,
   game,
   copyOf,
+  templates = [],
   onSave,
   onSaved,
   onCancel,
@@ -136,6 +142,22 @@ export function GameForm({
     chosen: copyOf && { buyInCurrency: copyOf.currencyCode },
   });
   const { filledByName } = names;
+
+  /** Fills the form from a template, as if each field had been chosen by hand. */
+  function pickTemplate(template: GameTemplate) {
+    const start = copyValues(template, activeRooms, variants);
+    names.choose(template.currencyCode);
+    form.setValues({
+      gameType: start.gameType,
+      roomId: start.roomId,
+      variantId: start.variantId,
+      modality: start.modality,
+      name: start.name,
+      buyIn: start.buyIn,
+      ...(start.gameType === 'CASH' ? CASH_RESET : {}),
+    });
+    form.clearErrors();
+  }
 
   const amountProps = {
     min: 0,
@@ -253,6 +275,13 @@ export function GameForm({
           </Alert>
         )}
 
+        {!game && (
+          <TemplatePicker
+            templates={templates.filter((template) => template.usable)}
+            onPick={pickTemplate}
+          />
+        )}
+
         <SegmentedControl
           fullWidth
           aria-label={t('gameForm.gameType')}
@@ -264,16 +293,7 @@ export function GameForm({
             form.setValues({
               gameType: value as GameType,
               variantId: null,
-              ...(value === 'CASH'
-                ? {
-                    entries: 1,
-                    paidWithTicket: false,
-                    bounty: '',
-                    wonTicket: false,
-                    ticketPrizeValue: '',
-                    ticketDescription: '',
-                  }
-                : {}),
+              ...(value === 'CASH' ? CASH_RESET : {}),
             });
           }}
         />
@@ -449,6 +469,16 @@ export function GameForm({
   );
 }
 
+/** A cash game has neither re-entries, bounties nor tickets. */
+const CASH_RESET: Partial<GameFormValues> = {
+  entries: 1,
+  paidWithTicket: false,
+  bounty: '',
+  wonTicket: false,
+  ticketPrizeValue: '',
+  ticketDescription: '',
+};
+
 function showsTicketWon(values: GameFormValues): boolean {
   return values.status === 'FINISHED' && values.gameType !== 'CASH' && values.wonTicket;
 }
@@ -482,10 +512,10 @@ function initialValues(activeRooms: Room[]): GameFormValues {
 }
 
 /**
- * A new game like the one given: where and what it was, today and in the status a new game gets.
- * A room or variant that no longer takes games (inactive) is left to choose.
+ * A new game like the one given (or the template): where and what it was, today and in the
+ * status a new game gets. A room or variant that no longer takes games (inactive) is left to choose.
  */
-function copyValues(original: Game, activeRooms: Room[], variants: Variant[]): GameFormValues {
+function copyValues(original: GameStart, activeRooms: Room[], variants: Variant[]): GameFormValues {
   const offered = (id: number | undefined, candidates: { id: number; active: boolean }[]) =>
     candidates.some((candidate) => candidate.id === id && candidate.active);
   return {
@@ -496,7 +526,7 @@ function copyValues(original: Game, activeRooms: Room[], variants: Variant[]): G
     modality: original.modality,
     name: original.name ?? '',
     buyIn: original.buyIn,
-    tags: original.tags.map((tag) => tag.name),
+    tags: original.tags?.map((tag) => tag.name) ?? [],
   };
 }
 

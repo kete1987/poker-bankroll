@@ -54,6 +54,15 @@ class DemoDataSeederTests {
         assertThat(count("bankroll_movement where room_id is null")).isEqualTo(1);
         assertThat(jdbc.queryForList("select distinct type from bankroll_movement order by 1", String.class))
                 .containsExactly("ADJUSTMENT", "BONUS", "DEPOSIT", "WITHDRAWAL");
+        assertThat(count("game_template")).isEqualTo(4);
+        assertThat(jdbc.queryForList("select distinct game_type_code from game_template order by 1", String.class))
+                .containsExactly("CASH", "SIT_AND_GO", "TOURNAMENT");
+    }
+
+    @Test
+    void oneTemplateIsOfTheClosedRoom() {
+        assertThat(mvc.get().uri("/game-templates")).hasStatusOk().bodyJson()
+                .extractingPath("$[?(@.usable == false)].room.name").asArray().containsExactly("Unibet");
     }
 
     @Test

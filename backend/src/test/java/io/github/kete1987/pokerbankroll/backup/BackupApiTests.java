@@ -38,6 +38,7 @@ class BackupApiTests extends ApiIntegrationTest {
             "/games?size=100",
             "/games?size=100&status=IN_PLAY",
             "/bankroll/movements?size=100",
+            "/game-templates",
             "/stats/summary",
             "/stats/groups?groupBy=MONTH",
             "/stats/groups?groupBy=GAME_TYPE",
@@ -75,6 +76,7 @@ class BackupApiTests extends ApiIntegrationTest {
         assertThat(document.get("variants")).hasSize(14);
         assertThat(document.get("games")).hasSize(9);
         assertThat(document.get("movements")).hasSize(6);
+        assertThat(document.get("templates")).hasSize(4);
 
         JsonNode winamax = document.get("rooms").get(0);
         assertThat(winamax.get("name").asString()).isEqualTo("Winamax");
@@ -92,6 +94,12 @@ class BackupApiTests extends ApiIntegrationTest {
         // Each game names its tags, by name; a game without tags has no such property.
         assertThat(first.get("tags").toString()).isEqualTo("[\"challenge\",\"Series\"]");
         assertThat(document.get("games").get(1).has("tags")).isFalse();
+        // So do templates.
+        JsonNode template = document.get("templates").get(0);
+        assertThat(template.get("roomId")).isEqualTo(winamax.get("id"));
+        assertThat(template.get("label").asString()).isEqualTo("Sunday KO");
+        assertThat(template.get("name").asString()).isEqualTo("Kill The Fish");
+        assertThat(template.get("buyIn").decimalValue()).isEqualByComparingTo("10");
     }
 
     @Test
@@ -126,6 +134,7 @@ class BackupApiTests extends ApiIntegrationTest {
         json.extractingPath("$.file.games").isEqualTo(9);
         json.extractingPath("$.file.gamesInPlay").isEqualTo(2);
         json.extractingPath("$.file.movements").isEqualTo(6);
+        json.extractingPath("$.file.templates").isEqualTo(4);
         json.extractingPath("$.file.from").isEqualTo("2026-01-19");
         json.extractingPath("$.file.to").isEqualTo("2026-03-02");
         json.extractingPath("$.file.empty").isEqualTo(false);
@@ -175,6 +184,9 @@ class BackupApiTests extends ApiIntegrationTest {
                 String.class)).containsExactly("HEADS_UP", "MYSTERY_KO");
         assertThat(jdbc.queryForObject("select count(*) from game where status = 'IN_PLAY'", Integer.class))
                 .isEqualTo(2);
+        // A template in an inactive room and with an inactive variant.
+        assertThat(mvc.get().uri("/game-templates")).hasStatusOk().bodyJson()
+                .extractingPath("$[?(@.room.name == 'Unibet')].usable").asArray().containsExactly(false);
     }
 
     // ---- an installation that has data ----
@@ -213,6 +225,7 @@ class BackupApiTests extends ApiIntegrationTest {
         json.extractingPath("$.current.games").isEqualTo(2);
         json.extractingPath("$.current.gamesInPlay").isEqualTo(1);
         json.extractingPath("$.current.movements").isEqualTo(1);
+        json.extractingPath("$.current.templates").isEqualTo(1);
         json.extractingPath("$.current.from").isEqualTo("2025-05-05");
         json.extractingPath("$.current.to").isEqualTo("2025-05-06");
         json.extractingPath("$.current.empty").isEqualTo(false);
@@ -318,8 +331,13 @@ class BackupApiTests extends ApiIntegrationTest {
                    {"roomId": 1, "gameType": "CASH", "variantId": 99, "buyIn": 10.123, "entries": 2}],
                  "movements": [
                    {"occurredOn": "2026-01-01", "type": "DEPOSIT", "roomId": 1, "amount": -5},
-                   {"occurredOn": "2026-01-01", "type": "DEPOSIT", "amount": 5}]}
-                """);
+                   {"occurredOn": "2026-01-01", "type": "DEPOSIT", "amount": 5}],
+                 "templates": [
+                   {"roomId": 1, "gameType": "SIT_AND_GO", "variantId": 6, "buyIn": 2},
+                   {"roomId": 99, "gameType": "TOURNAMENT", "variantId": 2, "buyIn": -1, "label": ""},
+                   {"gameType": "CASH", "variantId": 98, "name": "%s"},
+                   null]}
+                """.formatted("x".repeat(151)));
 
         MvcTestResult result = restore(file, "?dryRun=true");
 
@@ -345,7 +363,15 @@ class BackupApiTests extends ApiIntegrationTest {
                         "games[3].entries CashGameFields",
                         "movements[0].amount MovementAmountSign",
                         "movements[1].roomId RoomOrCurrency",
-                        "movements[1].currencyCode RoomOrCurrency");
+                        "movements[1].currencyCode RoomOrCurrency",
+                        "templates[1].roomId UNKNOWN_ROOM",
+                        "templates[1].variantId UNKNOWN_BUILT_IN_VARIANT",
+                        "templates[1].buyIn DecimalMin",
+                        "templates[2].roomId NotNull",
+                        "templates[2].buyIn NotNull",
+                        "templates[2].name Size",
+                        "templates[2].variantId UNKNOWN_VARIANT",
+                        "templates[3] REQUIRED");
         assertThat(count("room")).isZero();
     }
 
@@ -419,6 +445,8 @@ class BackupApiTests extends ApiIntegrationTest {
         json.extractingPath("$.restored").isEqualTo(true);
         json.extractingPath("$.appVersion").isEqualTo("0.2.0");
         json.extractingPath("$.exportedAt").isEqualTo("2026-10-02T10:15:30Z");
+        // A file without templates (made before they existed) has none.
+        json.extractingPath("$.file.templates").isEqualTo(0);
         var game = assertThat(mvc.get().uri("/games").exchange()).hasStatusOk().bodyJson();
         game.extractingPath("$.items[0].room.name").isEqualTo("Winamax");
         game.extractingPath("$.items[0].variant.code").isEqualTo("KO");
@@ -549,6 +577,18 @@ class BackupApiTests extends ApiIntegrationTest {
         movement("""
                 {"occurredOn": "2026-01-02", "type": "DEPOSIT", "currencyCode": "USD", "amount": 250.75}""");
 
+        template("""
+                {"label": "Sunday KO", "roomId": %d, "gameType": "TOURNAMENT", "variantId": %d,
+                 "name": "Kill The Fish", "buyIn": 10}""".formatted(winamax, ko));
+        template("""
+                {"roomId": %d, "gameType": "SIT_AND_GO", "variantId": %d, "modality": "PLO", "buyIn": 5}"""
+                .formatted(tripleEight, hyperTurbo));
+        template("""
+                {"roomId": %d, "gameType": "CASH", "buyIn": 40}""".formatted(pokerStars));
+        template("""
+                {"roomId": %d, "gameType": "TOURNAMENT", "variantId": %d, "buyIn": 3.30}"""
+                .formatted(unibet, oldFormat));
+
         // What can no longer be used for new games, once it has them.
         ok(putJson("/rooms/" + unibet, """
                 {"name": "Unibet", "currencyCode": "EUR", "active": false}"""));
@@ -572,12 +612,15 @@ class BackupApiTests extends ApiIntegrationTest {
                 {"playedOn": "2025-05-06", "roomId": %d, "gameType": "CASH", "buyIn": 25}""".formatted(room));
         movement("""
                 {"occurredOn": "2025-05-01", "type": "DEPOSIT", "roomId": %d, "amount": 300}""".formatted(room));
+        template("""
+                {"roomId": %d, "gameType": "CASH", "buyIn": 25}""".formatted(room));
         ok(putJson("/variants/" + builtInVariantId("TOURNAMENT", "SPACE_KO"), """
                 {"active": false}"""));
     }
 
     /** Leaves the database as a new installation has it. */
     private void wipe() {
+        jdbc.update("delete from game_template");
         jdbc.update("delete from game");
         jdbc.update("delete from tag");
         jdbc.update("delete from bankroll_movement");
@@ -607,6 +650,10 @@ class BackupApiTests extends ApiIntegrationTest {
 
     private void movement(String json) {
         created(postJson("/bankroll/movements", json));
+    }
+
+    private void template(String json) {
+        created(postJson("/game-templates", json));
     }
 
     private long created(org.springframework.test.web.servlet.assertj.MockMvcTester.MockMvcRequestBuilder request) {

@@ -17,9 +17,10 @@ import org.jspecify.annotations.Nullable;
  * from and what is restored. It is not the file: each version of the format has its own records
  * (see {@link BackupV1}) that are mapped to and from these, so the restore only knows this model.
  *
- * <p>Rooms and variants have an {@code id} that only means something inside the backup: games and
- * movements name them by it. Tags are not apart: each game names its own, and the restore creates
- * them. Everything can be missing, since it may come from a file: the restore checks it.
+ * <p>Rooms and variants have an {@code id} that only means something inside the backup: games,
+ * movements and templates name them by it. Tags are not apart: each game names its own, and the
+ * restore creates them. Everything can be missing, since it may come from a file: the restore
+ * checks it.
  *
  * @param formatVersion version of the format of the file it was read from
  * @param appVersion    version of the application that made the backup
@@ -31,7 +32,8 @@ record BackupData(
         List<@Nullable RoomData> rooms,
         List<@Nullable VariantData> variants,
         List<@Nullable GameData> games,
-        List<@Nullable MovementData> movements) {
+        List<@Nullable MovementData> movements,
+        List<@Nullable TemplateData> templates) {
 
     record RoomData(
             @Nullable Long id,
@@ -89,5 +91,16 @@ record BackupData(
             @Nullable String currencyCode,
             @Nullable BigDecimal amount,
             @Nullable String notes) {
+    }
+
+    /** A template of a game played often, in a room and, optionally, of a variant. */
+    record TemplateData(
+            @Nullable String label,
+            @Nullable Long roomId,
+            @Nullable GameType gameType,
+            @Nullable Modality modality,
+            @Nullable Long variantId,
+            @Nullable String name,
+            @Nullable BigDecimal buyIn) {
     }
 }

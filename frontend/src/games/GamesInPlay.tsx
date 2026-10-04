@@ -1,5 +1,12 @@
 import { Button, Card, Group, Stack, Table, Text, Title } from '@mantine/core';
-import { IconCopy, IconFlag, IconPencil, IconPlus, IconTrash } from '@tabler/icons-react';
+import {
+  IconBookmarkPlus,
+  IconCopy,
+  IconFlag,
+  IconPencil,
+  IconPlus,
+  IconTrash,
+} from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 
 import type { Game } from '../api/types';
@@ -20,6 +27,7 @@ interface GamesInPlayProps {
   onRebuy: (game: Game) => void;
   onEdit: (game: Game) => void;
   onDuplicate: (game: Game) => void;
+  onSaveAsTemplate: (game: Game) => void;
   onDelete: (game: Game) => void;
 }
 
@@ -32,6 +40,7 @@ export function GamesInPlay({
   onRebuy,
   onEdit,
   onDuplicate,
+  onSaveAsTemplate,
   onDelete,
 }: GamesInPlayProps) {
   const { t } = useTranslation();
@@ -112,6 +121,7 @@ export function GamesInPlay({
                           game={game}
                           onEdit={onEdit}
                           onDuplicate={onDuplicate}
+                          onSaveAsTemplate={onSaveAsTemplate}
                           onDelete={onDelete}
                         />
                       </Group>
@@ -192,6 +202,14 @@ export function GamesInPlay({
                             onClick={() => onDuplicate(game)}
                           >
                             <IconCopy size={16} stroke={1.5} />
+                          </IconButton>
+                          <IconButton
+                            variant="subtle"
+                            color="gray"
+                            label={t('games.actions.saveAsTemplateGame', { game: name })}
+                            onClick={() => onSaveAsTemplate(game)}
+                          >
+                            <IconBookmarkPlus size={16} stroke={1.5} />
                           </IconButton>
                           <IconButton
                             variant="subtle"

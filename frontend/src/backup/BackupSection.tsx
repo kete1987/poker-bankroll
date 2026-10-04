@@ -247,17 +247,17 @@ export function BackupSection() {
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
-                {(['rooms', 'variants', 'games', 'gamesInPlay', 'movements'] as const).map(
-                  (what) => (
-                    <Table.Tr key={what}>
-                      <Table.Th scope="row" fw={400}>
-                        {t(`backup.contents.${what}`)}
-                      </Table.Th>
-                      <Table.Td ta="right">{format.number(result.file[what])}</Table.Td>
-                      <Table.Td ta="right">{format.number(result.current[what])}</Table.Td>
-                    </Table.Tr>
-                  ),
-                )}
+                {(
+                  ['rooms', 'variants', 'games', 'gamesInPlay', 'movements', 'templates'] as const
+                ).map((what) => (
+                  <Table.Tr key={what}>
+                    <Table.Th scope="row" fw={400}>
+                      {t(`backup.contents.${what}`)}
+                    </Table.Th>
+                    <Table.Td ta="right">{format.number(result.file[what])}</Table.Td>
+                    <Table.Td ta="right">{format.number(result.current[what])}</Table.Td>
+                  </Table.Tr>
+                ))}
                 <Table.Tr>
                   <Table.Th scope="row" fw={400}>
                     {t('backup.contents.dates')}
