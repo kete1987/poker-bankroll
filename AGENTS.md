@@ -96,6 +96,9 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   `POKER_BANKROLL_EXCHANGE_RATES_ENABLED=false` turns the downloads off.
 - `docker-compose.yml` has no `build` sections on purpose: it is also pasted as a Portainer stack,
   where there is no source code to build from. Building lives in `docker-compose.build.yml`.
+- `docs/install.md` and `docs/install.es.md` walk people who have never used Docker through
+  running the stack from the release zip (see "Releases"), and name its commands, services,
+  variables, port and volume: change them in the same PR as `docker-compose.yml` or `.env.example`.
 - `backup` (`prodrigestivill/postgres-backup-local`, pinned tag) dumps the database daily to
   `BACKUP_DIR` (default `deploy/backups/`, git-ignored) with daily/weekly/monthly retention.
   Keep its PostgreSQL major in sync with the `db` image. Restore procedure: `docs/backups.md`.
@@ -628,6 +631,9 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - `.github/workflows/release.yml` publishes both images to GHCR (amd64 + arm64): `edge` on every
   push to `main`; `X.Y.Z`, `X.Y` and `latest` on a `vX.Y.Z` tag (pre-release tags only `X.Y.Z-pre`),
   plus the GitHub Release with generated notes.
+- Every GitHub Release gets `poker-bankroll-X.Y.Z.zip` attached (`.github/scripts/release-bundle.sh`):
+  `deploy/docker-compose.yml` and `deploy/.env.example` as `.env` with `POKER_BANKROLL_VERSION=X.Y.Z`,
+  what the installation guide has people download. It is never replaced once attached.
 - The git tag is the only source of the version (`-Drevision` for Maven, `APP_VERSION` for the web
   build). Do not edit versions by hand in `pom.xml` or `package.json`.
 - Cut releases with `scripts/release.sh X.Y.Z` from an up-to-date `main`, or from GitHub with

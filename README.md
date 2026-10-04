@@ -54,6 +54,10 @@ browser ──► web (nginx + SPA) ──/api──► api (Spring Boot) ──
 
 ## Quick start
 
+> **Not technical? Follow the [installation guide](docs/install.md)**: step by step on Windows,
+> macOS or Linux, from installing Docker to using the app from your phone. No git or terminal
+> experience needed.
+
 Requires Docker with Compose:
 
 ```bash

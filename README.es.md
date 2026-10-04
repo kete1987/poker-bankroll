@@ -52,6 +52,10 @@ navegador ──► web (nginx + SPA) ──/api──► api (Spring Boot) ─�
 
 ## Puesta en marcha
 
+> **¿No eres técnico? Sigue la [guía de instalación](docs/install.es.md)**: paso a paso en
+> Windows, macOS o Linux, desde instalar Docker hasta usar la aplicación desde el móvil. No hace
+> falta saber nada de git ni del terminal.
+
 Necesitas Docker con Compose:
 
 ```bash
