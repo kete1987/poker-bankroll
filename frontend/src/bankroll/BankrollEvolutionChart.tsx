@@ -222,7 +222,8 @@ export function BankrollEvolutionChart({
         granularity: t(`bankroll.evolution.groupBy.${drawn}`).toLocaleLowerCase(),
       })
     : t('bankroll.evolution.groupBy.AUTO');
-  const failed = byMonth.isError || evolution.isError;
+  // The months only matter while they are asked for: once a cut is chosen, their failure is past.
+  const failed = (fixed === undefined && byMonth.isError) || evolution.isError;
 
   return (
     <Stack gap="xs">

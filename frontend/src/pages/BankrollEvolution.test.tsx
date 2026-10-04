@@ -12,7 +12,7 @@ import type {
 } from '../api/types';
 import { room } from '../test/fixtures';
 import { onANarrowScreen } from '../test/narrowScreen';
-import { renderApp, stubApi, type ApiCall } from '../test/renderApp';
+import { problem, renderApp, stubApi, type ApiCall } from '../test/renderApp';
 
 // Canvas rendering is not available in jsdom: the chart is replaced by what it was asked to draw.
 vi.mock('../components/Chart', () => ({
@@ -268,6 +268,25 @@ describe('Bankroll evolution', () => {
     // Years of activity: the months are what is drawn.
     expect(evolutionQueries(calls).map((query) => query.groupBy)).toEqual(['MONTH']);
     expect(screen.getByRole('combobox', { name: 'Group by' })).toHaveValue('Automatic (months)');
+  });
+
+  it('draws the cut chosen after the months for all time failed', async () => {
+    const calls = stubEvolution({
+      'GET /bankroll/evolution': (call: ApiCall) =>
+        call.query.get('groupBy') === 'MONTH'
+          ? problem(500, 'INTERNAL_ERROR', 'Boom')
+          : evolution(call),
+    });
+    renderApp('/bankroll');
+    expect(await screen.findByText(/could not be loaded/i)).toBeInTheDocument();
+
+    const select = screen.getByRole('combobox', { name: 'Group by' });
+    await userEvent.click(select);
+    const list = document.getElementById(select.getAttribute('aria-controls') ?? '')!;
+    await userEvent.click(within(list).getByRole('option', { name: 'Days', hidden: true }));
+    await drawn();
+    expect(evolutionQueries(calls).at(-1)).toEqual({ groupBy: 'DAY' });
+    expect(screen.queryByText(/could not be loaded/i)).not.toBeInTheDocument();
   });
 
   it('cuts the time as chosen, kept in the URL, without changing the page of movements', async () => {
