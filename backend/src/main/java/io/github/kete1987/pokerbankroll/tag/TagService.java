@@ -2,11 +2,11 @@ package io.github.kete1987.pokerbankroll.tag;
 
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -55,7 +55,9 @@ public class TagService {
         if (names == null) {
             return List.of();
         }
-        Map<String, String> byKey = new LinkedHashMap<>();
+        // Sorted, so requests creating the same new tags insert them in the same order and wait for
+        // each other instead of deadlocking on the unique index.
+        Map<String, String> byKey = new TreeMap<>();
         for (String name : names) {
             if (name != null && !name.isBlank()) {
                 byKey.putIfAbsent(key(name), name.strip());
