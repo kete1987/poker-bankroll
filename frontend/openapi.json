@@ -108,7 +108,12 @@
       },
       "BankrollEvolutionResponse" : {
         "properties" : {
+          "converted" : {
+            "$ref" : "#/components/schemas/ConvertedEvolution",
+            "description" : "Every currency converted to the base currency. When the response is in a single currency, show that currency instead"
+          },
           "currencies" : {
+            "description" : "One evolution per currency, in its own money, by code",
             "items" : {
               "$ref" : "#/components/schemas/CurrencyEvolution"
             },
@@ -119,7 +124,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "currencies", "groupBy" ],
+        "required" : [ "converted", "currencies", "groupBy" ],
         "type" : "object"
       },
       "BankrollFigures" : {
@@ -168,14 +173,19 @@
       },
       "BankrollSummaryResponse" : {
         "properties" : {
+          "converted" : {
+            "$ref" : "#/components/schemas/ConvertedBankroll",
+            "description" : "Every currency converted to the base currency. When the response is in a single currency, show that currency instead"
+          },
           "currencies" : {
+            "description" : "One bankroll per currency, in its own money, by code",
             "items" : {
               "$ref" : "#/components/schemas/CurrencyBankroll"
             },
             "type" : "array"
           }
         },
-        "required" : [ "currencies" ],
+        "required" : [ "converted", "currencies" ],
         "type" : "object"
       },
       "BuyInRange" : {
@@ -215,6 +225,126 @@
           }
         },
         "required" : [ "currencies", "gameTypes", "modalities" ],
+        "type" : "object"
+      },
+      "ConvertedBankroll" : {
+        "properties" : {
+          "balanceRatesOn" : {
+            "description" : "Day whose rates convert the bankroll as a balance: `to`, or today. Null with `from`: then the bankroll is what changed in the period, converted day by day",
+            "format" : "date",
+            "type" : [ "string", "null" ]
+          },
+          "currencyCode" : {
+            "description" : "The base currency the amounts are converted to",
+            "type" : "string"
+          },
+          "missingRates" : {
+            "description" : "Amounts left out of these figures for lack of an exchange rate",
+            "items" : {
+              "$ref" : "#/components/schemas/MissingExchangeRate"
+            },
+            "type" : "array"
+          },
+          "rooms" : {
+            "description" : "Rooms of every currency, by name, with their amounts converted",
+            "items" : {
+              "$ref" : "#/components/schemas/RoomBankroll"
+            },
+            "type" : "array"
+          },
+          "total" : {
+            "$ref" : "#/components/schemas/BankrollFigures",
+            "description" : "Every room of the response plus the movements without a room"
+          },
+          "withoutRoom" : {
+            "$ref" : "#/components/schemas/BankrollFigures",
+            "description" : "Movements that belong to no room, of every currency"
+          }
+        },
+        "required" : [ "currencyCode", "missingRates", "rooms", "total", "withoutRoom" ],
+        "type" : "object"
+      },
+      "ConvertedEvolution" : {
+        "properties" : {
+          "currencyCode" : {
+            "description" : "The base currency the amounts are converted to",
+            "type" : "string"
+          },
+          "missingRates" : {
+            "description" : "Amounts left out of these figures for lack of an exchange rate",
+            "items" : {
+              "$ref" : "#/components/schemas/MissingExchangeRate"
+            },
+            "type" : "array"
+          },
+          "rooms" : {
+            "description" : "Rooms of every currency, by name. Each has every period of the total, also those it has nothing in: its balance is worth something else when the rates change",
+            "items" : {
+              "$ref" : "#/components/schemas/RoomEvolution"
+            },
+            "type" : "array"
+          },
+          "total" : {
+            "$ref" : "#/components/schemas/EvolutionSeries",
+            "description" : "The rooms of the response plus, without a room filter, the movements that belong to no room"
+          }
+        },
+        "required" : [ "currencyCode", "missingRates", "rooms", "total" ],
+        "type" : "object"
+      },
+      "ConvertedGroups" : {
+        "properties" : {
+          "currencyCode" : {
+            "description" : "The base currency the amounts are converted to",
+            "type" : "string"
+          },
+          "groups" : {
+            "description" : "As in a currency. BUY_IN: one group per buy-in and currency (`key.currencyCode`), 5 USD and 5 EUR apart; BUY_IN_RANGE: the range of the buy-in converted with the rate of its day",
+            "items" : {
+              "$ref" : "#/components/schemas/Group"
+            },
+            "type" : "array"
+          },
+          "missingRates" : {
+            "description" : "Games left out of these groups for lack of an exchange rate",
+            "items" : {
+              "$ref" : "#/components/schemas/MissingExchangeRate"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "currencyCode", "groups", "missingRates" ],
+        "type" : "object"
+      },
+      "ConvertedSummary" : {
+        "properties" : {
+          "byGameType" : {
+            "description" : "The game types with finished games, in catalog order",
+            "items" : {
+              "$ref" : "#/components/schemas/GameTypeSummary"
+            },
+            "type" : "array"
+          },
+          "currencyCode" : {
+            "description" : "The base currency the amounts are converted to",
+            "type" : "string"
+          },
+          "inPlay" : {
+            "$ref" : "#/components/schemas/InPlay"
+          },
+          "missingRates" : {
+            "description" : "Games left out of these figures for lack of an exchange rate",
+            "items" : {
+              "$ref" : "#/components/schemas/MissingExchangeRate"
+            },
+            "type" : "array"
+          },
+          "total" : {
+            "$ref" : "#/components/schemas/StatsFigures",
+            "description" : "Every finished game that could be converted"
+          }
+        },
+        "required" : [ "byGameType", "currencyCode", "inPlay", "missingRates", "total" ],
         "type" : "object"
       },
       "CurrencyBankroll" : {
@@ -277,6 +407,35 @@
         "required" : [ "currencyCode", "groups" ],
         "type" : "object"
       },
+      "CurrencyRates" : {
+        "properties" : {
+          "currencyCode" : {
+            "type" : "string"
+          },
+          "firstRateOn" : {
+            "description" : "First day with a rate, downloaded or manual",
+            "format" : "date",
+            "type" : [ "string", "null" ]
+          },
+          "lastRateOn" : {
+            "description" : "Last day with a rate, downloaded or manual",
+            "format" : "date",
+            "type" : [ "string", "null" ]
+          },
+          "manualRates" : {
+            "description" : "Rates typed by hand",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "neededFrom" : {
+            "description" : "First day of an amount converted with this currency's rate: amounts before `firstRateOn` cannot be converted. Null when no amount needs it with this base currency",
+            "format" : "date",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "currencyCode", "manualRates" ],
+        "type" : "object"
+      },
       "CurrencyResponse" : {
         "properties" : {
           "code" : {
@@ -291,6 +450,33 @@
           }
         },
         "required" : [ "code", "decimals", "symbol" ],
+        "type" : "object"
+      },
+      "CurrencySettingsRequest" : {
+        "properties" : {
+          "baseCurrencyCode" : {
+            "description" : "Code of a currency of the catalog, e.g. EUR; null (or omitted) for the automatic one: the currency with most games",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "type" : "object"
+      },
+      "CurrencySettingsResponse" : {
+        "properties" : {
+          "automaticBaseCurrencyCode" : {
+            "description" : "The one used when none is chosen: the currency with most games; without games the first one of the rooms and movements; without anything EUR",
+            "type" : "string"
+          },
+          "baseCurrencyCode" : {
+            "description" : "Chosen by the user; null when it is automatic",
+            "type" : [ "string", "null" ]
+          },
+          "effectiveBaseCurrencyCode" : {
+            "description" : "The base currency in use: the chosen one, or the automatic one",
+            "type" : "string"
+          }
+        },
+        "required" : [ "automaticBaseCurrencyCode", "effectiveBaseCurrencyCode" ],
         "type" : "object"
       },
       "CurrencySummary" : {
@@ -372,6 +558,45 @@
           }
         },
         "required" : [ "periods", "startingBankroll" ],
+        "type" : "object"
+      },
+      "ExchangeRateStatusResponse" : {
+        "properties" : {
+          "baseCurrencyCode" : {
+            "description" : "The base currency in use",
+            "type" : "string"
+          },
+          "currencies" : {
+            "description" : "The currencies that need rates (the base one and those of games and movements, but EUR, which is always 1), by code",
+            "items" : {
+              "$ref" : "#/components/schemas/CurrencyRates"
+            },
+            "type" : "array"
+          },
+          "enabled" : {
+            "description" : "Rates are downloaded (on start, every day and when asked for); false when the installation turned it off, and then only manual rates exist",
+            "type" : "boolean"
+          },
+          "lastAttemptAt" : {
+            "description" : "When the last download started, since the API started",
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "lastError" : {
+            "description" : "What went wrong in the last download; null when it went well. Technical text, not translated",
+            "type" : [ "string", "null" ]
+          },
+          "lastSuccessAt" : {
+            "description" : "When the last download that got every currency it asked for ended, since the API started",
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "running" : {
+            "description" : "A download is running now",
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "baseCurrencyCode", "currencies", "enabled", "running" ],
         "type" : "object"
       },
       "FinishGameRequest" : {
@@ -875,6 +1100,10 @@
             } ],
             "description" : "BUY_IN_RANGE"
           },
+          "currencyCode" : {
+            "description" : "BUY_IN of the converted groups: the currency of the buy-in",
+            "type" : [ "string", "null" ]
+          },
           "gameType" : {
             "description" : "GAME_TYPE, and VARIANT (the type the variant belongs to)",
             "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH", null ],
@@ -1022,6 +1251,60 @@
           }
         },
         "required" : [ "url" ],
+        "type" : "object"
+      },
+      "ManualRateRequest" : {
+        "properties" : {
+          "rate" : {
+            "description" : "Units of the currency that 1 EUR is worth that day, as the ECB publishes rates (1 EUR = 1.0850 USD is 1.0850); up to 8 decimals",
+            "exclusiveMinimum" : 0,
+            "type" : "number"
+          }
+        },
+        "required" : [ "rate" ],
+        "type" : "object"
+      },
+      "ManualRateResponse" : {
+        "properties" : {
+          "currencyCode" : {
+            "type" : "string"
+          },
+          "date" : {
+            "description" : "Day from which it applies, until the next rate of the currency",
+            "format" : "date",
+            "type" : "string"
+          },
+          "downloadedRate" : {
+            "description" : "The rate downloaded from the ECB for the same day, which this one replaces; null when there is none",
+            "type" : [ "number", "null" ]
+          },
+          "rate" : {
+            "description" : "Units of the currency that 1 EUR is worth",
+            "type" : "number"
+          }
+        },
+        "required" : [ "currencyCode", "date", "rate" ],
+        "type" : "object"
+      },
+      "MissingExchangeRate" : {
+        "description" : "Amounts that could not be converted, for lack of a rate of this currency on or before their day: they are left out of the converted figures",
+        "properties" : {
+          "currencyCode" : {
+            "description" : "The currency without a rate: the one of the amounts, or the base currency",
+            "type" : "string"
+          },
+          "from" : {
+            "description" : "First day of an amount left out",
+            "format" : "date",
+            "type" : "string"
+          },
+          "to" : {
+            "description" : "Last day of an amount left out",
+            "format" : "date",
+            "type" : "string"
+          }
+        },
+        "required" : [ "currencyCode", "from", "to" ],
         "type" : "object"
       },
       "MovementRequest" : {
@@ -1347,7 +1630,12 @@
       },
       "StatsGroupsResponse" : {
         "properties" : {
+          "converted" : {
+            "$ref" : "#/components/schemas/ConvertedGroups",
+            "description" : "The groups of every game of the selection with its amounts converted to the base currency, each with the rates of the day it was played. When the selection is in a single currency, show that currency instead"
+          },
           "currencies" : {
+            "description" : "The groups of each currency, in its own money, by code",
             "items" : {
               "$ref" : "#/components/schemas/CurrencyGroups"
             },
@@ -1358,19 +1646,24 @@
             "type" : "string"
           }
         },
-        "required" : [ "currencies", "groupBy" ],
+        "required" : [ "converted", "currencies", "groupBy" ],
         "type" : "object"
       },
       "StatsSummaryResponse" : {
         "properties" : {
+          "converted" : {
+            "$ref" : "#/components/schemas/ConvertedSummary",
+            "description" : "Every game of the selection with its amounts converted to the base currency, each with the rates of the day it was played. When the selection is in a single currency, show that currency instead"
+          },
           "currencies" : {
+            "description" : "One summary per currency, in its own money, by code",
             "items" : {
               "$ref" : "#/components/schemas/CurrencySummary"
             },
             "type" : "array"
           }
         },
-        "required" : [ "currencies" ],
+        "required" : [ "converted", "currencies" ],
         "type" : "object"
       },
       "TagRef" : {
@@ -1914,6 +2207,144 @@
         },
         "summary" : "Currencies, game types and modalities, in display order",
         "tags" : [ "Catalog" ]
+      }
+    },
+    "/exchange-rates/manual" : {
+      "get" : {
+        "description" : "Newest first.",
+        "operationId" : "listManualRates",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ManualRateResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "List the rates typed by hand",
+        "tags" : [ "Currencies" ]
+      }
+    },
+    "/exchange-rates/manual/{currencyCode}/{date}" : {
+      "delete" : {
+        "description" : "The downloaded rate of that day, if any, applies again.",
+        "operationId" : "deleteManualRate",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "currencyCode",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "date",
+          "required" : true,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Delete a rate typed by hand",
+        "tags" : [ "Currencies" ]
+      },
+      "put" : {
+        "description" : "The rate of a currency from a day on (until its next rate), per 1 EUR. It wins over the downloaded rate of that day. Replaces the one typed before for the same currency and day. EUR has no rate (EXCHANGE_RATE_OF_EUR): it is always 1.",
+        "operationId" : "saveManualRate",
+        "parameters" : [ {
+          "description" : "Currency of the catalog, e.g. USD",
+          "in" : "path",
+          "name" : "currencyCode",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "Day of the rate, e.g. 2026-10-01",
+          "in" : "path",
+          "name" : "date",
+          "required" : true,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ManualRateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ManualRateResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Record a rate by hand",
+        "tags" : [ "Currencies" ]
+      }
+    },
+    "/exchange-rates/refresh" : {
+      "post" : {
+        "description" : "Waits for the download and returns the status, with `lastError` when something failed. 409 EXCHANGE_RATES_DISABLED when the installation does not download rates.",
+        "operationId" : "refreshExchangeRates",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExchangeRateStatusResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Download the missing exchange rates now",
+        "tags" : [ "Currencies" ]
+      }
+    },
+    "/exchange-rates/status" : {
+      "get" : {
+        "description" : "Rates are those of the European Central Bank, downloaded from Frankfurter when the API starts and every day, plus the ones typed by hand.",
+        "operationId" : "getExchangeRateStatus",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExchangeRateStatusResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Exchange rates there are and how their download went",
+        "tags" : [ "Currencies" ]
       }
     },
     "/exports/games" : {
@@ -3038,6 +3469,54 @@
         "tags" : [ "Rooms" ]
       }
     },
+    "/settings/currency" : {
+      "get" : {
+        "description" : "Amounts of several currencies are shown together converted to it. When none is chosen, it is the currency with most games.",
+        "operationId" : "getCurrencySettings",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CurrencySettingsResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Base currency",
+        "tags" : [ "Currencies" ]
+      },
+      "put" : {
+        "description" : "Null leaves it automatic. The rates the new one needs are downloaded afterwards, in the background.",
+        "operationId" : "updateCurrencySettings",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CurrencySettingsRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CurrencySettingsResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Choose the base currency",
+        "tags" : [ "Currencies" ]
+      }
+    },
     "/stats/groups" : {
       "get" : {
         "description" : "Groups by period (day, week, month, year), game type, variant, room, modality, buy-in or range of buy-ins, name of the game, day of the week or tag, with the same figures as the summary. Ranges of buy-ins are fixed: free, below 1, and from 1, 2, 5, 10, 20 and 50. Names are grouped ignoring case and surrounding spaces. A game with several tags is in the group of each, so groups by tag do not add up to the total; games without tags are one group. Takes the filters of the games list, so e.g. `groupBy=MONTH&gameType=TOURNAMENT` gives the tournaments per month. Periods without games are not returned.",
@@ -3512,6 +3991,9 @@
   }, {
     "description" : "Aggregated results",
     "name" : "Statistics"
+  }, {
+    "description" : "Base currency and exchange rates, to show several currencies together",
+    "name" : "Currencies"
   }, {
     "description" : "Reference data used by the forms",
     "name" : "Catalog"

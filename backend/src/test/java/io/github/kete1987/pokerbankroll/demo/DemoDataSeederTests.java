@@ -75,6 +75,19 @@ class DemoDataSeederTests {
     }
 
     @Test
+    void itsDollarsAreConvertedWithItsOwnRates() {
+        assertThat(jdbc.queryForObject("select count(*) from exchange_rate where currency_code = 'USD'", Integer.class))
+                .isBetween(250, 270);
+        assertThat(jdbc.queryForObject("select min(rate) >= 1.05 and max(rate) <= 1.15 from exchange_rate",
+                Boolean.class)).isTrue();
+        var summary = assertThat(mvc.get().uri("/stats/summary")).hasStatusOk().bodyJson();
+        summary.extractingPath("$.converted.currencyCode").isEqualTo("EUR");
+        summary.extractingPath("$.converted.missingRates").asArray().isEmpty();
+        assertThat(mvc.get().uri("/bankroll/evolution?groupBy=MONTH")).hasStatusOk().bodyJson()
+                .extractingPath("$.converted.missingRates").asArray().isEmpty();
+    }
+
+    @Test
     void someRoomsHaveAnInventedLogo() {
         assertThat(jdbc.queryForList("""
                 select r.name from room r join room_logo l on l.room_id = r.id

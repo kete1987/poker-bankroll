@@ -49,7 +49,6 @@
     "HEADS_UP": "Heads-up"
   },
   "dashboard": {
-    "currency": "Currency",
     "empty": "There is nothing to show yet.",
     "goToGames": "Go to games",
     "noGames": "No finished games in this period.",
@@ -187,6 +186,14 @@
         "amount": "Enter an amount greater than zero",
         "notSaved": "The movement was not saved"
       }
+    },
+    "withoutRoomIn": "No room ({{currency}})",
+    "totalIn": "Total in {{currency}}",
+    "conversion": {
+      "balance": "Everything is converted to {{currency}}: what happened with the rate of its day, and the bankroll with {{rates}}. So the bankroll can differ from deposits − withdrawals + result: that is the exchange difference.",
+      "today": "today's rates",
+      "ofDay": "the rates of {{date}}",
+      "period": "Everything is converted to {{currency}}, each amount with the rate of its day."
     }
   },
   "settings": {
@@ -195,7 +202,8 @@
       "rooms": "Rooms",
       "variants": "Variants",
       "tags": "Tags",
-      "templates": "Templates"
+      "templates": "Templates",
+      "currencies": "Currencies"
     },
     "rooms": {
       "add": "Add room",
@@ -270,6 +278,54 @@
         "confirm_one": "Delete the tag {{tag}}? {{formatted}} game loses it; the game is kept.",
         "confirm_other": "Delete the tag {{tag}}? {{formatted}} games lose it; the games are kept.",
         "done": "Tag deleted"
+      }
+    },
+    "currencies": {
+      "base": {
+        "title": "Base currency",
+        "help": "When what you look at is in a single currency, it is shown in it. When it mixes currencies, everything is converted to this one with the exchange rate of each day. Your games and movements keep their own currency.",
+        "label": "Show mixed currencies in",
+        "automatic": "Automatic: {{currency}} (the one with most games)",
+        "saved": "Base currency saved"
+      },
+      "rates": {
+        "title": "Exchange rates",
+        "help": "Reference rates of the European Central Bank, downloaded from Frankfurter when the app starts and every afternoon. Days without a rate (weekends, holidays) use the last one before.",
+        "disabled": "This installation does not download exchange rates: type them by hand below.",
+        "update": "Update now",
+        "updated": "Exchange rates updated",
+        "failed": "The exchange rates could not be downloaded",
+        "lastDownload": "Last download: {{when}}",
+        "notYet": "not yet",
+        "lastError": "The last download failed",
+        "noneNeeded": "Everything is in one currency: no exchange rate is needed.",
+        "currency": "Currency",
+        "days": "Rates",
+        "state": "State",
+        "between": "{{from}} to {{to}}",
+        "complete": "Complete",
+        "missingBefore": "Missing before {{date}}",
+        "none": "No rates"
+      },
+      "manual": {
+        "title": "Rates typed by hand",
+        "help": "For currencies the ECB does not publish, or to correct a rate. A rate is what 1 EUR is worth in the currency, from its day until the next rate; it wins over the downloaded one of that day.",
+        "add": "Add rate",
+        "date": "Date",
+        "currency": "Currency",
+        "value": "1 EUR in {{currency}}",
+        "rate": "1 EUR = {{rate}} {{currency}}",
+        "rateColumn": "Rate",
+        "downloaded": "ECB that day",
+        "empty": "No rate typed by hand.",
+        "saved": "Exchange rate saved",
+        "deleted": "Exchange rate deleted",
+        "delete": "Delete {{rate}} of {{date}}",
+        "deleteTitle": "Delete exchange rate",
+        "deleteConfirm": "Delete the rate {{rate}} of {{date}}? The downloaded one of that day, if any, applies again.",
+        "errors": {
+          "rate": "Enter a rate greater than zero"
+        }
       }
     }
   },
@@ -716,5 +772,14 @@
     "help": "To group games as you like: write a new one or pick one you have. Up to {{max}}.",
     "placeholder": "Challenge, with friends...",
     "ofGame": "Tags"
+  },
+  "currencies": {
+    "missing": {
+      "title": "Missing exchange rates",
+      "text": "These amounts could not be converted, so they are left out of the figures:",
+      "day": "{{currency}} on {{date}}",
+      "days": "{{currency}} from {{from}} to {{to}}",
+      "link": "Download or type the rates in Settings → Currencies"
+    }
   }
 }

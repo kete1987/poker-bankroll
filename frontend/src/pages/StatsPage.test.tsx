@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { StatsFigures, StatsGroups, StatsSummary } from '../api/types';
 import { rangeOf } from '../components/period';
 import { granularityFor } from '../stats/useStatsFilters';
-import { room, VARIANTS } from '../test/fixtures';
+import { room, statsGroups, statsSummary, VARIANTS } from '../test/fixtures';
 import { problem, renderApp, stubApi, type ApiCall } from '../test/renderApp';
 
 // Canvas rendering is not available in jsdom: the chart is replaced by what it was asked to draw.
@@ -29,25 +29,23 @@ function figures(overrides: Partial<StatsFigures> = {}): StatsFigures {
   };
 }
 
-const SUMMARY: StatsSummary = {
-  currencies: [
-    {
-      currencyCode: 'EUR',
-      total: figures({ games: 12, net: 25.5, invested: 51, won: 76.5, roi: 0.5 }),
-      byGameType: [
-        { gameType: 'TOURNAMENT', figures: figures({ games: 9, net: 30 }) },
-        { gameType: 'SIT_AND_GO', figures: figures({ games: 3, net: -4.5 }) },
-      ],
-      inPlay: { games: 0, invested: 0 },
-    },
-    {
-      currencyCode: 'USD',
-      total: figures({ games: 2, net: -10 }),
-      byGameType: [],
-      inPlay: { games: 0, invested: 0 },
-    },
+const EUR_SUMMARY = {
+  currencyCode: 'EUR',
+  total: figures({ games: 12, net: 25.5, invested: 51, won: 76.5, roi: 0.5 }),
+  byGameType: [
+    { gameType: 'TOURNAMENT' as const, figures: figures({ games: 9, net: 30 }) },
+    { gameType: 'SIT_AND_GO' as const, figures: figures({ games: 3, net: -4.5 }) },
   ],
+  inPlay: { games: 0, invested: 0 },
 };
+const USD_SUMMARY = {
+  currencyCode: 'USD',
+  total: figures({ games: 2, net: -10, invested: 10 }),
+  byGameType: [],
+  inPlay: { games: 0, invested: 0 },
+};
+
+const SUMMARY: StatsSummary = statsSummary([EUR_SUMMARY]);
 
 const PERIODS: Record<string, string[]> = {
   DAY: ['2026-01-19', '2026-01-20', '2026-01-22'],
@@ -56,42 +54,31 @@ const PERIODS: Record<string, string[]> = {
 };
 const NETS = [10, -4.5, 20];
 
-function groups(groupBy: string): StatsGroups {
+/** The groups of each period with these nets, in a currency. */
+function periodGroups(groupBy: string, nets: number[]) {
   const periods = PERIODS[groupBy] ?? [];
   let cumulativeNet = 0;
-  return {
-    groupBy: groupBy as StatsGroups['groupBy'],
-    currencies: [
-      {
-        currencyCode: 'EUR',
-        groups: periods.map((period, index) => {
-          cumulativeNet += NETS[index] ?? 0;
-          const net = NETS[index] ?? 0;
-          return {
-            key: { period },
-            figures: figures({ games: index + 3, net, invested: 10, won: 10 + net, roi: net / 10 }),
-            cumulativeNet,
-            byGameType: [
-              {
-                gameType: index === 1 ? ('SIT_AND_GO' as const) : ('TOURNAMENT' as const),
-                figures: figures({ games: index + 3, net }),
-              },
-            ],
-          };
-        }),
-      },
-      {
-        currencyCode: 'USD',
-        groups: [
-          {
-            key: { period: periods[0] },
-            figures: figures({ games: 2, net: -10 }),
-            cumulativeNet: -10,
-          },
-        ],
-      },
-    ],
-  };
+  return periods.map((period, index) => {
+    const net = nets[index] ?? 0;
+    cumulativeNet += net;
+    return {
+      key: { period },
+      figures: figures({ games: index + 3, net, invested: 10, won: 10 + net, roi: net / 10 }),
+      cumulativeNet,
+      byGameType: [
+        {
+          gameType: index === 1 ? ('SIT_AND_GO' as const) : ('TOURNAMENT' as const),
+          figures: figures({ games: index + 3, net }),
+        },
+      ],
+    };
+  });
+}
+
+function groups(groupBy: string): StatsGroups {
+  return statsGroups(groupBy as StatsGroups['groupBy'], [
+    { currencyCode: 'EUR', groups: periodGroups(groupBy, NETS) },
+  ]);
 }
 
 function stubStats(handlers: Record<string, unknown> = {}) {
@@ -143,7 +130,7 @@ describe('granularityFor', () => {
 });
 
 describe('Statistics page', () => {
-  it('draws the cumulative net of this year by week, in the currency with most games', async () => {
+  it('draws the cumulative net of this year by week, in the only currency there is', async () => {
     const calls = stubStats();
     renderApp('/stats');
 
@@ -160,7 +147,39 @@ describe('Statistics page', () => {
       to: thisYear.to,
     });
     expect(screen.getByRole('combobox', { name: 'Group by' })).toHaveValue('Week');
-    expect(screen.getByRole('combobox', { name: 'Currency' })).toHaveValue('EUR');
+    expect(screen.queryByRole('combobox', { name: 'Currency' })).not.toBeInTheDocument();
+  });
+
+  it('converts everything to the base currency when currencies are mixed', async () => {
+    stubStats({
+      'GET /stats/summary': statsSummary([EUR_SUMMARY, USD_SUMMARY], {
+        currencyCode: 'EUR',
+        total: figures({ games: 14, net: 16.5, invested: 60, roi: 0.275 }),
+        missingRates: [{ currencyCode: 'USD', from: '2026-01-19', to: '2026-01-19' }],
+      }),
+      'GET /stats/groups': (call: ApiCall) => {
+        const groupBy = call.query.get('groupBy') ?? '';
+        return statsGroups(
+          groupBy as StatsGroups['groupBy'],
+          [
+            { currencyCode: 'EUR', groups: periodGroups(groupBy, NETS) },
+            { currencyCode: 'USD', groups: periodGroups(groupBy, [-10]) },
+          ],
+          { currencyCode: 'EUR', groups: periodGroups(groupBy, [1, -4.5, 20]) },
+        );
+      },
+    });
+    renderApp('/stats');
+
+    const option = await chartOption();
+    expect(option.series[0]?.data).toEqual([1, -3.5, 16.5]);
+    expect(card('Net of the period').getByText('+€16.50')).toBeInTheDocument();
+    expect(card('Net of the period').getByText('+€25.50 · -US$10.00')).toBeInTheDocument();
+    expect(card('ROI').getByText('€60.00 invested')).toBeInTheDocument();
+    expect(card('ROI').getByText('€51.00 · US$10.00')).toBeInTheDocument();
+    expect(card('Best week').getByText('+€20.00')).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Currency' })).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('USD on 19/01/2026');
   });
 
   it('sums the period up in cards, with its best and worst week', async () => {
@@ -294,20 +313,17 @@ describe('Statistics page', () => {
       return index < 31 ? `2026-01-${day}` : `2026-02-${String(index - 30).padStart(2, '0')}`;
     });
     stubStats({
-      'GET /stats/groups': {
-        groupBy: 'DAY',
-        currencies: [
-          {
-            currencyCode: 'EUR',
-            groups: days.map((period, index) => ({
-              key: { period },
-              figures: figures({ games: 1, net: 1 }),
-              cumulativeNet: index + 1,
-              byGameType: [{ gameType: 'TOURNAMENT', figures: figures({ games: 1, net: 1 }) }],
-            })),
-          },
-        ],
-      },
+      'GET /stats/groups': statsGroups('DAY', [
+        {
+          currencyCode: 'EUR',
+          groups: days.map((period, index) => ({
+            key: { period },
+            figures: figures({ games: 1, net: 1 }),
+            cumulativeNet: index + 1,
+            byGameType: [{ gameType: 'TOURNAMENT', figures: figures({ games: 1, net: 1 }) }],
+          })),
+        },
+      ]),
     });
     renderApp('/stats?group=day');
 
@@ -328,20 +344,17 @@ describe('Statistics page', () => {
       new Date(Date.UTC(2026, 0, index + 1)).toISOString().slice(0, 10),
     );
     stubStats({
-      'GET /stats/groups': {
-        groupBy: 'DAY',
-        currencies: [
-          {
-            currencyCode: 'EUR',
-            groups: days.map((period, index) => ({
-              key: { period },
-              figures: figures({ games: 1, net: 1 }),
-              cumulativeNet: index + 1,
-              byGameType: [{ gameType: 'TOURNAMENT', figures: figures({ games: 1, net: 1 }) }],
-            })),
-          },
-        ],
-      },
+      'GET /stats/groups': statsGroups('DAY', [
+        {
+          currencyCode: 'EUR',
+          groups: days.map((period, index) => ({
+            key: { period },
+            figures: figures({ games: 1, net: 1 }),
+            cumulativeNet: index + 1,
+            byGameType: [{ gameType: 'TOURNAMENT', figures: figures({ games: 1, net: 1 }) }],
+          })),
+        },
+      ]),
     });
     renderApp('/stats?group=day&page=2');
 
@@ -393,7 +406,7 @@ describe('Statistics page', () => {
 
   it('takes everything from the URL', async () => {
     const calls = stubStats();
-    renderApp('/stats?period=all&type=CASH,SIT_AND_GO&room=1&variant=20&currency=usd&group=day');
+    renderApp('/stats?period=all&type=CASH,SIT_AND_GO&room=1&variant=20&group=day');
 
     const option = await chartOption();
 
@@ -405,9 +418,23 @@ describe('Statistics page', () => {
       variantId: '20',
     });
     expect(screen.getByRole('combobox', { name: 'Period' })).toHaveValue('All time');
-    expect(screen.getByRole('combobox', { name: 'Currency' })).toHaveValue('USD');
+    expect(screen.getByRole('combobox', { name: 'Group by' })).toHaveValue('Day');
+    expect(option.series[0]?.data).toEqual([10, 5.5, 25.5]);
+  });
+
+  it('has no best or worst period with a single one', async () => {
+    stubStats({
+      'GET /stats/summary': statsSummary([USD_SUMMARY]),
+      'GET /stats/groups': (call: ApiCall) =>
+        statsGroups(call.query.get('groupBy') as StatsGroups['groupBy'], [
+          { currencyCode: 'USD', groups: periodGroups('MONTH', [-10]).slice(0, 1) },
+        ]),
+    });
+    renderApp('/stats?period=all');
+
+    const option = await chartOption();
     expect(option.series[0]?.data).toEqual([-10]);
-    // A single point has no best or worst.
+    // In dollars, the only currency there is.
     expect(card('Net of the period').getByText('-US$10.00')).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: /Best/ })).not.toBeInTheDocument();
   });
@@ -465,7 +492,7 @@ describe('Statistics page', () => {
   });
 
   it('says so when the period has no games', async () => {
-    stubStats({ 'GET /stats/summary': { currencies: [] } });
+    stubStats({ 'GET /stats/summary': statsSummary([]) });
     renderApp('/stats');
 
     expect(await screen.findByText('No finished games in this period.')).toBeInTheDocument();

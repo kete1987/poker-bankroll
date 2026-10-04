@@ -68,12 +68,6 @@ class InitialSchemaTests {
         assertThat(variantCodes("CASH")).isEmpty();
     }
 
-    @Test
-    void seedsBaseCurrencySetting() {
-        assertThat(jdbc.queryForObject("select value from app_setting where key = 'base_currency'", String.class))
-                .isEqualTo("EUR");
-    }
-
     // ---- game ----
 
     @Test

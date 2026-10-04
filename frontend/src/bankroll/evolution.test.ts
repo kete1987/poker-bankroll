@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import type { BankrollEvolution, CurrencyEvolution, EvolutionPeriod } from '../api/types';
+import { bankrollEvolution } from '../test/fixtures';
 import {
   chartData,
   granularityForActivity,
   granularityForDays,
   granularityForRange,
+  originalSeries,
 } from './evolution';
 
 function period(overrides: Partial<EvolutionPeriod> & { period: string }): EvolutionPeriod {
@@ -69,28 +71,32 @@ describe('granularity', () => {
     expect(granularityForRange({ from: '2026-01-01' })).toBeUndefined();
     expect(granularityForRange({})).toBeUndefined();
 
-    const byMonth: BankrollEvolution = {
-      groupBy: 'MONTH',
-      currencies: [
-        {
-          currencyCode: 'EUR',
-          total: {
-            startingBankroll: 0,
-            periods: [
-              period({ period: '2025-11', startsOn: '2025-11-01', endsOn: '2025-11-30' }),
-              period({ period: '2026-01', startsOn: '2026-01-01', endsOn: '2026-01-31' }),
-            ],
-          },
-          rooms: [],
+    const byMonth: BankrollEvolution = bankrollEvolution('MONTH', [
+      {
+        currencyCode: 'EUR',
+        total: {
+          startingBankroll: 0,
+          periods: [
+            period({ period: '2025-11', startsOn: '2025-11-01', endsOn: '2025-11-30' }),
+            period({ period: '2026-01', startsOn: '2026-01-01', endsOn: '2026-01-31' }),
+          ],
         },
-      ],
-    };
-    expect(granularityForActivity(byMonth, 'EUR', {})).toBe('DAY');
+        rooms: [],
+      },
+    ]);
+    const euros = { currencyCode: 'EUR', converted: false };
+    expect(granularityForActivity(byMonth, euros, {})).toBe('DAY');
     // An open end only: the other one is the period's.
-    expect(granularityForActivity(byMonth, 'EUR', { from: '2025-01-01' })).toBe('WEEK');
-    expect(granularityForActivity(byMonth, 'EUR', { to: '2028-12-31' })).toBe('MONTH');
+    expect(granularityForActivity(byMonth, euros, { from: '2025-01-01' })).toBe('WEEK');
+    expect(granularityForActivity(byMonth, euros, { to: '2028-12-31' })).toBe('MONTH');
+    // Converted: the periods of the converted block, the same ones here.
+    expect(granularityForActivity(byMonth, { currencyCode: 'EUR', converted: true }, {})).toBe(
+      'DAY',
+    );
     // Nothing in the currency.
-    expect(granularityForActivity(byMonth, 'USD', {})).toBe('MONTH');
+    expect(granularityForActivity(byMonth, { currencyCode: 'USD', converted: false }, {})).toBe(
+      'MONTH',
+    );
   });
 });
 
@@ -174,5 +180,60 @@ describe('chart data', () => {
     )!;
     expect(flat.points.map((point) => point.date)).toEqual(['2026-01-01', '2026-01-31']);
     expect(flat.total.values).toEqual([40, 40]);
+  });
+});
+
+describe('converted chart data', () => {
+  it('gives each room in another currency its bankroll in its own money at every point', () => {
+    const dollars: CurrencyEvolution = {
+      currencyCode: 'USD',
+      total: { startingBankroll: 10, periods: [] },
+      rooms: [
+        {
+          room: { id: 2, name: 'PokerStars' },
+          active: true,
+          series: {
+            startingBankroll: 10,
+            periods: [period({ period: '2026-01-12', deposited: 40, bankroll: 50 })],
+          },
+        },
+      ],
+    };
+    const converted: CurrencyEvolution = {
+      currencyCode: 'EUR',
+      total: {
+        startingBankroll: 9,
+        periods: [
+          period({ period: '2026-01-05', bankroll: 9 }),
+          period({ period: '2026-01-12', deposited: 36, bankroll: 45 }),
+        ],
+      },
+      rooms: [
+        {
+          room: { id: 2, name: 'PokerStars' },
+          active: true,
+          series: {
+            startingBankroll: 9,
+            periods: [
+              period({ period: '2026-01-05', bankroll: 9 }),
+              period({ period: '2026-01-12', deposited: 36, bankroll: 45 }),
+            ],
+          },
+        },
+      ],
+    };
+    const evolution = bankrollEvolution('DAY', [dollars], converted);
+
+    const data = chartData(
+      converted,
+      { from: '2026-01-01', to: '2026-01-31' },
+      '2026-10-04',
+      originalSeries(evolution, 'EUR'),
+    )!;
+    expect(data.rooms[0]?.values).toEqual([9, 9, 45, 45]);
+    // Kept through the periods it has nothing in.
+    expect(data.rooms[0]?.original).toEqual({ currencyCode: 'USD', values: [10, 10, 50, 50] });
+    // Rooms already in the base currency have nothing else to say.
+    expect(originalSeries(evolution, 'USD').size).toBe(0);
   });
 });

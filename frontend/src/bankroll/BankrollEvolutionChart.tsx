@@ -13,16 +13,19 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useBankrollEvolution } from '../api/bankroll';
-import type { TimePeriod } from '../api/types';
+import type { MissingExchangeRate, TimePeriod } from '../api/types';
 import { Chart } from '../components/Chart';
 import type { DateRange } from '../components/period';
 import { useNarrowScreen } from '../components/useNarrowScreen';
+import { MissingRatesAlert } from '../currency/MissingRatesAlert';
+import { evolutionIn, type MoneyView } from '../currency/view';
 import { useFormat } from '../format/useFormat';
 import { todayIso } from '../games/gameDefaults';
 import {
   chartData,
   granularityForActivity,
   granularityForRange,
+  originalSeries,
   type EvolutionChartData,
 } from './evolution';
 import { GRANULARITIES } from './useBankrollFilters';
@@ -30,7 +33,10 @@ import { GRANULARITIES } from './useBankrollFilters';
 interface BankrollEvolutionChartProps {
   range: DateRange;
   roomIds: number[];
-  currencyCode: string;
+  /** The currency of the screen: the only one there is, or the base one, converted. */
+  view: MoneyView;
+  /** Exchange rates the screen already says are missing; the chart only adds the others. */
+  shownMissing?: MissingExchangeRate[];
   /** Chosen by the user; otherwise it follows the length of the period. */
   granularity?: TimePeriod;
   onGranularityChange: (granularity: TimePeriod | undefined) => void;
@@ -51,6 +57,7 @@ function escapeHtml(text: string): string {
 
 interface TooltipParam {
   seriesType?: string;
+  seriesId?: string;
   seriesName?: string;
   dataIndex: number;
   marker?: string;
@@ -58,14 +65,17 @@ interface TooltipParam {
 }
 
 /**
- * The bankroll of a currency over time: one thin line per room and the total, bold, on top, with
- * the deposits and withdrawals marked on it. The lines start with the bankroll there was when the
- * period starts, so they end at the bankroll of the rooms table.
+ * The bankroll over time: one thin line per room and the total, bold, on top, with the deposits
+ * and withdrawals marked on it. The lines start with the bankroll there was when the period
+ * starts, so they end at the bankroll of the rooms table. Converted, each point is the bankroll
+ * of each currency then, at the rates of that day; the tooltip also gives each room in its own
+ * currency.
  */
 export function BankrollEvolutionChart({
   range,
   roomIds,
-  currencyCode,
+  view,
+  shownMissing = [],
   granularity,
   onGranularityChange,
 }: BankrollEvolutionChartProps) {
@@ -80,8 +90,9 @@ export function BankrollEvolutionChart({
   // of the activity first, which the evolution by months gives.
   const fixed = granularity ?? granularityForRange(range);
   const byMonth = useBankrollEvolution('MONTH', query, fixed === undefined);
+  const currencyCode = view.currencyCode;
   const chosen =
-    fixed ?? (byMonth.data ? granularityForActivity(byMonth.data, currencyCode, range) : undefined);
+    fixed ?? (byMonth.data ? granularityForActivity(byMonth.data, view, range) : undefined);
   // When the months are what the activity asks for, those already loaded are drawn.
   const monthsWillDo = fixed === undefined && chosen === 'MONTH';
   const ofChosen = useBankrollEvolution(
@@ -93,11 +104,28 @@ export function BankrollEvolutionChart({
   const drawn = evolution.data?.groupBy ?? chosen;
 
   const data: EvolutionChartData | undefined = useMemo(() => {
-    const ofCurrency = evolution.data?.currencies.find(
-      (currency) => currency.currencyCode === currencyCode,
-    );
-    return ofCurrency && chartData(ofCurrency, range, todayIso());
-  }, [evolution.data, currencyCode, range]);
+    if (!evolution.data) {
+      return undefined;
+    }
+    const ofView = evolutionIn(evolution.data, view);
+    const originals = view.converted
+      ? originalSeries(evolution.data, view.currencyCode)
+      : undefined;
+    return ofView && chartData(ofView, range, todayIso(), originals);
+  }, [evolution.data, view, range]);
+  const missing = view.converted
+    ? // Only what the warning of the page does not already cover: the chart may also lack, for
+      // instance, the rate of the balance it starts from, the day before the period.
+      (evolution.data?.converted.missingRates ?? []).filter(
+        (rate) =>
+          !shownMissing.some(
+            (shown) =>
+              shown.currencyCode === rate.currencyCode &&
+              shown.from <= rate.from &&
+              shown.to >= rate.to,
+          ),
+      )
+    : [];
 
   const option = useMemo(() => {
     if (!data) {
@@ -151,10 +179,16 @@ export function BankrollEvolutionChart({
                 [t('bankroll.columns.gamesNet'), signed(period.gamesNet)],
               ].map(([label, value]) => `${label}: ${value}`)
             : [];
-          const bankrolls = lines.map(
-            (param) =>
-              `${param.marker ?? ''}${escapeHtml(param.seriesName ?? '')}: <strong>${money(param.value?.[1] ?? 0)}</strong>`,
-          );
+          const bankrolls = lines.map((param) => {
+            // A room in another currency: also what it has in its own.
+            const original = data.rooms.find(
+              (room) => `room-${room.id}` === param.seriesId,
+            )?.original;
+            const own = original
+              ? ` (${format.money(original.values[param.dataIndex] ?? 0, original.currencyCode)})`
+              : '';
+            return `${param.marker ?? ''}${escapeHtml(param.seriesName ?? '')}: <strong>${money(param.value?.[1] ?? 0)}</strong>${own}`;
+          });
           return [`<strong>${heading}</strong>`, ...changes, ...bankrolls].join('<br/>');
         },
       },
@@ -248,6 +282,7 @@ export function BankrollEvolutionChart({
           }
         />
       </Group>
+      <MissingRatesAlert missing={missing} />
       {failed ? (
         <Alert color="red">{t('games.loadError')}</Alert>
       ) : !evolution.data ? (

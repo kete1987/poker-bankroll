@@ -20,8 +20,9 @@ In the app, open **Import / Export** and go to *Backup of everything*.
 
 - **Download backup** saves one file, `poker-bankroll-backup-<date>.json`, with everything you
   created: rooms and their logos, your own variants and which built-in ones are active, every
-  game (those in play too) with its tags, every bankroll movement and the templates of the games
-  you play often. It is not encrypted: it holds all your data, so keep it where only you can read
+  game (those in play too) with its tags, every bankroll movement, the templates of the games
+  you play often, your base currency (when you chose one) and the exchange rates you typed by
+  hand. The downloaded exchange rates are not in it: the app downloads them again. It is not encrypted: it holds all your data, so keep it where only you can read
   it.
 - **Choose backup file** takes such a file and only checks it: the page shows what it holds
   (rooms, variants, games, movements, templates, dates) next to what the installation holds now.
@@ -76,6 +77,10 @@ A JSON document, readable with any text editor:
     {"roomId": 1, "gameType": "SIT_AND_GO", "modality": "NLHE", "variantId": 13, "buyIn": 5.00},
     {"label": "Sunday KO", "roomId": 1, "gameType": "TOURNAMENT", "modality": "NLHE",
      "variantId": 2, "name": "Kill The Fish", "buyIn": 10.00}
+  ],
+  "baseCurrencyCode": "EUR",
+  "exchangeRates": [
+    {"currencyCode": "USD", "date": "2026-02-14", "rate": 1.08500000}
   ]
 }
 ```
@@ -84,6 +89,10 @@ A JSON document, readable with any text editor:
   templates name them by it. The ids of the database, and the dates the rows were created, are
   not kept.
 - `templates` may be missing (files made before templates existed): then there are none.
+- `baseCurrencyCode` is the base currency you chose; without it, the restored installation picks
+  it automatically. `exchangeRates` are the rates typed by hand (1 EUR = `rate` units of the
+  currency, from that day on); without them there are none. Restoring replaces both; the
+  downloaded rates of the installation stay.
 - Built-in variants (those with a `code`) are only there to say whether they are active; the
   ones with a `name` are yours.
 - Each game names its tags (`tags`, left out when it has none), and restoring creates them: a tag

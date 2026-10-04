@@ -33,6 +33,7 @@ import { MovementCards } from '../bankroll/MovementCards';
 import { MovementForm } from '../bankroll/MovementForm';
 import { MovementsTable } from '../bankroll/MovementsTable';
 import { RoomsTable } from '../bankroll/RoomsTable';
+import { roomsTableData } from '../bankroll/roomsTableData';
 import {
   MOVEMENT_TYPES,
   MOVEMENTS_PAGE_SIZE,
@@ -46,7 +47,11 @@ import { isSingleDay } from '../components/period';
 import { PeriodFilter } from '../components/PeriodFilter';
 import { StatCard } from '../components/StatCard';
 import { useNarrowScreen } from '../components/useNarrowScreen';
+import { CurrencyAmounts } from '../currency/CurrencyAmounts';
+import { MissingRatesAlert } from '../currency/MissingRatesAlert';
+import { bankrollIn, moneyView } from '../currency/view';
 import { useFormat } from '../format/useFormat';
+import { todayIso } from '../games/gameDefaults';
 
 /** Figures of a currency without anything in the period. */
 const NOTHING: BankrollFigures = {
@@ -69,9 +74,10 @@ function toneOf(amount: number): 'positive' | 'negative' | undefined {
 }
 
 /**
- * The poker bankroll, for one currency: what was put in and taken out, what was won or lost and
- * what is left, room by room, and the movements behind it. Without a period it is the bankroll
- * as it is now; with one, the figures of that period.
+ * The poker bankroll: what was put in and taken out, what was won or lost and what is left, room
+ * by room, and the movements behind it. Without a period it is the bankroll as it is now; with
+ * one, the figures of that period. Rooms in a single currency are shown in it; in several, the
+ * totals are converted to the base currency by the backend and each room stays in its own.
  */
 export function BankrollPage() {
   const { t } = useTranslation();
@@ -84,21 +90,23 @@ export function BankrollPage() {
 
   const rooms = useRooms();
   const catalog = useCatalog();
-  // The currencies there are do not depend on the period.
-  const everything = useBankrollSummary({ roomId: roomIds });
   const summary = useBankrollSummary({ from: range.from, to: range.to, roomId: roomIds });
 
-  const currencies = (everything.data?.currencies ?? []).map((currency) => currency.currencyCode);
-  const currencyCode =
-    filters.currency && currencies.includes(filters.currency) ? filters.currency : currencies[0];
+  // One currency is shown as it is; several, converted to the base currency.
+  const view =
+    summary.data &&
+    moneyView(
+      summary.data.currencies.map((currency) => currency.currencyCode),
+      summary.data.converted.currencyCode,
+    );
+  const currencyCode = view?.currencyCode;
 
-  // What the list of movements shows, and what its export holds.
+  // What the list of movements shows, and what its export holds: each in its own currency.
   const movementFilters = {
     from: range.from,
     to: range.to,
     type: filters.type,
     roomId: roomIds,
-    currency: currencyCode,
   };
   const movements = useMovements({
     ...movementFilters,
@@ -123,11 +131,22 @@ export function BankrollPage() {
   }, [pastTheEnd, pageCount, update]);
 
   const hasPeriod = Boolean(range.from || range.to);
-  const failed = [rooms, catalog, everything, summary, movements].some((query) => query.isError);
-  const ofCurrency = summary.data?.currencies.find(
-    (currency) => currency.currencyCode === currencyCode,
-  );
-  const total = ofCurrency?.total ?? NOTHING;
+  const failed = [rooms, catalog, summary, movements].some((query) => query.isError);
+  const ofView = summary.data && view ? bankrollIn(summary.data, view) : undefined;
+  const total = ofView?.total ?? NOTHING;
+  /** What a converted figure is made of, currency by currency. */
+  const perCurrency = (amountOf: (figures: BankrollFigures) => number, signed = false) =>
+    view?.converted &&
+    summary.data && (
+      <CurrencyAmounts
+        signed={signed}
+        amounts={summary.data.currencies.map((currency) => ({
+          currencyCode: currency.currencyCode,
+          amount: amountOf(currency.total),
+        }))}
+      />
+    );
+  const balanceRatesOn = summary.data?.converted.balanceRatesOn;
   const money = (amount: number) => format.money(amount, currencyCode ?? 'EUR');
   const signed = (amount: number) => format.signedMoney(amount, currencyCode ?? 'EUR');
 
@@ -149,24 +168,15 @@ export function BankrollPage() {
           value={roomIds.map(String)}
           onChange={(values) => update({ roomIds: values.map(Number) })}
         />
-        {currencies.length > 1 && currencyCode && (
-          <Select
-            label={t('dashboard.currency')}
-            w={110}
-            allowDeselect={false}
-            data={currencies}
-            value={currencyCode}
-            onChange={(value) => update({ currency: value ?? undefined })}
-          />
-        )}
       </FilterBar>
 
       {failed ? (
         <Alert color="red">{t('games.loadError')}</Alert>
-      ) : !summary.data || !everything.data ? (
+      ) : !summary.data ? (
         <Loader />
       ) : (
         <>
+          {view?.converted && <MissingRatesAlert missing={summary.data.converted.missingRates} />}
           <SimpleGrid cols={{ base: 1, xs: 3 }}>
             <StatCard
               label={hasPeriod ? t('bankroll.cards.change') : t('bankroll.cards.bankroll')}
@@ -175,9 +185,11 @@ export function BankrollPage() {
             >
               {total.adjustments !== 0 &&
                 t('bankroll.cards.adjustments', { amount: signed(total.adjustments) })}
+              {perCurrency((figures) => figures.bankroll, hasPeriod)}
             </StatCard>
             <StatCard label={t('bankroll.cards.deposited')} value={money(total.deposited)}>
               {t('bankroll.cards.withdrawn', { amount: money(total.withdrawn) })}
+              {perCurrency((figures) => figures.deposited)}
             </StatCard>
             <StatCard
               label={t('bankroll.cards.result')}
@@ -188,28 +200,44 @@ export function BankrollPage() {
                 games: signed(total.gamesNet),
                 bonuses: money(total.bonuses),
               })}
+              {perCurrency((figures) => figures.result, true)}
             </StatCard>
           </SimpleGrid>
+          {view?.converted && (
+            // Converted, a balance and the flows behind it are valued at different rates.
+            <Text size="xs" c="dimmed">
+              {balanceRatesOn
+                ? t('bankroll.conversion.balance', {
+                    currency: view.currencyCode,
+                    rates:
+                      balanceRatesOn === todayIso()
+                        ? t('bankroll.conversion.today')
+                        : t('bankroll.conversion.ofDay', { date: format.date(balanceRatesOn) }),
+                  })
+                : t('bankroll.conversion.period', { currency: view.currencyCode })}
+            </Text>
+          )}
 
           {/* Over a single day the bankroll only goes from where it starts to where it ends,
               which the cards already say. */}
-          {currencyCode && !isSingleDay(range) && (
+          {view && !isSingleDay(range) && (
             <BankrollEvolutionChart
               range={range}
               roomIds={roomIds}
-              currencyCode={currencyCode}
+              view={view}
+              shownMissing={summary.data.converted.missingRates}
               granularity={filters.granularity}
               onGranularityChange={(granularity) => update({ granularity })}
             />
           )}
 
-          {ofCurrency && (
+          {view && (
             <Stack gap="xs">
               <Title order={3} size="h4">
                 {t('bankroll.rooms')}
               </Title>
               <RoomsTable
-                bankroll={ofCurrency}
+                data={roomsTableData(summary.data, view)}
                 bankrollLabel={
                   hasPeriod ? t('bankroll.columns.change') : t('bankroll.columns.bankroll')
                 }

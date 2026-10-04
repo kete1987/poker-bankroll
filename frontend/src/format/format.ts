@@ -46,6 +46,10 @@ export interface Formatters {
   weekday(day: number): string;
   /** ISO time (`21:30:00`) as `21:30`. */
   time(isoTime: string): string;
+  /** An instant (`2026-10-04T15:30:00Z`) as a date and time where the browser is. */
+  moment(isoInstant: string): string;
+  /** An exchange rate, with 4 decimals at least and 8 at most, e.g. `1,0850`. */
+  rate(value: number): string;
   /** Character between the integer and decimal parts (`,` or `.`), for number inputs. */
   decimalSeparator: string;
 }
@@ -100,6 +104,19 @@ export function createFormatters(locale: string): Formatters {
   });
   const longDateFormat = new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeZone: 'UTC' });
   const weekdayFormat = new Intl.DateTimeFormat(locale, { weekday: 'long', timeZone: 'UTC' });
+  // As dates are shown, with the time; in the time zone of the browser.
+  const momentFormat = new Intl.DateTimeFormat(locale, {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const rateFormat = new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 4,
+    maximumFractionDigits: 8,
+    useGrouping: 'always',
+  });
   const monthFormat = new Intl.DateTimeFormat(locale, {
     month: 'long',
     year: 'numeric',
@@ -117,6 +134,8 @@ export function createFormatters(locale: string): Formatters {
     // 1 January 2024 was a Monday.
     weekday: (day) => weekdayFormat.format(new Date(Date.UTC(2024, 0, day))),
     time: (isoTime) => isoTime.slice(0, 5),
+    moment: (isoInstant) => momentFormat.format(new Date(isoInstant)),
+    rate: (value) => rateFormat.format(value),
     decimalSeparator:
       new Intl.NumberFormat(locale).formatToParts(1.5).find((part) => part.type === 'decimal')
         ?.value ?? '.',

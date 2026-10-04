@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Game, StatsGroup, StatsGroups } from '../api/types';
-import { game, page, ROOMS, TAGS, VARIANTS } from '../test/fixtures';
+import { game, page, ROOMS, statsGroups, statsSummary, TAGS, VARIANTS } from '../test/fixtures';
 import { onANarrowScreen } from '../test/narrowScreen';
 import { problem, renderApp, stubApi, type ApiCall } from '../test/renderApp';
 
@@ -153,22 +153,18 @@ describe('Statistics by tag', () => {
     ];
     return stubApi({
       'GET /tags': TAGS,
-      'GET /stats/summary': {
-        currencies: [
-          {
-            currencyCode: 'EUR',
-            total: figures(25, 8),
-            byGameType: [],
-            inPlay: { games: 0, invested: 0 },
-          },
-        ],
-      },
-      'GET /stats/groups': (call: ApiCall): StatsGroups => ({
-        groupBy: call.query.get('groupBy') as StatsGroups['groupBy'],
-        currencies: [
+      'GET /stats/summary': statsSummary([
+        {
+          currencyCode: 'EUR',
+          total: figures(25, 8),
+          byGameType: [],
+          inPlay: { games: 0, invested: 0 },
+        },
+      ]),
+      'GET /stats/groups': (call: ApiCall): StatsGroups =>
+        statsGroups(call.query.get('groupBy') as StatsGroups['groupBy'], [
           { currencyCode: 'EUR', groups: call.query.get('groupBy') === 'TAG' ? groups : [] },
-        ],
-      }),
+        ]),
     });
   }
 

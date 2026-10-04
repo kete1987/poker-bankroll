@@ -6,11 +6,40 @@ import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import io.github.kete1987.pokerbankroll.exchange.MissingExchangeRate;
 import io.github.kete1987.pokerbankroll.game.GameResponse.RoomRef;
 import io.github.kete1987.pokerbankroll.stats.TimePeriod;
 
-/** Amounts in different currencies are never added up: one evolution per currency. */
-public record BankrollEvolutionResponse(TimePeriod groupBy, List<CurrencyEvolution> currencies) {
+/**
+ * Amounts in different currencies are never added up as they are: one evolution per currency, and
+ * every currency converted to the base currency, explicitly, in {@code converted}.
+ */
+public record BankrollEvolutionResponse(
+        TimePeriod groupBy,
+        @Schema(description = "One evolution per currency, in its own money, by code")
+        List<CurrencyEvolution> currencies,
+        @Schema(description = "Every currency converted to the base currency. When the response is in a single "
+                + "currency, show that currency instead")
+        ConvertedEvolution converted) {
+
+    /**
+     * The evolution of every currency together, converted. What changed in a period is converted
+     * with the rates of each day; the bankroll at the end of a period is the balance of each
+     * currency then, converted with the rates of the last day of the period (or of `to`); the
+     * starting bankroll, with those of the day before `from`.
+     */
+    public record ConvertedEvolution(
+            @Schema(description = "The base currency the amounts are converted to")
+            String currencyCode,
+            @Schema(description = "The rooms of the response plus, without a room filter, the movements that belong "
+                    + "to no room")
+            EvolutionSeries total,
+            @Schema(description = "Rooms of every currency, by name. Each has every period of the total, also those it "
+                    + "has nothing in: its balance is worth something else when the rates change")
+            List<RoomEvolution> rooms,
+            @Schema(description = "Amounts left out of these figures for lack of an exchange rate")
+            List<MissingExchangeRate> missingRates) {
+    }
 
     public record CurrencyEvolution(
             String currencyCode,

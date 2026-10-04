@@ -20,6 +20,7 @@ import { Chart } from '../components/Chart';
 import { CompactTable, type CompactRow } from '../components/CompactTable';
 import { RoomLabel } from '../components/RoomLabel';
 import { useNarrowScreen } from '../components/useNarrowScreen';
+import { groupsIn, type MoneyView } from '../currency/view';
 import { NO_VALUE } from '../format/format';
 import { useFormat } from '../format/useFormat';
 import { variantLabel } from '../games/labels';
@@ -46,7 +47,8 @@ interface Row {
 interface BreakdownProps {
   /** The games the statistics are about. */
   query: StatsQuery;
-  currencyCode: string;
+  /** The currency of the screen: the only one of its games, or the base one, converted. */
+  view: MoneyView;
   dimension: Dimension;
   /** The column chosen by the user; without one, the order the groups come in. */
   sort?: BreakdownSort;
@@ -86,11 +88,12 @@ function sorted(rows: Row[], sort: BreakdownSort): Row[] {
  * that can be sorted by any column. Every figure comes from the backend; here they are only
  * ordered and shown.
  */
-export function Breakdown({ query, currencyCode, dimension, sort, onChange }: BreakdownProps) {
+export function Breakdown({ query, view, dimension, sort, onChange }: BreakdownProps) {
   const { t } = useTranslation();
   const format = useFormat();
   const theme = useMantineTheme();
   const narrow = useNarrowScreen();
+  const currencyCode = view.currencyCode;
   const [search, setSearch] = useState('');
   // Names are those of tournaments, which is where games have one, unless the filter already
   // says which games (types or variants): the breakdown never shows games the filter leaves out.
@@ -147,17 +150,14 @@ export function Breakdown({ query, currencyCode, dimension, sort, onChange }: Br
           return key.tag?.name ?? t('stats.breakdown.noTag');
       }
     }
-    const ofCurrency =
-      groups.data?.currencies.find((currency) => currency.currencyCode === currencyCode)?.groups ??
-      [];
-    return ofCurrency.map((group): Row => ({
+    return groupsIn(groups.data, view).map((group): Row => ({
       // What the group is, not how it reads: two groups can have the same label.
       key: JSON.stringify(group.key),
       label: labelOf(group),
       room: group.key.room ?? undefined,
       figures: group.figures,
     }));
-  }, [groups.data, drawn, currencyCode, format, t]);
+  }, [groups.data, drawn, view, currencyCode, format, t]);
 
   const wanted = search.trim().toLowerCase();
   const rows = useMemo(() => {

@@ -1,4 +1,25 @@
-import type { Game, GamePage, GameTemplate, Room, Tag, Variant } from '../api/types';
+import type {
+  BankrollEvolution,
+  BankrollFigures,
+  BankrollSummary,
+  ConvertedBankroll,
+  ConvertedEvolution,
+  ConvertedGroups,
+  ConvertedSummary,
+  CurrencyBankroll,
+  CurrencyEvolution,
+  CurrencySummary,
+  Game,
+  GamePage,
+  GameTemplate,
+  Room,
+  StatsFigures,
+  StatsGroups,
+  StatsSummary,
+  Tag,
+  TimePeriod,
+  Variant,
+} from '../api/types';
 
 /** Sample data for the tests; every builder takes the fields that matter to the test. */
 export const ROOMS: Room[] = [
@@ -92,5 +113,108 @@ export function template(overrides: Partial<GameTemplate>): GameTemplate {
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
     ...overrides,
+  };
+}
+
+const NO_STATS: StatsFigures = {
+  games: 0,
+  entries: 0,
+  winningGames: 0,
+  invested: 0,
+  won: 0,
+  bounties: 0,
+  ticketsWon: 0,
+  net: 0,
+};
+
+const NO_BANKROLL: BankrollFigures = {
+  deposited: 0,
+  withdrawn: 0,
+  bonuses: 0,
+  adjustments: 0,
+  gamesNet: 0,
+  result: 0,
+  bankroll: 0,
+  ticketsWon: 0,
+  gamesInPlay: 0,
+  investedInPlay: 0,
+};
+
+/**
+ * The responses of the statistics and the bankroll, with their block converted to the base
+ * currency: by default, the only currency there is as it is (or nothing in EUR); the test gives
+ * it when it shows several currencies.
+ */
+export function statsSummary(
+  currencies: CurrencySummary[],
+  converted: Partial<ConvertedSummary> = {},
+): StatsSummary {
+  const only = currencies.length === 1 ? currencies[0] : undefined;
+  return {
+    currencies,
+    converted: {
+      currencyCode: only?.currencyCode ?? 'EUR',
+      total: only?.total ?? NO_STATS,
+      byGameType: only?.byGameType ?? [],
+      inPlay: only?.inPlay ?? { games: 0, invested: 0 },
+      missingRates: [],
+      ...converted,
+    },
+  };
+}
+
+export function statsGroups(
+  groupBy: StatsGroups['groupBy'],
+  currencies: StatsGroups['currencies'],
+  converted: Partial<ConvertedGroups> = {},
+): StatsGroups {
+  const only = currencies.length === 1 ? currencies[0] : undefined;
+  return {
+    groupBy,
+    currencies,
+    converted: {
+      currencyCode: only?.currencyCode ?? 'EUR',
+      groups: only?.groups ?? [],
+      missingRates: [],
+      ...converted,
+    },
+  };
+}
+
+export function bankrollSummary(
+  currencies: CurrencyBankroll[],
+  converted: Partial<ConvertedBankroll> = {},
+): BankrollSummary {
+  const only = currencies.length === 1 ? currencies[0] : undefined;
+  return {
+    currencies,
+    converted: {
+      currencyCode: only?.currencyCode ?? 'EUR',
+      total: only?.total ?? NO_BANKROLL,
+      withoutRoom: only?.withoutRoom ?? NO_BANKROLL,
+      rooms: only?.rooms ?? [],
+      balanceRatesOn: null,
+      missingRates: [],
+      ...converted,
+    },
+  };
+}
+
+export function bankrollEvolution(
+  groupBy: TimePeriod,
+  currencies: CurrencyEvolution[],
+  converted: Partial<ConvertedEvolution> = {},
+): BankrollEvolution {
+  const only = currencies.length === 1 ? currencies[0] : undefined;
+  return {
+    groupBy,
+    currencies,
+    converted: {
+      currencyCode: only?.currencyCode ?? 'EUR',
+      total: only?.total ?? { startingBankroll: 0, periods: [] },
+      rooms: only?.rooms ?? [],
+      missingRates: [],
+      ...converted,
+    },
   };
 }

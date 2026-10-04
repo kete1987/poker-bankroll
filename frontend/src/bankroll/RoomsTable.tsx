@@ -1,36 +1,30 @@
 import { Badge, Group, Table, Text } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 
-import type { BankrollFigures, CurrencyBankroll } from '../api/types';
 import { CompactTable, type CompactRow } from '../components/CompactTable';
 import { useNarrowScreen } from '../components/useNarrowScreen';
 import { RoomLabel } from '../components/RoomLabel';
 import { useFormat } from '../format/useFormat';
+import type { FiguresIn, RoomsTableData } from './roomsTableData';
 
 interface RoomsTableProps {
-  bankroll: CurrencyBankroll;
+  data: RoomsTableData;
   /** Heading of the last column: the bankroll now, or what it changed in a period. */
   bankrollLabel: string;
 }
 
-function hasMovements(figures: BankrollFigures): boolean {
-  return [figures.deposited, figures.withdrawn, figures.bonuses, figures.adjustments].some(
-    (amount) => amount !== 0,
-  );
-}
-
 /**
  * The bankroll room by room: what was put in and taken out, what was won or lost, and what is
- * left. Movements that belong to no room have their own row.
+ * left. Movements that belong to no room have their own row. Each row is in its own currency;
+ * the total, in several, is converted to the base currency.
  */
-export function RoomsTable({ bankroll, bankrollLabel }: RoomsTableProps) {
+export function RoomsTable({ data, bankrollLabel }: RoomsTableProps) {
   const { t } = useTranslation();
   const format = useFormat();
   const narrow = useNarrowScreen();
-  const currencyCode = bankroll.currencyCode;
 
-  const plain = (value: number) => format.money(value, currencyCode);
-  const signed = (value: number, bold = false) => (
+  const plain = (value: number, currencyCode: string) => format.money(value, currencyCode);
+  const signed = (value: number, currencyCode: string, bold = false) => (
     <Text
       span
       size="sm"
@@ -40,20 +34,38 @@ export function RoomsTable({ bankroll, bankrollLabel }: RoomsTableProps) {
       {format.signedMoney(value, currencyCode)}
     </Text>
   );
+  const withoutRoomLabel = (currencyCode: string) =>
+    data.mixed
+      ? t('bankroll.withoutRoomIn', { currency: currencyCode })
+      : t('bankroll.withoutRoom');
+  const totalLabel = data.mixed
+    ? t('bankroll.totalIn', { currency: data.total.currencyCode })
+    : t('dashboard.total');
 
-  function cells(figures: BankrollFigures, bold: boolean) {
+  function cells({ figures, currencyCode }: FiguresIn, bold: boolean) {
     return (
       <>
-        <Table.Td ta="right">{plain(figures.deposited)}</Table.Td>
-        <Table.Td ta="right">{plain(figures.withdrawn)}</Table.Td>
-        <Table.Td ta="right">{plain(figures.bonuses)}</Table.Td>
-        <Table.Td ta="right">{signed(figures.adjustments, bold)}</Table.Td>
-        <Table.Td ta="right">{signed(figures.gamesNet, bold)}</Table.Td>
-        <Table.Td ta="right">{signed(figures.result, bold)}</Table.Td>
-        <Table.Td ta="right">{signed(figures.bankroll, bold)}</Table.Td>
+        <Table.Td ta="right">{plain(figures.deposited, currencyCode)}</Table.Td>
+        <Table.Td ta="right">{plain(figures.withdrawn, currencyCode)}</Table.Td>
+        <Table.Td ta="right">{plain(figures.bonuses, currencyCode)}</Table.Td>
+        <Table.Td ta="right">{signed(figures.adjustments, currencyCode, bold)}</Table.Td>
+        <Table.Td ta="right">{signed(figures.gamesNet, currencyCode, bold)}</Table.Td>
+        <Table.Td ta="right">{signed(figures.result, currencyCode, bold)}</Table.Td>
+        <Table.Td ta="right">{signed(figures.bankroll, currencyCode, bold)}</Table.Td>
       </>
     );
   }
+
+  const roomLabel = (room: RoomsTableData['rooms'][number]) => (
+    <Group gap="xs" wrap={narrow ? undefined : 'nowrap'}>
+      <RoomLabel room={room.room} />
+      {!room.active && (
+        <Badge size="xs" variant="light" color="gray">
+          {t('bankroll.inactive')}
+        </Badge>
+      )}
+    </Group>
+  );
 
   if (narrow) {
     // On a phone: the result and the bankroll; what they are made of unfolds under the row.
@@ -61,19 +73,34 @@ export function RoomsTable({ bankroll, bankrollLabel }: RoomsTableProps) {
       key: string,
       label: CompactRow['label'],
       name: string,
-      figures: BankrollFigures,
+      { figures, currencyCode }: FiguresIn,
       bold: boolean,
     ): CompactRow => ({
       key,
       label,
       name,
-      cells: [signed(figures.result, bold), signed(figures.bankroll, bold)],
+      cells: [
+        signed(figures.result, currencyCode, bold),
+        signed(figures.bankroll, currencyCode, bold),
+      ],
       details: [
-        { label: t('bankroll.columns.deposited'), value: plain(figures.deposited) },
-        { label: t('bankroll.columns.withdrawn'), value: plain(figures.withdrawn) },
-        { label: t('bankroll.columns.bonuses'), value: plain(figures.bonuses) },
-        { label: t('bankroll.columns.adjustments'), value: signed(figures.adjustments) },
-        { label: t('bankroll.columns.gamesNet'), value: signed(figures.gamesNet) },
+        {
+          label: t('bankroll.columns.deposited'),
+          value: plain(figures.deposited, currencyCode),
+        },
+        {
+          label: t('bankroll.columns.withdrawn'),
+          value: plain(figures.withdrawn, currencyCode),
+        },
+        { label: t('bankroll.columns.bonuses'), value: plain(figures.bonuses, currencyCode) },
+        {
+          label: t('bankroll.columns.adjustments'),
+          value: signed(figures.adjustments, currencyCode),
+        },
+        {
+          label: t('bankroll.columns.gamesNet'),
+          value: signed(figures.gamesNet, currencyCode),
+        },
       ],
     });
     return (
@@ -86,37 +113,22 @@ export function RoomsTable({ bankroll, bankrollLabel }: RoomsTableProps) {
           </>
         }
         rows={[
-          ...bankroll.rooms.map((room) =>
+          ...data.rooms.map((room) =>
+            compact(String(room.room.id), roomLabel(room), room.room.name, room, false),
+          ),
+          ...data.withoutRoom.map((without) =>
             compact(
-              String(room.room.id),
-              <Group gap="xs">
-                <RoomLabel room={room.room} />
-                {!room.active && (
-                  <Badge size="xs" variant="light" color="gray">
-                    {t('bankroll.inactive')}
-                  </Badge>
-                )}
-              </Group>,
-              room.room.name,
-              room.figures,
+              `withoutRoom-${without.currencyCode}`,
+              <Text size="sm" c="dimmed">
+                {withoutRoomLabel(without.currencyCode)}
+              </Text>,
+              withoutRoomLabel(without.currencyCode),
+              without,
               false,
             ),
           ),
-          ...(hasMovements(bankroll.withoutRoom)
-            ? [
-                compact(
-                  'withoutRoom',
-                  <Text size="sm" c="dimmed">
-                    {t('bankroll.withoutRoom')}
-                  </Text>,
-                  t('bankroll.withoutRoom'),
-                  bankroll.withoutRoom,
-                  false,
-                ),
-              ]
-            : []),
         ]}
-        foot={compact('total', t('dashboard.total'), t('dashboard.total'), bankroll.total, true)}
+        foot={compact('total', totalLabel, totalLabel, data.total, true)}
       />
     );
   }
@@ -137,36 +149,29 @@ export function RoomsTable({ bankroll, bankrollLabel }: RoomsTableProps) {
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {bankroll.rooms.map((room) => (
+          {data.rooms.map((room) => (
             <Table.Tr key={room.room.id}>
               <Table.Th scope="row" fw={400}>
-                <Group gap="xs" wrap="nowrap">
-                  <RoomLabel room={room.room} />
-                  {!room.active && (
-                    <Badge size="xs" variant="light" color="gray">
-                      {t('bankroll.inactive')}
-                    </Badge>
-                  )}
-                </Group>
+                {roomLabel(room)}
               </Table.Th>
-              {cells(room.figures, false)}
+              {cells(room, false)}
             </Table.Tr>
           ))}
-          {hasMovements(bankroll.withoutRoom) && (
-            <Table.Tr>
+          {data.withoutRoom.map((without) => (
+            <Table.Tr key={without.currencyCode}>
               <Table.Th scope="row" fw={400}>
                 <Text size="sm" c="dimmed">
-                  {t('bankroll.withoutRoom')}
+                  {withoutRoomLabel(without.currencyCode)}
                 </Text>
               </Table.Th>
-              {cells(bankroll.withoutRoom, false)}
+              {cells(without, false)}
             </Table.Tr>
-          )}
+          ))}
         </Table.Tbody>
         <Table.Tfoot>
           <Table.Tr fw={700}>
-            <Table.Th scope="row">{t('dashboard.total')}</Table.Th>
-            {cells(bankroll.total, true)}
+            <Table.Th scope="row">{totalLabel}</Table.Th>
+            {cells(data.total, true)}
           </Table.Tr>
         </Table.Tfoot>
       </Table>

@@ -56,8 +56,9 @@ RUN jlink \
 FROM alpine:3.24
 LABEL org.opencontainers.image.source="https://github.com/kete1987/poker-bankroll"
 # LANG as in the Temurin images: UTF-8 file names and console, default locale en_US. No tzdata or
-# CA certificates needed: the JDK has its own time zone database (TZ=Europe/Madrid works) and
-# truststore, and the API makes no outgoing TLS connections.
+# CA certificates needed: the JDK has its own time zone database (TZ=Europe/Madrid works) and its
+# own truststore (lib/security/cacerts, part of java.base), used by the outgoing HTTPS requests of
+# the API (logos from a URL, exchange rates from api.frankfurter.dev).
 ENV JAVA_HOME=/opt/java/openjdk \
     PATH="/opt/java/openjdk/bin:$PATH" \
     LANG=en_US.UTF-8

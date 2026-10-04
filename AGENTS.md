@@ -45,7 +45,7 @@ Use the Maven wrapper; on Windows use `mvnw.cmd` instead of `./mvnw`.
 | `./mvnw verify` | Compile and run all tests (starts a PostgreSQL container) |
 | `./mvnw test -Dtest=ClassName` | Run a single test class |
 | `./mvnw test -Dtest=OpenApiContractTests -Dopenapi.update=true` | Rewrite `frontend/openapi.json` from the API (after changing an endpoint, request or response) |
-| `./mvnw spring-boot:test-run` | Run the API on `:8080` against a throwaway PostgreSQL container |
+| `./mvnw spring-boot:test-run` | Run the API on `:8080` against a throwaway PostgreSQL container (no exchange rates downloaded: `src/test/resources/config/application.yaml`) |
 | `./mvnw spring-boot:test-run -Dspring-boot.run.profiles=demo` | Same, with a year of made-up data (see "Demo data") |
 | `./mvnw spring-boot:run` | Run the API against the development database (`deploy/docker-compose.dev.yml`, `localhost:5433`) or `SPRING_DATASOURCE_*` |
 
@@ -91,6 +91,9 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - The nginx config is part of the web image: `frontend/nginx/default.conf.template` (SPA fallback,
   long cache for `/assets/`, `/api/` proxied to `${API_UPSTREAM}`, default `api:8080`, `/healthz`).
 - Only `web` publishes a port; `api` and `db` are reachable only inside the Compose network.
+- The API makes outgoing HTTPS requests: logos loaded from a URL, and the exchange rates, from
+  `api.frankfurter.dev` (see "Exchange rates"). Without internet everything else works;
+  `POKER_BANKROLL_EXCHANGE_RATES_ENABLED=false` turns the downloads off.
 - `docker-compose.yml` has no `build` sections on purpose: it is also pasted as a Portainer stack,
   where there is no source code to build from. Building lives in `docker-compose.build.yml`.
 - `backup` (`prodrigestivill/postgres-backup-local`, pinned tag) dumps the database daily to
@@ -100,6 +103,24 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 ## Domain glossary
 
 - **Currency**: ISO 4217 code (`EUR`, `USD`). Belongs to the **room**, not to each game.
+- **Base currency**: the one amounts of several currencies are shown in, **converted**. Chosen in
+  Settings → Currencies (`currency_setting.base_currency_code`); when not chosen (`null`) it is
+  automatic: the currency with most games, else the first one (alphabetically) of the rooms and
+  movements, else EUR (`exchange/ExchangeRates`). Stored amounts never change: every game and
+  movement keeps its amount in its own currency (lists, export, import and backup show them so).
+- **Exchange rate** (`exchange_rate`): units of a currency that 1 EUR is worth on a day, as the
+  ECB publishes them (EUR itself is always 1 and has no rows). Converting X to the base B is
+  `amount / rate(X) × rate(B)`, with the **last rate on or before** the day of the amount (weekends
+  and holidays take the one before); a `MANUAL` rate wins over the `ECB` one of the same day. A
+  missing rate (nothing on or before that day) is never invented: those amounts are left out of the
+  converted figures and reported as `missingRates` (`{currencyCode, from, to}`, the currency that
+  lacks a rate and the days of the amounts left out).
+  - Which rate: what **happened** (net, invested, won, bounties, tickets, deposits, withdrawals,
+    bonuses, adjustments, the change of a bankroll in a period) with the rate of **its day**
+    (`played_on`, `occurred_on`); a **balance** (the bankroll now) with the rate of **today** (or of
+    `to`); in the evolution, each point is the balance of each currency at the end of its period
+    with the rate of that day. So a converted bankroll differs from the sum of its converted flows:
+    that is the exchange difference, and the UI says so.
 - **Room**: poker site account (Winamax, 888poker...) holding money in **one currency**; its games
   and movements are in that currency. Two currencies on the same site are two rooms. The currency
   of a room cannot change once it has games or bankroll movements (database trigger).
@@ -172,7 +193,11 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   take the filters of the games list. With `byGameType=true` each group is also broken down by
   game type. Periods carry the **cumulative net**, which starts from zero
   at the beginning of the filtered range. A new grouping is a `GroupBy` constant plus its `Grouping`
-  in `StatsService`.
+  in `StatsService`. Both endpoints give the figures per currency (`currencies`) and of every game
+  converted to the base currency (`converted`, with its `missingRates`): sums are read per day only
+  when a currency other than the base one is among the games, and each day is converted with its
+  rates (nothing is read game by game). Converted, `BUY_IN` groups by buy-in **and currency**
+  (`key.currencyCode`) and `BUY_IN_RANGE` puts each game in the range of its converted buy-in.
 - **Bankroll**: the money set aside for poker and what was won or lost with it. It is **not the
   balance of the room account** (which may hold money for other products, e.g. sports betting) and
   is never reconciled with it: with no movements recorded, the bankroll of a room is just its
@@ -186,6 +211,11 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
     each period with movements or games, what changed it and the bankroll at its end. The last one
     without dates is the bankroll of the summary (pinned by `BankrollEvolutionApiTests`). Periods
     are cut by `stats/TimePeriod`, shared with `/stats/groups`.
+  - Both also give everything **converted** to the base currency (`converted`): the summary with
+    its rooms (each converted) and `balanceRatesOn` (the day whose rates value the bankroll as a
+    balance, `null` with `from`); the evolution with every room over **every** period of the total
+    (a balance in another currency changes value when nothing happens), its starting bankroll at
+    the rates of the day before `from`.
 - **Bankroll movement**: `DEPOSIT` (money set aside for poker; the first one is the initial
   bankroll), `WITHDRAWAL`, `BONUS` (poker money not coming from a game: rakeback, promotions) or
   `ADJUSTMENT` (manual correction). The amount is positive and the type gives its direction; only
@@ -213,8 +243,10 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 ### Money and currency
 - Money is `BigDecimal` in Java and `NUMERIC(12,2)` in PostgreSQL. **Never** `float`/`double`.
 - Amounts are in the currency of their room, and API responses always carry that currency code
-  next to the amounts. **Never sum amounts in different currencies**; aggregate per currency or
-  convert explicitly (F-1).
+  next to the amounts. **Never sum amounts in different currencies as they are**: aggregate per
+  currency, or convert them explicitly to the base currency with a `exchange/Converter` (rates of
+  the day of each amount) and say what could not be converted (`missingRates`). Only the backend
+  converts.
 - All aggregation happens in the backend; the frontend only formats values (`Intl.NumberFormat`).
 - Currencies live in the `currency` table; adding one must not require code changes.
 
@@ -295,6 +327,26 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
     fonts) without proving it works in the API image: build it and export from the container.
   - Rows are read from the database through a cursor (`GameService.forEach`,
     `BankrollService.forEach`), never as one list; the file is built in memory.
+- Exchange rates (`exchange` package):
+  - `GET/PUT /settings/currency`: the base currency chosen (`null`: automatic), the automatic one
+    and the one in use.
+  - Downloaded by `ExchangeRateDownloader` from Frankfurter (`FrankfurterClient`, its v2 API with
+    `providers=ecb`: the ECB reference rates of each working day, no key), into rows `ECB`: on start
+    (in the background: the API starts without internet), every day (`@Scheduled`, after the ECB
+    publishes) and after the base currency changes or a backup is restored (`ExchangeRatesNeeded`,
+    after commit). Every currency of games and movements but EUR, and the base one, from the first
+    day of any game or movement to today; only what is missing (before the first rate, after the
+    last one). A currency the service does not know has no rates (only manual ones), not an error.
+    Failures are logged and kept for `GET /exchange-rates/status` (in memory: since the API
+    started); `POST /exchange-rates/refresh` downloads now and returns it (409
+    `EXCHANGE_RATES_DISABLED` when off). The address comes from the configuration only.
+  - Configuration: `poker-bankroll.exchange-rates.enabled` (default true; **false in the tests**
+    and in `spring-boot:test-run`, `src/test/resources/config/application.yaml`; the tests that
+    download start their own web server, see `ExchangeRateDownloadApiTests`), `.url`
+    (`https://api.frankfurter.dev/v2`), `.cron` and `.zone` (17:00 Europe/Madrid), `.timeout`.
+  - Manual rates: `GET /exchange-rates/manual` (a plain list: they are a fallback, a few),
+    `PUT|DELETE /exchange-rates/manual/{currencyCode}/{date}` with `{rate}` per 1 EUR (none for
+    EUR: `EXCHANGE_RATE_OF_EUR`).
 - `GET /backup` and `POST /backup/restore?dryRun=&replace=` (`backup` package) back up everything
   the user created into one JSON file and restore it, replacing **everything** (described for
   users in `docs/backups.md`: keep it in step). Rules:
@@ -307,6 +359,9 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
     in `BackupData` and in the records of the current version (optional there, so files made
     before it still restore), both ways in `BackupService`. Tags are not a list of the file: each
     game names its own (`tags`), and the restore creates them after writing the games.
+  - Besides the data, the base currency chosen (`baseCurrencyCode`, left out when automatic) and
+    the rates typed by hand (`exchangeRates`), both optional in format 1; the downloaded rates are
+    not backed up (they are downloaded again) and a restore leaves them.
   - Rooms and variants have ids that only mean something inside the file; built-in variants are
     named by game type and code and only their `active` is restored (the ones the file does not
     name are active). Amounts are JSON numbers read as `BigDecimal`. The mapper is the one of
@@ -374,7 +429,8 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - The Spring profile `demo` (`demo/DemoDataSeeder`) fills an **empty** database on startup with a
   year of made-up results ending today: four rooms (EUR and USD, one inactive, three with a logo), a user-defined
   variant, about 400 games of every type (some with tags), three games in play, bankroll movements
-  and four templates (one in the inactive room). It does
+  and four templates (one in the inactive room), and made-up daily dollar rates (1.05 to 1.15
+  per euro, working days, written as downloaded ones) so that conversion works offline. It does
   nothing when the database already has a room, a game, a movement or a user-defined variant, and
   is never active by default.
 - It creates everything through the services, so it also exercises the rules of the API. When a
@@ -482,8 +538,22 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - A period is chosen with `components/PeriodFilter` (`components/period.ts` has the predefined
   ranges, from today to all time, in the time zone of the browser; this week goes from Monday to
   Sunday, like the `WEEK` grouping). `periodOf` names the range of the URL, so no two predefined
-  periods may give the same dates. A screen shows one currency at a time: amounts in different
-  currencies are never added.
+  periods may give the same dates.
+- Dashboard, statistics and bankroll have **no currency selector**. What a screen shows in a
+  single currency (after its filters) is shown in it, as it is; when it mixes currencies,
+  everything is in the base currency, from the `converted` blocks of the responses
+  (`currency/view.ts`: `moneyView` decides from the currencies on screen, `summaryIn`, `groupsIn`,
+  `bankrollIn`, `evolutionIn` pick the block). Then the cards with money show the amount of each
+  currency in its own money below (`currency/CurrencyAmounts`; rates such as ROI have none), the
+  rooms table of the bankroll keeps each room in its own currency with the total converted, the
+  bankroll says why it differs from its flows (exchange difference), the evolution tooltip gives
+  each room in its own currency too, and `currency/MissingRatesAlert` says what could not be
+  converted with a link to Settings → Currencies. Lists of games and movements show each row in its
+  own currency.
+- Settings has a tab of currencies (`settings/CurrenciesSettings`, tab `currencies`): the base
+  currency (automatic or chosen), the downloaded rates per currency with what is missing and an
+  "Update now", and the rates typed by hand ("1 EUR = x USD"). Its hooks are in `api/currencies.ts`;
+  any change there invalidates every query (every converted figure depends on it).
 - A chart over time is not drawn for a single day (`isSingleDay`): the statistics keep their cards
   and table without it, and the bankroll screen leaves its evolution out.
 - A logo can also come from a URL: the browser cannot read images of other sites, so

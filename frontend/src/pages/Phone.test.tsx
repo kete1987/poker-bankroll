@@ -9,7 +9,15 @@ import type {
   StatsFigures,
   StatsSummary,
 } from '../api/types';
-import { game, page, ROOMS, VARIANTS } from '../test/fixtures';
+import {
+  bankrollSummary,
+  game,
+  page,
+  ROOMS,
+  statsGroups,
+  statsSummary,
+  VARIANTS,
+} from '../test/fixtures';
 import { onANarrowScreen } from '../test/narrowScreen';
 import { renderApp, stubApi, type ApiCall } from '../test/renderApp';
 
@@ -63,41 +71,37 @@ const TOURNAMENTS = figures({
   inTheMoneyRate: 0.3333,
 });
 
-const SUMMARY: StatsSummary = {
-  currencies: [
-    {
-      currencyCode: 'EUR',
-      total: TOURNAMENTS,
-      byGameType: [{ gameType: 'TOURNAMENT', figures: TOURNAMENTS }],
-      inPlay: { games: 0, invested: 0 },
-    },
-  ],
-};
+const SUMMARY: StatsSummary = statsSummary([
+  {
+    currencyCode: 'EUR',
+    total: TOURNAMENTS,
+    byGameType: [{ gameType: 'TOURNAMENT', figures: TOURNAMENTS }],
+    inPlay: { games: 0, invested: 0 },
+  },
+]);
 
 const WINAMAX = { id: 1, name: 'Winamax' };
 
-const BANKROLL: BankrollSummary = {
-  currencies: [
-    {
-      currencyCode: 'EUR',
-      total: bankroll({ deposited: 200, withdrawn: 50, gamesNet: 30, result: 30, bankroll: 180 }),
-      withoutRoom: bankroll(),
-      rooms: [
-        {
-          room: WINAMAX,
-          active: true,
-          figures: bankroll({
-            deposited: 200,
-            withdrawn: 50,
-            gamesNet: 30,
-            result: 30,
-            bankroll: 180,
-          }),
-        },
-      ],
-    },
-  ],
-};
+const BANKROLL: BankrollSummary = bankrollSummary([
+  {
+    currencyCode: 'EUR',
+    total: bankroll({ deposited: 200, withdrawn: 50, gamesNet: 30, result: 30, bankroll: 180 }),
+    withoutRoom: bankroll(),
+    rooms: [
+      {
+        room: WINAMAX,
+        active: true,
+        figures: bankroll({
+          deposited: 200,
+          withdrawn: 50,
+          gamesNet: 30,
+          result: 30,
+          bankroll: 180,
+        }),
+      },
+    ],
+  },
+]);
 
 const MOVEMENT: Movement = {
   id: 1,
@@ -117,9 +121,8 @@ function stubEverything(handlers: Record<string, unknown> = {}) {
     'GET /rooms': ROOMS,
     'GET /variants': VARIANTS,
     'GET /stats/summary': SUMMARY,
-    'GET /stats/groups': (call: ApiCall) => ({
-      groupBy: call.query.get('groupBy'),
-      currencies: [
+    'GET /stats/groups': (call: ApiCall) =>
+      statsGroups(call.query.get('groupBy') as 'ROOM', [
         {
           currencyCode: 'EUR',
           groups:
@@ -133,8 +136,7 @@ function stubEverything(handlers: Record<string, unknown> = {}) {
                 ]
               : [{ key: { period: '2026-01' }, figures: TOURNAMENTS, cumulativeNet: 30 }],
         },
-      ],
-    }),
+      ]),
     'GET /bankroll/summary': BANKROLL,
     'GET /bankroll/movements': {
       items: [MOVEMENT],
@@ -314,6 +316,40 @@ describe('On a phone', () => {
 
       await userEvent.click(details);
       expect(table.queryByText('Deposited')).not.toBeInTheDocument();
+    });
+
+    it('keeps each room in its own currency and the total converted', async () => {
+      const dollars = bankroll({ deposited: 50, result: -10, bankroll: 40 });
+      stubEverything({
+        'GET /bankroll/summary': bankrollSummary(
+          [
+            BANKROLL.currencies[0]!,
+            {
+              currencyCode: 'USD',
+              total: dollars,
+              withoutRoom: bankroll(),
+              rooms: [{ room: { id: 2, name: 'PokerStars' }, active: true, figures: dollars }],
+            },
+          ],
+          {
+            currencyCode: 'EUR',
+            total: bankroll({ result: 21, bankroll: 215.6 }),
+            rooms: [
+              { room: { id: 2, name: 'PokerStars' }, active: true, figures: bankroll() },
+              { room: WINAMAX, active: true, figures: bankroll() },
+            ],
+          },
+        ),
+      });
+      renderApp('/bankroll');
+
+      const table = within(await screen.findByRole('table'));
+      const stars = within(table.getByRole('row', { name: /PokerStars/ }));
+      expect(stars.getByText('-US$10.00')).toBeInTheDocument();
+      expect(stars.getByText('+US$40.00')).toBeInTheDocument();
+      const total = within(table.getByRole('row', { name: /Total in EUR/ }));
+      expect(total.getByText('+€21.00')).toBeInTheDocument();
+      expect(total.getByText('+€215.60')).toBeInTheDocument();
     });
   });
 

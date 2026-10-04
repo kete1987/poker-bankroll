@@ -32,6 +32,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-pokerbankroll}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-pokerbankroll}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set (see .env.example)}
+      # Downloads the exchange rates of the ECB from api.frankfurter.dev (docs/currencies.md).
+      POKER_BANKROLL_EXCHANGE_RATES_ENABLED: ${EXCHANGE_RATES_ENABLED:-true}
     depends_on:
       db:
         condition: service_healthy

@@ -75,4 +75,18 @@ describe('formatters', () => {
     expect(es.decimalSeparator).toBe(',');
     expect(en.decimalSeparator).toBe('.');
   });
+
+  it('formats exchange rates with four decimals at least', () => {
+    expect(es.rate(1.085)).toBe('1,0850');
+    expect(en.rate(1.12345678)).toBe('1.12345678');
+    expect(plain(es.rate(18345.5))).toBe('18.345,5000');
+  });
+
+  it('formats an instant as a date and a time where the browser is', () => {
+    const instant = '2026-10-04T15:30:00Z';
+    const local = new Date(instant);
+    const expected = `${String(local.getDate()).padStart(2, '0')}/${String(local.getMonth() + 1).padStart(2, '0')}/2026`;
+    expect(es.moment(instant)).toContain(expected);
+    expect(es.moment(instant)).toContain(`${String(local.getHours()).padStart(2, '0')}:30`);
+  });
 });

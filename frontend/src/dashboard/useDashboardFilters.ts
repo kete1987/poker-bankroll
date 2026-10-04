@@ -12,8 +12,6 @@ export interface DashboardFilters {
   range: DateRange;
   /** Only these rooms; empty is every room. */
   roomIds: number[];
-  /** The currency shown, when the URL names one. */
-  currency?: string;
   breakdown: Breakdown;
 }
 
@@ -26,7 +24,6 @@ function parse(params: URLSearchParams): DashboardFilters {
   return {
     range,
     roomIds: parseList(params.get('room'), parsePositiveInteger),
-    currency: params.get('currency')?.trim().toUpperCase() || undefined,
     breakdown: params.get('by') === 'variant' ? 'variant' : 'type',
   };
 }
@@ -49,16 +46,13 @@ function serialize(filters: DashboardFilters): URLSearchParams {
   if (filters.roomIds.length > 0) {
     params.set('room', filters.roomIds.join(','));
   }
-  if (filters.currency) {
-    params.set('currency', filters.currency);
-  }
   if (filters.breakdown === 'variant') {
     params.set('by', 'variant');
   }
   return params;
 }
 
-/** Period, rooms, currency and breakdown of the dashboard, kept in the URL. */
+/** Period, rooms and breakdown of the dashboard, kept in the URL. */
 export function useDashboardFilters() {
   const [params, setParams] = useSearchParams();
   const filters = useMemo(() => parse(params), [params]);
