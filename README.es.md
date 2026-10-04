@@ -119,7 +119,7 @@ real. Solo necesitas Docker con Compose: usa las imágenes publicadas, no se con
 ```bash
 git clone https://github.com/kete1987/poker-bankroll.git
 cd poker-bankroll/deploy
-docker compose --env-file demo.env up -d
+docker compose -p poker-bankroll-demo -f docker-compose.yml -f docker-compose.demo.yml --env-file demo.env up -d
 ```
 
 (Sin git, basta con descargar `docker-compose.yml`, `docker-compose.demo.yml` y `demo.env` de
@@ -129,7 +129,7 @@ Abre `http://localhost:8081` (otro puerto: cambia `WEB_PORT` en `demo.env`). Cua
 tira la demo con sus datos:
 
 ```bash
-docker compose --env-file demo.env down -v
+docker compose -p poker-bankroll-demo -f docker-compose.yml -f docker-compose.demo.yml --env-file demo.env down -v
 ```
 
 La demo es un proyecto de Compose aparte (`poker-bankroll-demo`, con

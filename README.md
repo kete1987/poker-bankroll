@@ -113,7 +113,7 @@ with Compose: it runs the released images, nothing is built.
 ```bash
 git clone https://github.com/kete1987/poker-bankroll.git
 cd poker-bankroll/deploy
-docker compose --env-file demo.env up -d
+docker compose -p poker-bankroll-demo -f docker-compose.yml -f docker-compose.demo.yml --env-file demo.env up -d
 ```
 
 (Without git, it is enough to download `docker-compose.yml`, `docker-compose.demo.yml` and
@@ -123,7 +123,7 @@ Open `http://localhost:8081` (another port: change `WEB_PORT` in `demo.env`). Wh
 throw the demo away with its data:
 
 ```bash
-docker compose --env-file demo.env down -v
+docker compose -p poker-bankroll-demo -f docker-compose.yml -f docker-compose.demo.yml --env-file demo.env down -v
 ```
 
 The demo is a Compose project of its own (`poker-bankroll-demo`, from

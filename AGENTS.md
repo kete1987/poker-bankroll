@@ -80,8 +80,8 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 | `docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build` (in `deploy/`) | Build both images from the checkout and run db + api + web on `http://localhost:${WEB_PORT:-8080}` |
 | `docker compose up -d` (in `deploy/`) | Run the released images from GHCR (`POKER_BANKROLL_VERSION`, default `latest`) |
 | `docker compose down` / `down -v` | Stop the stack / also delete the database volume |
-| `docker compose --env-file demo.env up -d` (in `deploy/`) | Run the released images with the demo data on `http://localhost:8081`, as the separate project `poker-bankroll-demo` (see "Demo data") |
-| `docker compose --env-file demo.env down -v` (in `deploy/`) | Remove the demo and its database |
+| `docker compose -p poker-bankroll-demo -f docker-compose.yml -f docker-compose.demo.yml --env-file demo.env up -d` (in `deploy/`) | Run the released images with the demo data on `http://localhost:8081`, as the separate project `poker-bankroll-demo` (see "Demo data") |
+| `docker compose -p poker-bankroll-demo -f docker-compose.yml -f docker-compose.demo.yml --env-file demo.env down -v` (in `deploy/`) | Remove the demo and its database |
 | `docker compose exec backup /backup.sh` (in `deploy/`) | Take a database backup now (Git Bash: prefix `MSYS_NO_PATHCONV=1`) |
 
 - Images: `backend/Dockerfile` (layered Spring Boot jar on Alpine with a Java runtime linked by
@@ -444,12 +444,12 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - To look at the frontend with data: run the API with the command above and `npm run dev` in
   `frontend/`, then open `http://localhost:5173`.
 - The released images run it too, with no source code or setup: `deploy/docker-compose.demo.yml`
-  on top of `docker-compose.yml`, with the variables of `deploy/demo.env` (which names both files
-  in `COMPOSE_FILE`, so every command only needs `--env-file demo.env`). It is its own Compose
+  on top of `docker-compose.yml`, with the variables of `deploy/demo.env`. It is its own Compose
   project (`poker-bankroll-demo`: own volume, port 8081, fixed throwaway password, no backup
-  service, no exchange-rate downloads) and never reads `.env`, so it cannot touch a real
-  installation. To try it with images built from the checkout, add
-  `-f docker-compose.yml -f docker-compose.build.yml -f docker-compose.demo.yml` to the command.
+  service, no exchange-rate downloads) and never reads `.env`. Every documented command gives
+  `-p poker-bankroll-demo` and both `-f` files: a `COMPOSE_PROJECT_NAME` or `COMPOSE_FILE` of the
+  shell wins over files, and `down -v` would then delete a real installation. To try it with
+  images built from the checkout, add `-f docker-compose.build.yml` before the demo file.
 - The screenshots of the READMEs (`docs/images/`) are taken with the demo data, never with real
   results: English UI, light theme, desktop size plus one at phone width.
 
