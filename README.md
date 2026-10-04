@@ -38,13 +38,17 @@ here is results and bankroll management.
 - Quick entry of games: tournaments (re-entries, bounties, ticket prizes), Sit&Go and spins
   (Expresso...) and cash games, in No-Limit Hold'em or PLO; duplicate a game, or add several
   alike at once (ten Expressos of an evening) with the result of each one in a row
+- Templates of the games you play often: one click starts one
+- Tags of your own on games ("challenge", "with friends"...), to filter and break down by them
 - Dashboard with net result, ROI and ITM, broken down by game type
-- Daily and monthly results, net evolution chart
-- Poker bankroll per room and currency: deposits, withdrawals, bonuses and the result of your games
+- Statistics by day, week, month or year with the net evolution chart, and broken down by room,
+  type, variant, buy-in, tournament name, day of the week or tag
+- Poker bankroll per room and currency: deposits, withdrawals, bonuses and the result of your
+  games, and its evolution over time
 - Multiple currencies (EUR and USD out of the box, extensible): each room keeps its own, and what
   mixes them is shown in a base currency, converted with the ECB rate of each day
   ([details](docs/currencies.md))
-- English and Spanish UI
+- English and Spanish UI, laid out for phones too
 - Import of games from a CSV file ([format](docs/import.md)), to bring your history from a spreadsheet
 - Export of the games and the bankroll movements you are looking at, as CSV or Excel
 - Backup of everything to one file, downloaded and restored from the app: to move to another

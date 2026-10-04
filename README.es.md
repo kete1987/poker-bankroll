@@ -39,14 +39,22 @@ Aquí el foco son los resultados y la gestión de la banca.
 ## Funcionalidades
 
 - Alta rápida de partidas: torneos (re-entries, primas, premios en ticket), Sit&Go y spins
-  (Expresso...) y cash, en No-Limit Hold'em o PLO
-- Dashboard con resultado neto, ROI e ITM por modalidad
-- Resultados por día y por mes, gráfica de evolución
-- Bankroll de póker por sala y moneda: depósitos, retiradas, bonos y el resultado de tus partidas
-- Varias monedas (EUR y USD de serie, ampliable)
-- Interfaz en español e inglés
+  (Expresso...) y cash, en No-Limit Hold'em o PLO; duplicar una partida, o añadir varias iguales
+  de una vez (los diez Expressos de una noche) con el resultado de cada una en una fila
+- Plantillas de las partidas que juegas a menudo: un clic y empieza una
+- Etiquetas propias en las partidas ("challenge", "con amigos"...), para filtrar y desglosar por ellas
+- Dashboard con resultado neto, ROI e ITM, desglosado por modalidad
+- Estadísticas por día, semana, mes o año con la gráfica de evolución del neto, y desgloses por
+  sala, modalidad, variante, buy-in, nombre del torneo, día de la semana o etiqueta
+- Bankroll de póker por sala y moneda: depósitos, retiradas, bonos y el resultado de tus partidas,
+  y su evolución en el tiempo
+- Varias monedas (EUR y USD de serie, ampliable): cada sala tiene la suya, y lo que las mezcla se
+  muestra en una moneda base, convertido con el tipo del BCE de cada día
+  ([detalles](docs/currencies.md), en inglés)
+- Interfaz en español e inglés, adaptada también al móvil
 - Importación de partidas desde un fichero CSV ([formato](docs/import.md), en inglés), para traer tu
   historial de una hoja de cálculo
+- Exportación de las partidas y los movimientos de bankroll que estás viendo, en CSV o Excel
 - Copia de seguridad de todo en un fichero, que se descarga y se restaura desde la aplicación:
   para mudarte a otro equipo o recuperarte de un problema
 - Copias de seguridad diarias de la base de datos
@@ -93,6 +101,11 @@ Para construir las imágenes desde el código:
 
 Las versiones, actualizaciones y vueltas atrás se explican en
 [docs/releasing.md](docs/releasing.md) (en inglés).
+
+La API descarga los tipos de cambio del Banco Central Europeo desde
+[Frankfurter](https://frankfurter.dev) (`api.frankfurter.dev`), así que necesita salida a internet
+para ellos; todo lo demás funciona sin ella. Pon `EXCHANGE_RATES_ENABLED=false` en `.env` para
+desactivar las descargas (ver [docs/currencies.md](docs/currencies.md), en inglés).
 
 > La aplicación no tiene login. Úsala en tu red local y no la expongas a internet sin
 > poner autenticación delante.
