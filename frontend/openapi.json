@@ -301,6 +301,34 @@
         },
         "type" : "object"
       },
+      "GameBatchRequest" : {
+        "properties" : {
+          "games" : {
+            "description" : "The games, recorded in this order: each one as `POST /games` records it",
+            "items" : {
+              "$ref" : "#/components/schemas/GameRequest"
+            },
+            "maxItems" : 50,
+            "minItems" : 1,
+            "type" : "array"
+          }
+        },
+        "required" : [ "games" ],
+        "type" : "object"
+      },
+      "GameBatchResponse" : {
+        "properties" : {
+          "games" : {
+            "description" : "In the order they were sent",
+            "items" : {
+              "$ref" : "#/components/schemas/GameResponse"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "games" ],
+        "type" : "object"
+      },
       "GameImportResponse" : {
         "properties" : {
           "dryRun" : {
@@ -1918,6 +1946,36 @@
           }
         },
         "summary" : "Record a game",
+        "tags" : [ "Games" ]
+      }
+    },
+    "/games/batch" : {
+      "post" : {
+        "description" : "From 1 to 50 games, recorded in the order sent and each one as `POST /games` records it, all of them or none. Validation errors name the game by its position (`games[3].prize`, zero-based); any other error of one game has that position in an `index` property.",
+        "operationId" : "createBatch",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/GameBatchRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GameBatchResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "summary" : "Record several games at once",
         "tags" : [ "Games" ]
       }
     },

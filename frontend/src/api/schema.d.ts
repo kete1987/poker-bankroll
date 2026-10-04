@@ -205,6 +205,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/games/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record several games at once
+         * @description From 1 to 50 games, recorded in the order sent and each one as `POST /games` records it, all of them or none. Validation errors name the game by its position (`games[3].prize`, zero-based); any other error of one game has that position in an `index` property.
+         */
+        post: operations["createBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/games/names": {
         parameters: {
             query?: never;
@@ -635,6 +655,14 @@ export interface components {
             ticketDescription?: string | null;
             /** @description Value of a tournament ticket won. Not for cash games. Defaults to 0 */
             ticketPrizeValue?: number | null;
+        };
+        GameBatchRequest: {
+            /** @description The games, recorded in this order: each one as `POST /games` records it */
+            games: components["schemas"]["GameRequest"][];
+        };
+        GameBatchResponse: {
+            /** @description In the order they were sent */
+            games: components["schemas"]["GameResponse"][];
         };
         GameImportResponse: {
             /** @description The file was only checked: nothing was stored */
@@ -1419,6 +1447,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GameResponse"];
+                };
+            };
+        };
+    };
+    createBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GameBatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GameBatchResponse"];
                 };
             };
         };
