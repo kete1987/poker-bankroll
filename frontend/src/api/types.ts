@@ -48,3 +48,7 @@ export type MovementPage = Schemas['PageResponseMovementResponse'];
 export type BankrollSummary = Schemas['BankrollSummaryResponse'];
 export type CurrencyBankroll = Schemas['CurrencyBankroll'];
 export type BankrollFigures = Schemas['BankrollFigures'];
+export type BankrollEvolution = Schemas['BankrollEvolutionResponse'];
+export type CurrencyEvolution = Schemas['CurrencyEvolution'];
+export type EvolutionPeriod = Schemas['EvolutionPeriod'];
+export type TimePeriod = BankrollEvolution['groupBy'];

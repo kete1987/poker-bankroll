@@ -14,6 +14,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 
 import io.github.kete1987.pokerbankroll.common.api.PageResponse;
+import io.github.kete1987.pokerbankroll.stats.TimePeriod;
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -57,6 +58,27 @@ class BankrollController {
                     + "movements that belong to no room")
             @RequestParam(required = false) @Nullable List<Long> roomId) {
         return service.summary(from, to, roomId);
+    }
+
+    @GetMapping("/evolution")
+    @Operation(summary = "Poker bankroll per period, for each currency and room",
+            description = "For each period with movements or games: what was deposited, withdrawn, got as "
+                    + "bonuses or adjusted, the net of the games (those in play included) and the bankroll when "
+                    + "the period ends. Unlike the cumulative net of `/stats/groups`, the bankroll includes "
+                    + "everything before the range (`startingBankroll`), so the last one without dates is the "
+                    + "one of `/bankroll/summary`. Currencies and rooms with nothing in the range and no "
+                    + "bankroll at its start are left out.")
+    BankrollEvolutionResponse evolution(
+            @Parameter(description = "Length of the periods; weeks start on Monday")
+            @RequestParam TimePeriod groupBy,
+            @Parameter(description = "First day of the range: what happened before is the starting bankroll")
+            @RequestParam(required = false) @Nullable LocalDate from,
+            @Parameter(description = "Last day of the range: what happened after it does not count")
+            @RequestParam(required = false) @Nullable LocalDate to,
+            @Parameter(description = "One or more rooms: only they count, without the movements that belong "
+                    + "to no room")
+            @RequestParam(required = false) @Nullable List<Long> roomId) {
+        return service.evolution(groupBy, from, to, roomId);
     }
 
     @GetMapping("/movements")

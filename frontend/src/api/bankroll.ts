@@ -3,11 +3,13 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { apiFetch } from './client';
 import { toQueryString } from './query';
 import type {
+  BankrollEvolution,
   BankrollSummary,
   Movement,
   MovementPage,
   MovementRequest,
   MovementType,
+  TimePeriod,
 } from './types';
 
 /** With dates, the figures of that period; with rooms, only those. Without anything, the bankroll now. */
@@ -23,6 +25,20 @@ export function useBankrollSummary(query: BankrollQuery = {}) {
     queryKey: ['bankroll', 'summary', query],
     queryFn: () => apiFetch<BankrollSummary>(`/bankroll/summary?${toQueryString(query)}`),
     placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * The bankroll period by period, for each currency and room, from what it was when the range
+ * starts. Only periods with movements or games come.
+ */
+export function useBankrollEvolution(groupBy: TimePeriod, query: BankrollQuery, enabled = true) {
+  return useQuery({
+    queryKey: ['bankroll', 'evolution', groupBy, query],
+    queryFn: () =>
+      apiFetch<BankrollEvolution>(`/bankroll/evolution?${toQueryString({ groupBy, ...query })}`),
+    placeholderData: keepPreviousData,
+    enabled,
   });
 }
 

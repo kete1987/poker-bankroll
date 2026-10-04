@@ -19,6 +19,10 @@ import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Root;
 
+import io.github.kete1987.pokerbankroll.bankroll.BankrollEvolutionResponse.CurrencyEvolution;
+import io.github.kete1987.pokerbankroll.bankroll.BankrollEvolutionResponse.EvolutionPeriod;
+import io.github.kete1987.pokerbankroll.bankroll.BankrollEvolutionResponse.EvolutionSeries;
+import io.github.kete1987.pokerbankroll.bankroll.BankrollEvolutionResponse.RoomEvolution;
 import io.github.kete1987.pokerbankroll.bankroll.BankrollSummaryResponse.CurrencyBankroll;
 import io.github.kete1987.pokerbankroll.bankroll.BankrollSummaryResponse.BankrollFigures;
 import io.github.kete1987.pokerbankroll.bankroll.BankrollSummaryResponse.RoomBankroll;
@@ -29,6 +33,7 @@ import io.github.kete1987.pokerbankroll.common.error.ErrorCode;
 import io.github.kete1987.pokerbankroll.game.GameResponse.RoomRef;
 import io.github.kete1987.pokerbankroll.room.Room;
 import io.github.kete1987.pokerbankroll.room.RoomRepository;
+import io.github.kete1987.pokerbankroll.stats.TimePeriod;
 import org.hibernate.jpa.HibernateHints;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.PageRequest;
@@ -231,6 +236,131 @@ public class BankrollService {
                 withoutRoom.getOrDefault(currencyCode, new Totals()).toFigures(),
                 roomsByCurrency.getOrDefault(currencyCode, List.of()))));
         return new BankrollSummaryResponse(result);
+    }
+
+    /**
+     * How the bankroll of each currency, and of each of its rooms, changed period by period: the
+     * figures of {@link #summary} with dates, one period after another, starting from the bankroll
+     * before {@code from}. Only periods with movements or games are listed. With rooms, only those
+     * count, without the movements that belong to no room.
+     */
+    @Transactional(readOnly = true)
+    public BankrollEvolutionResponse evolution(TimePeriod groupBy, @Nullable LocalDate from, @Nullable LocalDate to,
+            @Nullable List<Long> roomIds) {
+        // A blank parameter arrives as a list holding a null: it is no value.
+        Set<Long> onlyRooms = roomIds == null
+                ? Set.of()
+                : roomIds.stream().filter(Objects::nonNull).collect(Collectors.toSet());
+        boolean everyRoom = onlyRooms.isEmpty();
+
+        Map<Long, Evolution> byRoom = new HashMap<>();
+        Map<String, Evolution> withoutRoom = new TreeMap<>();
+        // Sums per day; whatever happened before the range is one sum without a day.
+        jdbc.sql("""
+                select m.room_id, coalesce(r.currency_code, m.currency_code) as currency_code, m.type,
+                       case when m.occurred_on < cast(:from as date) then null else m.occurred_on end as day,
+                       sum(m.amount) as amount
+                from bankroll_movement m
+                left join room r on r.id = m.room_id
+                where cast(:to as date) is null or m.occurred_on <= cast(:to as date)
+                group by 1, 2, 3, 4
+                """).param("from", from).param("to", to).query((row, n) -> {
+                    long roomId = row.getLong("room_id");
+                    if (row.wasNull() && !everyRoom) {
+                        // Movements without a room are of no room in particular.
+                        return null;
+                    }
+                    Evolution evolution = row.wasNull()
+                            ? withoutRoom.computeIfAbsent(row.getString("currency_code"), code -> new Evolution())
+                            : byRoom.computeIfAbsent(roomId, id -> new Evolution());
+                    Totals totals = evolution.of(row.getObject("day", LocalDate.class), groupBy);
+                    totals.addMovements(MovementType.valueOf(row.getString("type")), row.getBigDecimal("amount"));
+                    return totals;
+                }).list();
+        jdbc.sql("""
+                select g.room_id,
+                       case when g.played_on < cast(:from as date) then null else g.played_on end as day,
+                       sum(g.net) as net
+                from game g
+                where cast(:to as date) is null or g.played_on <= cast(:to as date)
+                group by 1, 2
+                """).param("from", from).param("to", to).query((row, n) -> {
+                    Totals totals = byRoom.computeIfAbsent(row.getLong("room_id"), id -> new Evolution())
+                            .of(row.getObject("day", LocalDate.class), groupBy);
+                    totals.addGames(row.getBigDecimal("net"), BigDecimal.ZERO, 0, BigDecimal.ZERO);
+                    return totals;
+                }).list();
+
+        Map<String, List<RoomEvolution>> roomsByCurrency = new TreeMap<>();
+        Map<String, Evolution> totalByCurrency = new TreeMap<>();
+        jdbc.sql("select id, name, currency_code, active from room order by lower(name), id").query((row, n) -> {
+            long roomId = row.getLong("id");
+            Evolution evolution = byRoom.get(roomId);
+            if (evolution == null || evolution.isEmpty() || !(everyRoom || onlyRooms.contains(roomId))) {
+                return roomId;
+            }
+            String currencyCode = row.getString("currency_code");
+            roomsByCurrency.computeIfAbsent(currencyCode, code -> new ArrayList<>()).add(new RoomEvolution(
+                    new RoomRef(roomId, row.getString("name")), row.getBoolean("active"), evolution.toSeries()));
+            totalByCurrency.computeIfAbsent(currencyCode, code -> new Evolution()).add(evolution);
+            return roomId;
+        }).list();
+        withoutRoom.forEach((currencyCode, evolution) ->
+                totalByCurrency.computeIfAbsent(currencyCode, code -> new Evolution()).add(evolution));
+
+        List<CurrencyEvolution> result = new ArrayList<>();
+        totalByCurrency.forEach((currencyCode, total) -> {
+            if (!total.isEmpty()) {
+                result.add(new CurrencyEvolution(currencyCode, total.toSeries(),
+                        roomsByCurrency.getOrDefault(currencyCode, List.of())));
+            }
+        });
+        return new BankrollEvolutionResponse(groupBy, result);
+    }
+
+    /** The bankroll before the range and what changed it in each period, keyed by the first day of the period. */
+    private static final class Evolution {
+        private final Totals before = new Totals();
+        private final Map<LocalDate, PeriodTotals> periods = new TreeMap<>();
+
+        /** The sums of the period holding a day; of the time before the range without a day. */
+        Totals of(@Nullable LocalDate day, TimePeriod groupBy) {
+            if (day == null) {
+                return before;
+            }
+            return periods.computeIfAbsent(groupBy.firstDayOf(day), first -> new PeriodTotals(
+                    groupBy.keyOf(day), first, groupBy.lastDayOf(day))).totals;
+        }
+
+        void add(Evolution other) {
+            before.add(other.before);
+            other.periods.forEach((first, period) -> periods.computeIfAbsent(first,
+                    key -> new PeriodTotals(period.key, period.startsOn, period.endsOn)).totals.add(period.totals));
+        }
+
+        /** Nothing in the range and no bankroll when it starts: nothing to show. */
+        boolean isEmpty() {
+            return periods.isEmpty() && before.toFigures().bankroll().signum() == 0;
+        }
+
+        EvolutionSeries toSeries() {
+            BigDecimal startingBankroll = before.toFigures().bankroll();
+            BigDecimal bankroll = startingBankroll;
+            List<EvolutionPeriod> result = new ArrayList<>(periods.size());
+            for (PeriodTotals period : periods.values()) {
+                BankrollFigures figures = period.totals.toFigures();
+                bankroll = bankroll.add(figures.bankroll());
+                result.add(new EvolutionPeriod(period.key, period.startsOn, period.endsOn, figures.deposited(),
+                        figures.withdrawn(), figures.bonuses(), figures.adjustments(), figures.gamesNet(), bankroll));
+            }
+            return new EvolutionSeries(startingBankroll, result);
+        }
+    }
+
+    private record PeriodTotals(String key, LocalDate startsOn, LocalDate endsOn, Totals totals) {
+        PeriodTotals(String key, LocalDate startsOn, LocalDate endsOn) {
+            this(key, startsOn, endsOn, new Totals());
+        }
     }
 
     /** Sums from which the figures of a room, of the movements without a room or of a currency derive. */

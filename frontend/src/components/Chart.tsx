@@ -1,5 +1,5 @@
 import { useComputedColorScheme } from '@mantine/core';
-import { BarChart, LineChart } from 'echarts/charts';
+import { BarChart, LineChart, ScatterChart } from 'echarts/charts';
 import {
   DatasetComponent,
   GridComponent,
@@ -16,6 +16,7 @@ import { useEffect, useRef } from 'react';
 echarts.use([
   LineChart,
   BarChart,
+  ScatterChart,
   DatasetComponent,
   GridComponent,
   LegendComponent,

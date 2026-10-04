@@ -50,6 +50,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/bankroll/evolution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Poker bankroll per period, for each currency and room
+         * @description For each period with movements or games: what was deposited, withdrawn, got as bonuses or adjusted, the net of the games (those in play included) and the bankroll when the period ends. Unlike the cumulative net of `/stats/groups`, the bankroll includes everything before the range (`startingBankroll`), so the last one without dates is the one of `/bankroll/summary`. Currencies and rooms with nothing in the range and no bankroll at its start are left out.
+         */
+        get: operations["evolution"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/bankroll/movements": {
         parameters: {
             query?: never;
@@ -564,6 +584,11 @@ export interface components {
             /** @description The installation now holds what the file holds: not a dry run, and no errors */
             restored: boolean;
         };
+        BankrollEvolutionResponse: {
+            currencies: components["schemas"]["CurrencyEvolution"][];
+            /** @enum {string} */
+            groupBy: "DAY" | "WEEK" | "MONTH" | "YEAR";
+        };
         BankrollFigures: {
             /** @description Sum of the adjustments, positive or negative */
             adjustments: number;
@@ -608,6 +633,13 @@ export interface components {
             /** @description Movements that belong to no room; they only count in the total */
             withoutRoom: components["schemas"]["BankrollFigures"];
         };
+        CurrencyEvolution: {
+            currencyCode: string;
+            /** @description Rooms with movements or games in the range, or with a bankroll at its start, by name */
+            rooms: components["schemas"]["RoomEvolution"][];
+            /** @description The rooms of the response in this currency plus, without a room filter, the movements that belong to no room */
+            total: components["schemas"]["EvolutionSeries"];
+        };
         CurrencyGroups: {
             currencyCode: string;
             /** @description Groups with finished games. Periods from oldest to newest, buy-ins and their ranges from lowest to highest, days of the week from Monday, anything else from most to fewest games (games without a name last) */
@@ -626,6 +658,35 @@ export interface components {
             inPlay: components["schemas"]["InPlay"];
             /** @description Every finished game in this currency */
             total: components["schemas"]["StatsFigures"];
+        };
+        EvolutionPeriod: {
+            /** @description Sum of the adjustments, positive or negative */
+            adjustments: number;
+            /** @description Bankroll at the end of the period: the starting bankroll plus deposited - withdrawn + adjustments + bonuses + gamesNet of this period and the earlier ones */
+            bankroll: number;
+            bonuses: number;
+            deposited: number;
+            /**
+             * Format: date
+             * @description Last day of the period, which may be after `to`
+             */
+            endsOn: string;
+            /** @description Net of the games, those in play included (their buy-in is already spent) */
+            gamesNet: number;
+            /** @description DAY: 2026-01-19; WEEK: its Monday, 2026-01-19; MONTH: 2026-01; YEAR: 2026 */
+            period: string;
+            /**
+             * Format: date
+             * @description First day of the period, which may be before `from`
+             */
+            startsOn: string;
+            withdrawn: number;
+        };
+        EvolutionSeries: {
+            /** @description Periods with movements or games, oldest first */
+            periods: components["schemas"]["EvolutionPeriod"][];
+            /** @description Bankroll before the first day of the range (`from`): everything earlier counts. Zero without `from` */
+            startingBankroll: number;
         };
         FinishGameRequest: {
             /** @description Bounties won. Not for cash games. Defaults to 0 */
@@ -937,6 +998,11 @@ export interface components {
             figures: components["schemas"]["BankrollFigures"];
             room: components["schemas"]["RoomRef"];
         };
+        RoomEvolution: {
+            active: boolean;
+            room: components["schemas"]["RoomRef"];
+            series: components["schemas"]["EvolutionSeries"];
+        };
         RoomRef: {
             /** Format: int64 */
             id: number;
@@ -1107,6 +1173,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BackupRestoreResponse"];
+                };
+            };
+        };
+    };
+    evolution: {
+        parameters: {
+            query: {
+                /** @description Length of the periods; weeks start on Monday */
+                groupBy: "DAY" | "WEEK" | "MONTH" | "YEAR";
+                /** @description First day of the range: what happened before is the starting bankroll */
+                from?: string;
+                /** @description Last day of the range: what happened after it does not count */
+                to?: string;
+                /** @description One or more rooms: only they count, without the movements that belong to no room */
+                roomId?: number[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankrollEvolutionResponse"];
                 };
             };
         };
