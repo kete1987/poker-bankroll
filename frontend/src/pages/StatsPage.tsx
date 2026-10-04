@@ -15,13 +15,16 @@ import { useTranslation } from 'react-i18next';
 import { useRooms } from '../api/rooms';
 import { useStatsOverTime, useStatsSummary } from '../api/stats';
 import { useTags } from '../api/tags';
-import type { GameType, StatsFigures, StatsGroup } from '../api/types';
+import type { GameType, StatsFigures } from '../api/types';
 import { useVariants } from '../api/variants';
 import { FilterBar } from '../components/FilterBar';
 import { Page } from '../components/Page';
 import { isSingleDay } from '../components/period';
 import { PeriodFilter } from '../components/PeriodFilter';
 import { StatCard } from '../components/StatCard';
+import { CurrencyAmounts } from '../currency/CurrencyAmounts';
+import { MissingRatesAlert } from '../currency/MissingRatesAlert';
+import { groupsIn, mergeMissing, moneyView, summaryIn } from '../currency/view';
 import { useFormat } from '../format/useFormat';
 import { scopeFilterCount } from '../games/scope';
 import { ScopeFilters } from '../games/ScopeFilters';
@@ -50,8 +53,9 @@ function netByGameType(
 }
 
 /**
- * Statistics over time, for one currency: the net as a chart (added up, or period by period) and
- * the results of each period in a table.
+ * Statistics over time: the net as a chart (added up, or period by period) and the results of
+ * each period in a table. Games in a single currency are shown in it; when currencies are mixed,
+ * everything is converted to the base currency by the backend.
  */
 export function StatsPage() {
   const { t } = useTranslation();
@@ -70,7 +74,7 @@ export function StatsPage() {
   const summaryAlone = useStatsSummary(query, onBreakdown);
   const loaded = onBreakdown ? summaryAlone : stats;
 
-  /** The filters, with what a state of the page adds to them (the cut in time, the currency). */
+  /** The filters, with what a state of the page adds to them (the cut in time). */
   const filterBar = (extra?: ReactNode) => (
     <FilterBar
       primary={<PeriodFilter range={filters.range} onChange={(range) => update({ range })} />}
@@ -124,19 +128,31 @@ export function StatsPage() {
     );
   }
 
-  // Amounts in different currencies are never added up: one currency at a time, by default the
-  // one with most games in the period.
+  // One currency is shown as it is; several, converted to the base currency.
   const overTime = stats.data?.groups;
-  const currencies = [...summary.currencies]
-    .sort((a, b) => b.total.games - a.total.games || a.currencyCode.localeCompare(b.currencyCode))
-    .map((currency) => currency.currencyCode);
-  const currencyCode =
-    filters.currency && currencies.includes(filters.currency) ? filters.currency : currencies[0];
-  const ofCurrency = summary.currencies.find((currency) => currency.currencyCode === currencyCode);
+  const view = moneyView(
+    summary.currencies.map((currency) => currency.currencyCode),
+    summary.converted.currencyCode,
+  );
+  const currencyCode = view?.currencyCode;
+  const ofCurrency = view && summaryIn(summary, view);
   const total = ofCurrency?.total;
   const totalByGameType = ofCurrency?.byGameType ?? [];
-  const groups: StatsGroup[] =
-    overTime?.currencies.find((currency) => currency.currencyCode === currencyCode)?.groups ?? [];
+  const groups = view ? groupsIn(overTime, view) : [];
+  const missing = view?.converted
+    ? mergeMissing(summary.converted.missingRates, overTime?.converted.missingRates)
+    : [];
+  /** What a converted figure is made of, currency by currency. */
+  const perCurrency = (amountOf: (figures: StatsFigures) => number, signed = false) =>
+    view?.converted && (
+      <CurrencyAmounts
+        signed={signed}
+        amounts={summary.currencies.map((currency) => ({
+          currencyCode: currency.currencyCode,
+          amount: amountOf(currency.total),
+        }))}
+      />
+    );
 
   // While another cut is loading the previous data stays on screen: it is named by its own cut,
   // not by the one just chosen.
@@ -180,40 +196,30 @@ export function StatsPage() {
   return (
     <Page title={t('nav.stats')}>
       {filterBar(
-        <>
-          {filters.view === 'evolution' && (
-            <Select
-              label={t('stats.groupBy')}
-              w={130}
-              allowDeselect={false}
-              data={GRANULARITIES.map((value) => ({
-                value,
-                label: t(`stats.granularity.${value}`),
-              }))}
-              value={granularity}
-              onChange={(value) => update({ granularity: value as Granularity })}
-            />
-          )}
-          {currencies.length > 1 && currencyCode && (
-            <Select
-              label={t('dashboard.currency')}
-              w={110}
-              allowDeselect={false}
-              data={[...currencies].sort()}
-              value={currencyCode}
-              onChange={(value) => update({ currency: value ?? undefined })}
-            />
-          )}
-        </>,
+        filters.view === 'evolution' && (
+          <Select
+            label={t('stats.groupBy')}
+            w={130}
+            allowDeselect={false}
+            data={GRANULARITIES.map((value) => ({
+              value,
+              label: t(`stats.granularity.${value}`),
+            }))}
+            value={granularity}
+            onChange={(value) => update({ granularity: value as Granularity })}
+          />
+        ),
       )}
 
       {viewSwitch}
 
+      <MissingRatesAlert missing={missing} />
+
       {filters.view === 'breakdown' ? (
-        currencyCode ? (
+        view ? (
           <Breakdown
             query={query}
-            currencyCode={currencyCode}
+            view={view}
             dimension={filters.dimension}
             sort={filters.sort}
             onChange={update}
@@ -254,11 +260,13 @@ export function StatsPage() {
                     count: total.games,
                     formatted: format.number(total.games),
                   })}
+                  {perCurrency((figures) => figures.net, true)}
                 </StatCard>
                 <StatCard label={t('dashboard.cards.roi')} value={format.percent(total.roi)}>
                   {t('stats.net.cards.invested', {
                     invested: format.money(total.invested, currencyCode),
                   })}
+                  {perCurrency((figures) => figures.invested)}
                 </StatCard>
                 {/* With a single point there is nothing to compare. */}
                 {best && worst && points.length > 1 && (

@@ -10,7 +10,7 @@ import type {
   StatsSummary,
 } from '../api/types';
 import { rangeOf } from '../components/period';
-import { room } from '../test/fixtures';
+import { bankrollSummary, room, statsGroups, statsSummary } from '../test/fixtures';
 import { problem, renderApp, stubApi, type ApiCall } from '../test/renderApp';
 
 function figures(overrides: Partial<StatsFigures> = {}): StatsFigures {
@@ -89,94 +89,84 @@ const TOTAL = figures({
   ticketsWon: 20,
 });
 
-const STATS: StatsSummary = {
-  currencies: [
+const EUR_STATS = {
+  currencyCode: 'EUR',
+  total: TOTAL,
+  byGameType: [
+    { gameType: 'TOURNAMENT' as const, figures: TOURNAMENTS },
+    { gameType: 'CASH' as const, figures: CASH },
+  ],
+  inPlay: { games: 0, invested: 0 },
+};
+const USD_STATS = {
+  currencyCode: 'USD',
+  total: figures({ games: 2, invested: 20, won: 10, net: -10, roi: -0.5 }),
+  byGameType: [
     {
-      currencyCode: 'EUR',
-      total: TOTAL,
-      byGameType: [
-        { gameType: 'TOURNAMENT', figures: TOURNAMENTS },
-        { gameType: 'CASH', figures: CASH },
-      ],
-      inPlay: { games: 0, invested: 0 },
-    },
-    {
-      currencyCode: 'USD',
-      total: figures({ games: 2, invested: 20, won: 10, net: -10, roi: -0.5 }),
-      byGameType: [
-        {
-          gameType: 'TOURNAMENT',
-          figures: figures({ games: 2, invested: 20, won: 10, net: -10, roi: -0.5 }),
-        },
-      ],
-      inPlay: { games: 0, invested: 0 },
+      gameType: 'TOURNAMENT' as const,
+      figures: figures({ games: 2, invested: 20, won: 10, net: -10, roi: -0.5 }),
     },
   ],
+  inPlay: { games: 0, invested: 0 },
 };
 
-const BY_VARIANT: StatsGroups = {
-  groupBy: 'VARIANT',
-  currencies: [
-    {
-      currencyCode: 'EUR',
-      groups: [
-        {
-          key: { gameType: 'TOURNAMENT', variant: { id: 10, code: 'KO', name: null } },
-          figures: figures({ games: 25, invested: 150, won: 220, net: 70, roi: 0.4667 }),
-        },
-        {
-          key: { gameType: 'TOURNAMENT', variant: null },
-          figures: figures({ games: 15, invested: 80, won: 80, net: 0, roi: 0 }),
-        },
-        {
-          key: { gameType: 'SIT_AND_GO', variant: { id: 21, code: null, name: 'Hyper Turbo' } },
-          figures: figures({ games: 3, invested: 30, won: 25, net: -5 }),
-        },
-      ],
-    },
-  ],
-};
+const STATS: StatsSummary = statsSummary([EUR_STATS]);
+
+const BY_VARIANT: StatsGroups = statsGroups('VARIANT', [
+  {
+    currencyCode: 'EUR',
+    groups: [
+      {
+        key: { gameType: 'TOURNAMENT', variant: { id: 10, code: 'KO', name: null } },
+        figures: figures({ games: 25, invested: 150, won: 220, net: 70, roi: 0.4667 }),
+      },
+      {
+        key: { gameType: 'TOURNAMENT', variant: null },
+        figures: figures({ games: 15, invested: 80, won: 80, net: 0, roi: 0 }),
+      },
+      {
+        key: { gameType: 'SIT_AND_GO', variant: { id: 21, code: null, name: 'Hyper Turbo' } },
+        figures: figures({ games: 3, invested: 30, won: 25, net: -5 }),
+      },
+    ],
+  },
+]);
 
 const WINAMAX = { id: 1, name: 'Winamax' };
 const UNIBET = { id: 3, name: 'Unibet' };
+const STARS = { id: 2, name: 'PokerStars' };
 
 /** The bankroll as it is now. */
-const BANKROLL_NOW: BankrollSummary = {
-  currencies: [
-    {
-      currencyCode: 'EUR',
-      total: bankroll({
-        deposited: 200,
-        withdrawn: 50,
-        bankroll: 320.5,
-        result: 120.5,
-        gamesInPlay: 2,
-        investedInPlay: 12,
-      }),
-      withoutRoom: bankroll({ deposited: 200, bankroll: 200 }),
-      rooms: [
-        { room: UNIBET, active: false, figures: bankroll({ result: -30, bankroll: -30 }) },
-        { room: WINAMAX, active: true, figures: bankroll({ result: 150.5, bankroll: 150.5 }) },
-      ],
-    },
-    {
-      currencyCode: 'USD',
-      total: bankroll({ bankroll: 40 }),
-      withoutRoom: bankroll(),
-      rooms: [],
-    },
+const EUR_BANKROLL = {
+  currencyCode: 'EUR',
+  total: bankroll({
+    deposited: 200,
+    withdrawn: 50,
+    bankroll: 320.5,
+    result: 120.5,
+    gamesInPlay: 2,
+    investedInPlay: 12,
+  }),
+  withoutRoom: bankroll({ deposited: 200, bankroll: 200 }),
+  rooms: [
+    { room: UNIBET, active: false, figures: bankroll({ result: -30, bankroll: -30 }) },
+    { room: WINAMAX, active: true, figures: bankroll({ result: 150.5, bankroll: 150.5 }) },
   ],
 };
+const USD_BANKROLL = {
+  currencyCode: 'USD',
+  total: bankroll({ bankroll: 40 }),
+  withoutRoom: bankroll(),
+  rooms: [{ room: STARS, active: true, figures: bankroll({ result: 40, bankroll: 40 }) }],
+};
+const BANKROLL_NOW: BankrollSummary = bankrollSummary([EUR_BANKROLL]);
 /** Net of the finished games of the period per room. */
-const BY_ROOM: StatsGroups = {
-  groupBy: 'ROOM',
-  currencies: [
-    {
-      currencyCode: 'EUR',
-      groups: [{ key: { room: WINAMAX }, figures: figures({ games: 43, net: 72 }) }],
-    },
-  ],
-};
+const BY_ROOM: StatsGroups = statsGroups('ROOM', [
+  {
+    currencyCode: 'EUR',
+    groups: [{ key: { room: WINAMAX }, figures: figures({ games: 43, net: 72 }) }],
+  },
+]);
 
 function stubDashboard(handlers: Record<string, unknown> = {}) {
   return stubApi({
@@ -209,7 +199,7 @@ function card(name: string) {
 }
 
 describe('Dashboard', () => {
-  it('shows the results of this year by default, in the currency with most games', async () => {
+  it('shows the results of this year by default, in the only currency there is', async () => {
     const calls = stubDashboard();
     renderApp('/');
 
@@ -220,7 +210,7 @@ describe('Dashboard', () => {
       to: thisYear.to,
     });
     expect(screen.getByRole('combobox', { name: 'Period' })).toHaveValue('This year');
-    expect(screen.getByRole('combobox', { name: 'Currency' })).toHaveValue('EUR');
+    expect(screen.queryByRole('combobox', { name: 'Currency' })).not.toBeInTheDocument();
 
     expect(card('Net').getByText('+€65.00')).toBeInTheDocument();
     expect(card('Net').getByText('€325.00 won · €260.00 invested')).toBeInTheDocument();
@@ -352,9 +342,9 @@ describe('Dashboard', () => {
     expect(queriesTo(calls, '/bankroll/summary').at(-1)).toEqual({ roomId: '1,3' });
   });
 
-  it('takes period, rooms, currency and breakdown from the URL', async () => {
+  it('takes period, rooms and breakdown from the URL', async () => {
     const calls = stubDashboard();
-    renderApp('/?from=2026-01-01&to=2026-01-31&room=1&currency=usd&by=variant');
+    renderApp('/?from=2026-01-01&to=2026-01-31&room=1&by=variant');
 
     expect(await screen.findByRole('region', { name: 'Net' })).toBeInTheDocument();
 
@@ -364,30 +354,74 @@ describe('Dashboard', () => {
       roomId: '1',
     });
     expect(screen.getByRole('combobox', { name: 'Period' })).toHaveValue('Custom');
-    expect(screen.getByRole('combobox', { name: 'Currency' })).toHaveValue('USD');
     expect(screen.getByRole('radio', { name: 'By variant' })).toBeChecked();
-    expect(card('Net').getByText('-US$10.00')).toBeInTheDocument();
-    expect(card('Bankroll').getByText('US$40.00')).toBeInTheDocument();
   });
 
-  it('switches currency', async () => {
-    stubDashboard();
-    renderApp('/');
-    await screen.findByRole('region', { name: 'Net' });
-
-    await userEvent.click(screen.getByRole('combobox', { name: 'Currency' }));
-    await userEvent.click(await screen.findByRole('option', { name: 'USD', hidden: true }));
-
-    await waitFor(() => expect(card('Net').getByText('-US$10.00')).toBeInTheDocument());
-    expect(card('ROI').getByText('-50.00%')).toBeInTheDocument();
-  });
-
-  it('has no currency selector with a single currency, and says so when the period has no games', async () => {
+  it('shows only dollars when what is shown is only in dollars', async () => {
     stubDashboard({
-      'GET /stats/summary': { currencies: [] },
-      'GET /bankroll/summary': {
-        currencies: [BANKROLL_NOW.currencies[0]],
-      },
+      'GET /stats/summary': statsSummary([USD_STATS]),
+      'GET /bankroll/summary': bankrollSummary([USD_BANKROLL]),
+      'GET /stats/groups': (call: ApiCall) => statsGroups(call.query.get('groupBy') as 'ROOM', []),
+    });
+    renderApp('/?room=2');
+
+    await screen.findByRole('region', { name: 'Net' });
+    expect(await card('Net').findByText('-US$10.00')).toBeInTheDocument();
+    expect(card('ROI').getByText('-50.00%')).toBeInTheDocument();
+    expect(card('Bankroll').getByText('US$40.00')).toBeInTheDocument();
+    // Nothing converted to euros.
+    expect(screen.queryByText(/€/)).not.toBeInTheDocument();
+  });
+
+  it('converts everything to the base currency when currencies are mixed, each one below', async () => {
+    const converted = figures({ games: 45, invested: 278, won: 334, net: 56, roi: 0.2014 });
+    stubDashboard({
+      'GET /stats/summary': statsSummary([EUR_STATS, USD_STATS], {
+        currencyCode: 'EUR',
+        total: converted,
+        byGameType: [{ gameType: 'TOURNAMENT', figures: converted }],
+        missingRates: [{ currencyCode: 'USD', from: '2026-01-02', to: '2026-01-05' }],
+      }),
+      'GET /bankroll/summary': bankrollSummary([EUR_BANKROLL, USD_BANKROLL], {
+        currencyCode: 'EUR',
+        total: bankroll({ bankroll: 355.3 }),
+        rooms: [
+          { room: STARS, active: true, figures: bankroll({ bankroll: 34.8 }) },
+          { room: WINAMAX, active: true, figures: bankroll({ bankroll: 150.5 }) },
+        ],
+      }),
+      'GET /stats/groups': (call: ApiCall) =>
+        statsGroups(call.query.get('groupBy') as 'ROOM', [], {
+          currencyCode: 'EUR',
+          groups: [{ key: { room: STARS }, figures: figures({ games: 2, net: -8.7 }) }],
+        }),
+    });
+    renderApp('/');
+
+    await screen.findByRole('region', { name: 'Net' });
+    expect(await card('Net').findByText('+€56.00')).toBeInTheDocument();
+    expect(card('Net').getByText('+€65.00 · -US$10.00')).toBeInTheDocument();
+    expect(card('ROI').getByText('20.14%')).toBeInTheDocument();
+    expect(card('Bankroll').getByText('€355.30')).toBeInTheDocument();
+    expect(card('Bankroll').getByText('€320.50 · US$40.00')).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Currency' })).not.toBeInTheDocument();
+
+    // The tables are converted too.
+    const rooms = within(screen.getAllByRole('table')[1]!).getAllByRole('row').slice(1);
+    expect(rooms[0]).toHaveTextContent('PokerStars-€8.70+€34.80');
+    expect(rooms.at(-1)).toHaveTextContent('Total+€56.00+€355.30');
+
+    // What could not be converted, and where to fix it.
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent('Missing exchange rates');
+    expect(alert).toHaveTextContent('USD from 02/01/2026 to 05/01/2026');
+    expect(within(alert).getByRole('link')).toHaveAttribute('href', '/settings?tab=currencies');
+  });
+
+  it('says so when the period has no games', async () => {
+    stubDashboard({
+      'GET /stats/summary': statsSummary([]),
+      'GET /bankroll/summary': BANKROLL_NOW,
     });
     renderApp('/');
 

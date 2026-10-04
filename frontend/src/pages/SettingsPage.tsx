@@ -8,15 +8,19 @@ import { useTags } from '../api/tags';
 import { useTemplates } from '../api/templates';
 import { useVariants } from '../api/variants';
 import { Page } from '../components/Page';
+import { CurrenciesSettings } from '../settings/CurrenciesSettings';
 import { RoomsSettings } from '../settings/RoomsSettings';
 import { TagsSettings } from '../settings/TagsSettings';
 import { TemplatesSettings } from '../settings/TemplatesSettings';
 import { VariantsSettings } from '../settings/VariantsSettings';
 
-const TABS = ['rooms', 'variants', 'tags', 'templates'] as const;
+const TABS = ['rooms', 'variants', 'tags', 'templates', 'currencies'] as const;
 type Tab = (typeof TABS)[number];
 
-/** Settings: the rooms, the variants, the tags and the templates the rest of the app works with. */
+/**
+ * Settings: the rooms, the variants, the tags and the templates the rest of the app works with,
+ * and the currencies (base currency and exchange rates).
+ */
 export function SettingsPage() {
   const { t } = useTranslation();
   const [params, setParams] = useSearchParams();
@@ -48,6 +52,7 @@ export function SettingsPage() {
             <Tabs.Tab value="variants">{t('settings.tabs.variants')}</Tabs.Tab>
             <Tabs.Tab value="tags">{t('settings.tabs.tags')}</Tabs.Tab>
             <Tabs.Tab value="templates">{t('settings.tabs.templates')}</Tabs.Tab>
+            <Tabs.Tab value="currencies">{t('settings.tabs.currencies')}</Tabs.Tab>
           </Tabs.List>
           <Tabs.Panel value="rooms">
             <RoomsSettings rooms={rooms.data} currencies={catalog.data.currencies} />
@@ -64,6 +69,9 @@ export function SettingsPage() {
               rooms={rooms.data}
               variants={variants.data}
             />
+          </Tabs.Panel>
+          <Tabs.Panel value="currencies">
+            <CurrenciesSettings currencies={catalog.data.currencies} />
           </Tabs.Panel>
         </Tabs>
       )}

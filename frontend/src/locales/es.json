@@ -49,7 +49,6 @@
     "HEADS_UP": "Heads-up"
   },
   "dashboard": {
-    "currency": "Moneda",
     "empty": "Todavía no hay nada que mostrar.",
     "goToGames": "Ir a partidas",
     "noGames": "No hay partidas finalizadas en este periodo.",
@@ -187,6 +186,14 @@
         "amount": "Indica un importe mayor que cero",
         "notSaved": "El movimiento no se ha guardado"
       }
+    },
+    "withoutRoomIn": "Sin sala ({{currency}})",
+    "totalIn": "Total en {{currency}}",
+    "conversion": {
+      "balance": "Todo está convertido a {{currency}}: lo que pasó, con el tipo de cambio de su día, y el bankroll, con {{rates}}. Por eso el bankroll puede no coincidir con depósitos − retiradas + resultado: es la diferencia de cambio.",
+      "today": "los tipos de hoy",
+      "ofDay": "los tipos del {{date}}",
+      "period": "Todo está convertido a {{currency}}, cada importe con el tipo de cambio de su día."
     }
   },
   "settings": {
@@ -195,7 +202,8 @@
       "rooms": "Salas",
       "variants": "Variantes",
       "tags": "Etiquetas",
-      "templates": "Plantillas"
+      "templates": "Plantillas",
+      "currencies": "Divisas"
     },
     "rooms": {
       "add": "Añadir sala",
@@ -270,6 +278,54 @@
         "confirm_one": "¿Eliminar la etiqueta {{tag}}? {{formatted}} partida la pierde; la partida se conserva.",
         "confirm_other": "¿Eliminar la etiqueta {{tag}}? {{formatted}} partidas la pierden; las partidas se conservan.",
         "done": "Etiqueta eliminada"
+      }
+    },
+    "currencies": {
+      "base": {
+        "title": "Divisa principal",
+        "help": "Cuando lo que miras está en una sola divisa, se muestra en ella. Cuando mezcla divisas, todo se convierte a esta con el tipo de cambio de cada día. Tus partidas y movimientos conservan su propia divisa.",
+        "label": "Mostrar las divisas mezcladas en",
+        "automatic": "Automática: {{currency}} (la de más partidas)",
+        "saved": "Divisa principal guardada"
+      },
+      "rates": {
+        "title": "Tipos de cambio",
+        "help": "Tipos de referencia del Banco Central Europeo, descargados de Frankfurter al arrancar la aplicación y cada tarde. Los días sin tipo (fines de semana, festivos) usan el último anterior.",
+        "disabled": "Esta instalación no descarga tipos de cambio: escríbelos a mano más abajo.",
+        "update": "Actualizar ahora",
+        "updated": "Tipos de cambio actualizados",
+        "failed": "No se han podido descargar los tipos de cambio",
+        "lastDownload": "Última descarga: {{when}}",
+        "notYet": "todavía no",
+        "lastError": "La última descarga falló",
+        "noneNeeded": "Todo está en una sola divisa: no hace falta ningún tipo de cambio.",
+        "currency": "Divisa",
+        "days": "Tipos",
+        "state": "Estado",
+        "between": "{{from}} a {{to}}",
+        "complete": "Completos",
+        "missingBefore": "Faltan antes del {{date}}",
+        "none": "Sin tipos"
+      },
+      "manual": {
+        "title": "Tipos escritos a mano",
+        "help": "Para divisas que el BCE no publica, o para corregir un tipo. Un tipo es lo que vale 1 EUR en la divisa, desde su día hasta el siguiente tipo; manda sobre el descargado de ese día.",
+        "add": "Añadir tipo",
+        "date": "Fecha",
+        "currency": "Divisa",
+        "value": "1 EUR en {{currency}}",
+        "rate": "1 EUR = {{rate}} {{currency}}",
+        "rateColumn": "Tipo",
+        "downloaded": "BCE ese día",
+        "empty": "No hay tipos escritos a mano.",
+        "saved": "Tipo de cambio guardado",
+        "deleted": "Tipo de cambio eliminado",
+        "delete": "Eliminar {{rate}} del {{date}}",
+        "deleteTitle": "Eliminar tipo de cambio",
+        "deleteConfirm": "¿Eliminar el tipo {{rate}} del {{date}}? Vuelve a valer el descargado de ese día, si lo hay.",
+        "errors": {
+          "rate": "Escribe un tipo mayor que cero"
+        }
       }
     }
   },
@@ -716,5 +772,14 @@
     "help": "Para agrupar partidas a tu manera: escribe una nueva o elige una que ya tengas. Hasta {{max}}.",
     "placeholder": "Reto, con amigos...",
     "ofGame": "Etiquetas"
+  },
+  "currencies": {
+    "missing": {
+      "title": "Faltan tipos de cambio",
+      "text": "Estos importes no se han podido convertir y quedan fuera de las cifras:",
+      "day": "{{currency}} el {{date}}",
+      "days": "{{currency}} del {{from}} al {{to}}",
+      "link": "Descarga o escribe los tipos en Ajustes → Divisas"
+    }
   }
 }

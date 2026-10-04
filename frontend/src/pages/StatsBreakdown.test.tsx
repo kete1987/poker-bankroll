@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { StatsFigures, StatsGroup, StatsGroups, StatsSummary } from '../api/types';
-import { VARIANTS } from '../test/fixtures';
+import { statsGroups, statsSummary, VARIANTS } from '../test/fixtures';
 import { problem, renderApp, stubApi, type ApiCall } from '../test/renderApp';
 
 // Canvas rendering is not available in jsdom: the chart is replaced by what it was asked to draw.
@@ -27,16 +27,13 @@ function figures(overrides: Partial<StatsFigures> = {}): StatsFigures {
   };
 }
 
-const SUMMARY: StatsSummary = {
-  currencies: [
-    {
-      currencyCode: 'EUR',
-      total: figures({ games: 12, net: 25.5 }),
-      byGameType: [{ gameType: 'TOURNAMENT', figures: figures({ games: 12, net: 25.5 }) }],
-      inPlay: { games: 0, invested: 0 },
-    },
-  ],
+const EUR_SUMMARY = {
+  currencyCode: 'EUR',
+  total: figures({ games: 12, net: 25.5 }),
+  byGameType: [{ gameType: 'TOURNAMENT' as const, figures: figures({ games: 12, net: 25.5 }) }],
+  inPlay: { games: 0, invested: 0 },
 };
+const SUMMARY: StatsSummary = statsSummary([EUR_SUMMARY]);
 
 function group(key: StatsGroup['key'], games: number, net: number): StatsGroup {
   return {
@@ -88,10 +85,9 @@ function stubStats(handlers: Record<string, unknown> = {}) {
     'GET /stats/summary': SUMMARY,
     'GET /stats/groups': (call: ApiCall): StatsGroups => {
       const groupBy = call.query.get('groupBy') ?? '';
-      return {
-        groupBy: groupBy as StatsGroups['groupBy'],
-        currencies: [{ currencyCode: 'EUR', groups: BREAKDOWNS[groupBy] ?? [] }],
-      };
+      return statsGroups(groupBy as StatsGroups['groupBy'], [
+        { currencyCode: 'EUR', groups: BREAKDOWNS[groupBy] ?? [] },
+      ]);
     },
     ...handlers,
   });
@@ -336,12 +332,39 @@ describe('Statistics breakdowns', () => {
     expect(rowLabels()).toEqual(['Winamax', 'PokerStars', '888poker']);
   });
 
+  it('breaks down converted to the base currency when currencies are mixed', async () => {
+    stubStats({
+      'GET /stats/summary': statsSummary([
+        EUR_SUMMARY,
+        { ...EUR_SUMMARY, currencyCode: 'USD', total: figures({ games: 2, net: -10 }) },
+      ]),
+      'GET /stats/groups': (call: ApiCall) =>
+        statsGroups(
+          call.query.get('groupBy') as StatsGroups['groupBy'],
+          [{ currencyCode: 'EUR', groups: BREAKDOWNS.ROOM ?? [] }],
+          {
+            currencyCode: 'EUR',
+            groups: [
+              group({ room: { id: 2, name: 'PokerStars' } }, 22, -17),
+              group({ room: { id: 1, name: 'Winamax' } }, 30, 12.5),
+            ],
+          },
+        ),
+    });
+    renderApp('/stats?view=breakdown');
+
+    expect(await screen.findByRole('columnheader', { name: 'Room' })).toBeInTheDocument();
+    // The groups of the converted block, in its order.
+    expect(rowLabels()).toEqual(['PokerStars', 'Winamax']);
+    expect(screen.getAllByRole('row')[1]).toHaveTextContent('-€17.00');
+  });
+
   it('can still be opened when the results over time cannot be loaded', async () => {
     stubStats({
       'GET /stats/groups': (call: ApiCall) =>
         call.query.has('byGameType')
           ? problem(500, 'INTERNAL_ERROR', 'Boom')
-          : { groupBy: 'ROOM', currencies: [{ currencyCode: 'EUR', groups: BREAKDOWNS.ROOM }] },
+          : statsGroups('ROOM', [{ currencyCode: 'EUR', groups: BREAKDOWNS.ROOM ?? [] }]),
     });
     renderApp('/stats');
 
@@ -358,10 +381,10 @@ describe('Statistics breakdowns', () => {
     stubStats({
       'GET /stats/groups': (call: ApiCall) =>
         call.query.get('groupBy') === 'ROOM'
-          ? { groupBy: 'ROOM', currencies: [] }
+          ? statsGroups('ROOM', [])
           : call.query.get('groupBy') === 'MODALITY'
             ? problem(500, 'INTERNAL_ERROR', 'Boom')
-            : { groupBy: call.query.get('groupBy'), currencies: [] },
+            : statsGroups(call.query.get('groupBy') as StatsGroups['groupBy'], []),
     });
     renderApp('/stats?view=breakdown');
 

@@ -11,7 +11,7 @@ import type {
   TimePeriod,
 } from '../api/types';
 import { rangeOf } from '../components/period';
-import { room } from '../test/fixtures';
+import { bankrollEvolution, bankrollSummary, room } from '../test/fixtures';
 import { onANarrowScreen } from '../test/narrowScreen';
 import { problem, renderApp, stubApi, type ApiCall } from '../test/renderApp';
 
@@ -38,12 +38,9 @@ function figures(overrides: Partial<BankrollFigures> = {}): BankrollFigures {
   };
 }
 
-const SUMMARY: BankrollSummary = {
-  currencies: [
-    { currencyCode: 'EUR', total: figures({ bankroll: 130 }), withoutRoom: figures(), rooms: [] },
-    { currencyCode: 'USD', total: figures({ bankroll: 40 }), withoutRoom: figures(), rooms: [] },
-  ],
-};
+const SUMMARY: BankrollSummary = bankrollSummary([
+  { currencyCode: 'EUR', total: figures({ bankroll: 130 }), withoutRoom: figures(), rooms: [] },
+]);
 
 function period(overrides: Partial<EvolutionPeriod> & { period: string }): EvolutionPeriod {
   return {
@@ -98,7 +95,16 @@ const USD: CurrencyEvolution = {
     startingBankroll: 0,
     periods: [period({ period: '2026-01-07', deposited: 40, bankroll: 40 })],
   },
-  rooms: [],
+  rooms: [
+    {
+      room: { id: 2, name: 'PokerStars' },
+      active: true,
+      series: {
+        startingBankroll: 0,
+        periods: [period({ period: '2026-01-07', deposited: 40, bankroll: 40 })],
+      },
+    },
+  ],
 };
 
 /** Months of activity, from November 2025 to January 2026: three months, drawn by days. */
@@ -116,7 +122,7 @@ const BY_MONTH: CurrencyEvolution = {
 
 function evolution(call: ApiCall, byMonth: CurrencyEvolution = BY_MONTH): BankrollEvolution {
   const groupBy = call.query.get('groupBy') as TimePeriod;
-  return { groupBy, currencies: groupBy === 'MONTH' ? [byMonth] : [EUR, USD] };
+  return bankrollEvolution(groupBy, groupBy === 'MONTH' ? [byMonth] : [EUR]);
 }
 
 function stubEvolution(handlers: Record<string, unknown> = {}) {
@@ -212,16 +218,73 @@ describe('Bankroll evolution', () => {
     expect(withdrawals.data).toEqual([[at('2026-01-20'), 130]]);
   });
 
-  it('draws the currency shown', async () => {
-    stubEvolution();
-    renderApp('/bankroll?from=2026-01-01&to=2026-01-31&currency=USD');
+  it('draws everything converted to the base currency when currencies are mixed', async () => {
+    // 40 USD are 36 EUR on the 7th and 32 EUR at the end of the month.
+    const converted = {
+      currencyCode: 'EUR',
+      total: {
+        startingBankroll: 50,
+        periods: [
+          period({ period: '2026-01-05', deposited: 100, gamesNet: -10, bankroll: 140 }),
+          period({ period: '2026-01-07', deposited: 36, bankroll: 176 }),
+          period({ period: '2026-01-12', gamesNet: 20, bankroll: 196 }),
+          period({ period: '2026-01-20', withdrawn: 30, bankroll: 162 }),
+        ],
+      },
+      rooms: [
+        {
+          room: { id: 2, name: 'PokerStars' },
+          active: true,
+          series: {
+            startingBankroll: 0,
+            periods: [
+              period({ period: '2026-01-05', bankroll: 0 }),
+              period({ period: '2026-01-07', deposited: 36, bankroll: 36 }),
+              period({ period: '2026-01-12', bankroll: 34 }),
+              period({ period: '2026-01-20', bankroll: 32 }),
+            ],
+          },
+        },
+      ],
+      missingRates: [{ currencyCode: 'GBP', from: '2026-01-02', to: '2026-01-02' }],
+    };
+    stubEvolution({
+      'GET /bankroll/summary': bankrollSummary(
+        [
+          SUMMARY.currencies[0]!,
+          {
+            currencyCode: 'USD',
+            total: figures({ bankroll: 40 }),
+            withoutRoom: figures(),
+            rooms: [],
+          },
+        ],
+        { currencyCode: 'EUR', total: figures({ bankroll: 162 }) },
+      ),
+      'GET /bankroll/evolution': (call: ApiCall) =>
+        bankrollEvolution(call.query.get('groupBy') as TimePeriod, [EUR, USD], converted),
+    });
+    renderApp('/bankroll?from=2026-01-01&to=2026-01-31');
 
     const option = await drawn();
     expect(option.series.find((series) => series.id === 'total')?.data).toEqual([
-      [at('2026-01-01'), 0],
-      [at('2026-01-07'), 40],
-      [at('2026-01-31'), 40],
+      [at('2026-01-01'), 50],
+      [at('2026-01-05'), 140],
+      [at('2026-01-07'), 176],
+      [at('2026-01-12'), 196],
+      [at('2026-01-20'), 162],
+      [at('2026-01-31'), 162],
     ]);
+    expect(option.series.find((series) => series.id === 'room-2')?.data).toEqual([
+      [at('2026-01-01'), 0],
+      [at('2026-01-05'), 0],
+      [at('2026-01-07'), 36],
+      [at('2026-01-12'), 34],
+      [at('2026-01-20'), 32],
+      [at('2026-01-31'), 32],
+    ]);
+    // What the chart cannot convert is said next to it.
+    expect(screen.getByRole('alert')).toHaveTextContent('GBP on 02/01/2026');
   });
 
   it('cuts the time by the length of the period', async () => {

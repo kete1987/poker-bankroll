@@ -55,8 +55,6 @@ export interface StatsFilters extends GameScope {
   /** The column the breakdown is sorted by, when the user has chosen one. */
   sort?: BreakdownSort;
   range: DateRange;
-  /** The currency shown, when the URL names one. */
-  currency?: string;
   /** Chosen by the user; otherwise it follows the length of the period. */
   granularity?: Granularity;
   chart: ChartMode;
@@ -102,7 +100,6 @@ function parse(params: URLSearchParams): StatsFilters {
     roomIds: parseList(params.get('room'), parsePositiveInteger),
     variantIds: parseList(params.get('variant'), parsePositiveInteger),
     tagIds: parseList(params.get('tag'), parsePositiveInteger),
-    currency: params.get('currency')?.trim().toUpperCase() || undefined,
     granularity: parseOneOf(params.get('group')?.toUpperCase() ?? null, GRANULARITIES),
     chart: params.get('chart') === 'period' ? 'period' : 'cumulative',
     // The page is one-based in the URL, as people count.
@@ -145,9 +142,6 @@ function serialize(filters: StatsFilters): URLSearchParams {
       params.set(key, values.join(','));
     }
   }
-  if (filters.currency) {
-    params.set('currency', filters.currency);
-  }
   if (filters.granularity) {
     params.set('group', filters.granularity.toLowerCase());
   }
@@ -160,7 +154,7 @@ function serialize(filters: StatsFilters): URLSearchParams {
   return params;
 }
 
-/** Period, scope, currency and time cut of the statistics, kept in the URL. */
+/** Period, scope and time cut of the statistics, kept in the URL. */
 export function useStatsFilters() {
   const [params, setParams] = useSearchParams();
   const filters = useMemo(() => parse(params), [params]);

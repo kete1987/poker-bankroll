@@ -21,8 +21,6 @@ export interface BankrollFilters {
   range: DateRange;
   /** Only these rooms; empty is every room and the movements without one. */
   roomIds: number[];
-  /** The currency shown, when the URL names one. */
-  currency?: string;
   /** Only for the list of movements. */
   type?: MovementType;
   /** Page of the list of movements, zero-based. */
@@ -35,7 +33,6 @@ function parse(params: URLSearchParams): BankrollFilters {
   return {
     range: { from: parseDate(params.get('from')), to: parseDate(params.get('to')) },
     roomIds: parseList(params.get('room'), parsePositiveInteger),
-    currency: params.get('currency')?.trim().toUpperCase() || undefined,
     type: parseOneOf(params.get('type'), MOVEMENT_TYPES),
     // The page is one-based in the URL, as people count.
     page: (parsePositiveInteger(params.get('page')) ?? 1) - 1,
@@ -53,7 +50,6 @@ function serialize(filters: BankrollFilters): URLSearchParams {
   set('from', filters.range.from);
   set('to', filters.range.to);
   set('room', filters.roomIds.join(','));
-  set('currency', filters.currency);
   set('type', filters.type);
   if (filters.page > 0) {
     params.set('page', String(filters.page + 1));
@@ -62,10 +58,7 @@ function serialize(filters: BankrollFilters): URLSearchParams {
   return params;
 }
 
-/**
- * Period, rooms, currency, movement type, page and cut of the chart of the bankroll screen, kept
- * in the URL.
- */
+/** Period, rooms, movement type, page and cut of the chart of the bankroll screen, kept in the URL. */
 export function useBankrollFilters() {
   const [params, setParams] = useSearchParams();
   const filters = useMemo(() => parse(params), [params]);

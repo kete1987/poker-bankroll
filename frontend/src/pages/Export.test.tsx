@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { BankrollSummary } from '../api/types';
 import i18n from '../i18n';
-import { game, page, ROOMS, VARIANTS } from '../test/fixtures';
+import { bankrollSummary, game, page, ROOMS, VARIANTS } from '../test/fixtures';
 import { problem, renderApp, stubApi, type ApiCall } from '../test/renderApp';
 
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -186,12 +186,10 @@ describe('Export of movements', () => {
     gamesInPlay: 0,
     investedInPlay: 0,
   };
-  const SUMMARY: BankrollSummary = {
-    currencies: [
-      { currencyCode: 'EUR', total: figures, withoutRoom: figures, rooms: [] },
-      { currencyCode: 'USD', total: figures, withoutRoom: figures, rooms: [] },
-    ],
-  };
+  const SUMMARY: BankrollSummary = bankrollSummary([
+    { currencyCode: 'EUR', total: figures, withoutRoom: figures, rooms: [] },
+    { currencyCode: 'USD', total: figures, withoutRoom: figures, rooms: [] },
+  ]);
 
   it('asks for every movement of the filters of the list, in the format chosen, and saves the file', async () => {
     const calls = stubApi({
@@ -200,9 +198,7 @@ describe('Export of movements', () => {
       'GET /exports/movements': () =>
         file('occurredOn\r\n', 'text/csv;charset=UTF-8', 'poker-bankroll-movements-2026-10-02.csv'),
     });
-    renderApp(
-      '/bankroll?from=2026-01-01&to=2026-03-31&room=1,3&currency=USD&type=WITHDRAWAL&page=2',
-    );
+    renderApp('/bankroll?from=2026-01-01&to=2026-03-31&room=1,3&type=WITHDRAWAL&page=2');
 
     await exportAs('Export movements', 'CSV');
 
@@ -214,7 +210,6 @@ describe('Export of movements', () => {
         to: '2026-03-31',
         type: 'WITHDRAWAL',
         roomId: '1,3',
-        currency: 'USD',
       },
     ]);
     expect(saved[0]!.name).toBe('poker-bankroll-movements-2026-10-02.csv');
@@ -224,7 +219,7 @@ describe('Export of movements', () => {
     ).toBeInTheDocument();
   });
 
-  it('exports the currency on screen as Excel, and shows a failure', async () => {
+  it('exports every currency as Excel, and shows a failure', async () => {
     let fail = false;
     const calls = stubApi({
       'GET /rooms': ROOMS,
@@ -239,10 +234,8 @@ describe('Export of movements', () => {
     await exportAs('Export movements', 'Excel');
 
     await waitFor(() => expect(saved).toHaveLength(1));
-    // One currency at a time is shown: the first one when the URL names none.
-    expect(exportsOf(calls, 'movements').map(queryOf)).toEqual([
-      { format: 'XLSX', currency: 'EUR' },
-    ]);
+    // The list holds the movements of every currency, each in its own.
+    expect(exportsOf(calls, 'movements').map(queryOf)).toEqual([{ format: 'XLSX' }]);
 
     fail = true;
     await exportAs('Export movements', 'Excel');

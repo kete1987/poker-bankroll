@@ -5,6 +5,7 @@ import type {
   TimePeriod,
 } from '../api/types';
 import type { DateRange } from '../components/period';
+import { evolutionIn, type MoneyView } from '../currency/view';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -26,17 +27,15 @@ export function granularityForRange(range: DateRange): TimePeriod | undefined {
 }
 
 /**
- * The cut for a period with an open end, from the evolution by months of a currency: an open end
- * is where the activity starts or ends.
+ * The cut for a period with an open end, from the evolution by months in the currency of the
+ * view: an open end is where the activity starts or ends.
  */
 export function granularityForActivity(
   byMonth: BankrollEvolution,
-  currencyCode: string | undefined,
+  view: MoneyView,
   range: DateRange,
 ): TimePeriod {
-  const periods =
-    byMonth.currencies.find((currency) => currency.currencyCode === currencyCode)?.total.periods ??
-    [];
+  const periods = evolutionIn(byMonth, view)?.total.periods ?? [];
   const from = range.from ?? periods[0]?.startsOn;
   const to = range.to ?? periods.at(-1)?.endsOn;
   return from && to ? granularityForDays(daysBetween(from, to)) : 'MONTH';
@@ -56,10 +55,35 @@ export interface EvolutionLine {
   values: number[];
 }
 
+/** A room whose line is converted: its bankroll at each point in its own currency. */
+export interface OriginalLine extends EvolutionLine {
+  currencyCode: string;
+}
+
 export interface EvolutionChartData {
   points: EvolutionPoint[];
   total: EvolutionLine;
-  rooms: (EvolutionLine & { id: number; name: string })[];
+  rooms: (EvolutionLine & { id: number; name: string; original?: OriginalLine })[];
+}
+
+/**
+ * The series of the rooms in a currency other than `currencyCode`, by room id: in a converted
+ * evolution, what each of those rooms has in its own money.
+ */
+export function originalSeries(
+  evolution: BankrollEvolution,
+  currencyCode: string,
+): Map<number, { currencyCode: string; series: CurrencyEvolution['total'] }> {
+  return new Map(
+    evolution.currencies
+      .filter((currency) => currency.currencyCode !== currencyCode)
+      .flatMap((currency) =>
+        currency.rooms.map(
+          (room) =>
+            [room.room.id, { currencyCode: currency.currencyCode, series: room.series }] as const,
+        ),
+      ),
+  );
 }
 
 const earliest = (a: string, b: string) => (a < b ? a : b);
@@ -75,11 +99,15 @@ const latest = (a: string, b: string) => (a > b ? a : b);
  * Games and movements may be dated after today, and they count in the bankroll as it is now: a
  * period that starts after today is drawn at its first day, so the last point is still that
  * bankroll.
+ *
+ * With `originals` (a converted evolution), the rooms in another currency also have their
+ * bankroll in their own money at each point.
  */
 export function chartData(
   currency: CurrencyEvolution,
   range: DateRange,
   today: string,
+  originals: ReturnType<typeof originalSeries> = new Map(),
 ): EvolutionChartData | undefined {
   const periods = currency.total.periods;
   const start = range.from ?? periods[0]?.startsOn;
@@ -110,10 +138,19 @@ export function chartData(
   return {
     points,
     total: { values: valuesOf(currency.total.startingBankroll, bankrollByPeriod(currency.total)) },
-    rooms: currency.rooms.map((room) => ({
-      id: room.room.id,
-      name: room.room.name,
-      values: valuesOf(room.series.startingBankroll, bankrollByPeriod(room.series)),
-    })),
+    rooms: currency.rooms.map((room) => {
+      const original = originals.get(room.room.id);
+      return {
+        id: room.room.id,
+        name: room.room.name,
+        values: valuesOf(room.series.startingBankroll, bankrollByPeriod(room.series)),
+        ...(original && {
+          original: {
+            currencyCode: original.currencyCode,
+            values: valuesOf(original.series.startingBankroll, bankrollByPeriod(original.series)),
+          },
+        }),
+      };
+    }),
   };
 }

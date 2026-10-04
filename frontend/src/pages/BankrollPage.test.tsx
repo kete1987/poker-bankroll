@@ -10,7 +10,7 @@ import type {
   MovementRequest,
 } from '../api/types';
 import { todayIso } from '../games/gameDefaults';
-import { room } from '../test/fixtures';
+import { bankrollSummary, room } from '../test/fixtures';
 import { problem, renderApp, stubApi, type ApiCall } from '../test/renderApp';
 
 function figures(overrides: Partial<BankrollFigures> = {}): BankrollFigures {
@@ -31,62 +31,70 @@ function figures(overrides: Partial<BankrollFigures> = {}): BankrollFigures {
 
 const WINAMAX = { id: 1, name: 'Winamax' };
 const UNIBET = { id: 3, name: 'Unibet' };
+const STARS = { id: 2, name: 'PokerStars' };
 
-const NOW: BankrollSummary = {
-  currencies: [
+const EUR_NOW = {
+  currencyCode: 'EUR',
+  total: figures({
+    deposited: 300,
+    withdrawn: 50,
+    bonuses: 12.5,
+    adjustments: -3.2,
+    gamesNet: 40,
+    result: 52.5,
+    bankroll: 299.3,
+    ticketsWon: 20,
+  }),
+  withoutRoom: figures({ deposited: 200, bankroll: 200 }),
+  rooms: [
     {
-      currencyCode: 'EUR',
-      total: figures({
-        deposited: 300,
+      room: UNIBET,
+      active: false,
+      figures: figures({
+        deposited: 20,
         withdrawn: 50,
+        gamesNet: 60,
+        result: 60,
+        bankroll: 30,
+      }),
+    },
+    {
+      room: WINAMAX,
+      active: true,
+      figures: figures({
+        deposited: 80,
         bonuses: 12.5,
         adjustments: -3.2,
-        gamesNet: 40,
-        result: 52.5,
-        bankroll: 299.3,
-        ticketsWon: 20,
+        gamesNet: -20,
+        result: -7.5,
+        bankroll: 69.3,
       }),
-      withoutRoom: figures({ deposited: 200, bankroll: 200 }),
-      rooms: [
-        {
-          room: UNIBET,
-          active: false,
-          figures: figures({
-            deposited: 20,
-            withdrawn: 50,
-            gamesNet: 60,
-            result: 60,
-            bankroll: 30,
-          }),
-        },
-        {
-          room: WINAMAX,
-          active: true,
-          figures: figures({
-            deposited: 80,
-            bonuses: 12.5,
-            adjustments: -3.2,
-            gamesNet: -20,
-            result: -7.5,
-            bankroll: 69.3,
-          }),
-        },
-      ],
     },
-    { currencyCode: 'USD', total: figures({ bankroll: 40 }), withoutRoom: figures(), rooms: [] },
+  ],
+};
+const USD_NOW = {
+  currencyCode: 'USD',
+  total: figures({ deposited: 50, gamesNet: -10, result: -10, bankroll: 40 }),
+  withoutRoom: figures(),
+  rooms: [
+    {
+      room: STARS,
+      active: true,
+      figures: figures({ deposited: 50, gamesNet: -10, result: -10, bankroll: 40 }),
+    },
   ],
 };
 
-const OF_PERIOD: BankrollSummary = {
-  currencies: [
-    {
-      currencyCode: 'EUR',
-      total: figures({ deposited: 100, gamesNet: -30, result: -30, bankroll: 70 }),
-      withoutRoom: figures(),
-      rooms: [{ room: WINAMAX, active: true, figures: figures({ deposited: 100, bankroll: 70 }) }],
-    },
-  ],
-};
+const NOW: BankrollSummary = bankrollSummary([EUR_NOW]);
+
+const OF_PERIOD: BankrollSummary = bankrollSummary([
+  {
+    currencyCode: 'EUR',
+    total: figures({ deposited: 100, gamesNet: -30, result: -30, bankroll: 70 }),
+    withoutRoom: figures(),
+    rooms: [{ room: WINAMAX, active: true, figures: figures({ deposited: 100, bankroll: 70 }) }],
+  },
+]);
 
 function movement(overrides: Partial<Movement> = {}): Movement {
   return {
@@ -198,7 +206,9 @@ describe('Bankroll page', () => {
     expect(screen.queryByText(/ticket/i)).not.toBeInTheDocument();
     expect(queriesTo(calls, '/bankroll/summary')).toEqual([{}]);
     expect(screen.getByRole('combobox', { name: 'Period' })).toHaveValue('All time');
-    expect(screen.getByRole('combobox', { name: 'Currency' })).toHaveValue('EUR');
+    expect(screen.queryByRole('combobox', { name: 'Currency' })).not.toBeInTheDocument();
+    // In a single currency nothing is converted.
+    expect(screen.queryByText(/converted/)).not.toBeInTheDocument();
   });
 
   it('breaks the bankroll down per room, with the movements without a room and the total', async () => {
@@ -250,8 +260,8 @@ describe('Bankroll page', () => {
     expect(rows[2]).toHaveTextContent('Rakeback / bonus');
     expect(rows[3]).toHaveTextContent('No room');
     expect(screen.getByText('4 movements')).toBeInTheDocument();
+    // Every movement, each in its own currency.
     expect(queriesTo(calls, '/bankroll/movements').at(-1)).toEqual({
-      currency: 'EUR',
       page: '0',
       size: '25',
     });
@@ -308,16 +318,47 @@ describe('Bankroll page', () => {
     );
   });
 
-  it('switches currency', async () => {
-    const calls = stubBankroll();
+  it('converts the totals when rooms are in several currencies, each room in its own', async () => {
+    stubBankroll({
+      'GET /bankroll/summary': bankrollSummary([EUR_NOW, USD_NOW], {
+        currencyCode: 'EUR',
+        total: figures({
+          deposited: 345.5,
+          withdrawn: 50,
+          bonuses: 12.5,
+          adjustments: -3.2,
+          gamesNet: 31,
+          result: 43.5,
+          bankroll: 334.6,
+        }),
+        rooms: [
+          { room: STARS, active: true, figures: figures({ bankroll: 35.3 }) },
+          { room: UNIBET, active: false, figures: figures({ bankroll: 30 }) },
+          { room: WINAMAX, active: true, figures: figures({ bankroll: 69.3 }) },
+        ],
+        balanceRatesOn: todayIso(),
+        missingRates: [{ currencyCode: 'USD', from: '2025-12-20', to: '2025-12-20' }],
+      }),
+    });
     renderApp('/bankroll');
     await screen.findByRole('region', { name: 'Bankroll' });
 
-    await userEvent.click(screen.getByRole('combobox', { name: 'Currency' }));
-    await userEvent.click(await screen.findByRole('option', { name: 'USD', hidden: true }));
+    expect(card('Bankroll').getByText('€334.60')).toBeInTheDocument();
+    expect(card('Bankroll').getByText('€299.30 · US$40.00')).toBeInTheDocument();
+    expect(card('Deposited').getByText('€345.50')).toBeInTheDocument();
+    expect(card('Deposited').getByText('€300.00 · US$50.00')).toBeInTheDocument();
+    expect(card('Result').getByText('+€52.50 · -US$10.00')).toBeInTheDocument();
+    expect(screen.getByText(/the bankroll with today's rates/)).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('USD on 20/12/2025');
 
-    await waitFor(() => expect(card('Bankroll').getByText('US$40.00')).toBeInTheDocument());
-    expect(queriesTo(calls, '/bankroll/movements').at(-1)).toMatchObject({ currency: 'USD' });
+    const rows = within(screen.getAllByRole('table')[0]!).getAllByRole('row').slice(1);
+    expect(rows).toHaveLength(5);
+    ['PokerStars', 'Unibet', 'Winamax', 'No room (EUR)', 'Total in EUR'].forEach((name, index) =>
+      expect(rows[index]).toHaveTextContent(name),
+    );
+    // Each room in its own currency; the total converted.
+    expect(rows[0]).toHaveTextContent('-US$10.00+US$40.00');
+    expect(rows[4]).toHaveTextContent('+€43.50+€334.60');
   });
 
   it('says so when there are no movements, and when the data cannot be loaded', async () => {

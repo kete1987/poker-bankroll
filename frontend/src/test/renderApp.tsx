@@ -3,8 +3,10 @@ import { render } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { vi } from 'vitest';
 
+import type { StatsGroups, TimePeriod } from '../api/types';
 import { AppProviders } from '../AppProviders';
 import { routes } from '../routes';
+import { bankrollEvolution, bankrollSummary, statsGroups, statsSummary } from './fixtures';
 
 /**
  * Renders the whole app at the given URL, with fresh providers and no query retries.
@@ -68,18 +70,29 @@ export function stubApi(handlers: Record<string, ApiHandler>) {
     'GET /rooms': [],
     'GET /variants': [],
     'GET /tags': [],
-    'GET /stats/summary': { currencies: [] },
-    'GET /stats/groups': (call: ApiCall) => ({
-      groupBy: call.query.get('groupBy'),
-      currencies: [],
-    }),
+    'GET /stats/summary': statsSummary([]),
+    'GET /stats/groups': (call: ApiCall) =>
+      statsGroups(call.query.get('groupBy') as StatsGroups['groupBy'], []),
     'GET /games/names': [],
     'GET /game-templates': [],
-    'GET /bankroll/summary': { currencies: [] },
-    'GET /bankroll/evolution': (call: ApiCall) => ({
-      groupBy: call.query.get('groupBy'),
+    'GET /bankroll/summary': bankrollSummary([]),
+    'GET /bankroll/evolution': (call: ApiCall) =>
+      bankrollEvolution(call.query.get('groupBy') as TimePeriod, []),
+    'GET /settings/currency': {
+      baseCurrencyCode: null,
+      automaticBaseCurrencyCode: 'EUR',
+      effectiveBaseCurrencyCode: 'EUR',
+    },
+    'GET /exchange-rates/status': {
+      enabled: true,
+      running: false,
+      lastAttemptAt: null,
+      lastSuccessAt: null,
+      lastError: null,
+      baseCurrencyCode: 'EUR',
       currencies: [],
-    }),
+    },
+    'GET /exchange-rates/manual': [],
     'GET /bankroll/movements': { items: [], page: 0, size: 25, totalItems: 0, totalPages: 0 },
     'GET /catalog': {
       currencies: [
