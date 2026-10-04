@@ -114,8 +114,16 @@ export function BankrollEvolutionChart({
     return ofView && chartData(ofView, range, todayIso(), originals);
   }, [evolution.data, view, range]);
   const missing = view.converted
-    ? (evolution.data?.converted.missingRates ?? []).filter(
-        (rate) => !shownMissing.some((shown) => shown.currencyCode === rate.currencyCode),
+    ? // Only what the warning of the page does not already cover: the chart may also lack, for
+      // instance, the rate of the balance it starts from, the day before the period.
+      (evolution.data?.converted.missingRates ?? []).filter(
+        (rate) =>
+          !shownMissing.some(
+            (shown) =>
+              shown.currencyCode === rate.currencyCode &&
+              shown.from <= rate.from &&
+              shown.to >= rate.to,
+          ),
       )
     : [];
 

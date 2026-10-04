@@ -287,6 +287,45 @@ describe('Bankroll evolution', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('GBP on 02/01/2026');
   });
 
+  it('warns next to the chart of the missing rates the page does not cover yet', async () => {
+    const summaryMissing = [{ currencyCode: 'USD', from: '2026-01-10', to: '2026-01-10' }];
+    const render = (chartMissing: typeof summaryMissing) => {
+      stubEvolution({
+        'GET /bankroll/summary': bankrollSummary(
+          [
+            SUMMARY.currencies[0]!,
+            {
+              currencyCode: 'USD',
+              total: figures({ bankroll: 40 }),
+              withoutRoom: figures(),
+              rooms: [],
+            },
+          ],
+          { currencyCode: 'EUR', total: figures({ bankroll: 130 }), missingRates: summaryMissing },
+        ),
+        'GET /bankroll/evolution': (call: ApiCall) =>
+          bankrollEvolution(call.query.get('groupBy') as TimePeriod, [EUR, USD], {
+            total: EUR.total,
+            missingRates: chartMissing,
+          }),
+      });
+      return renderApp('/bankroll?from=2026-01-01&to=2026-01-31');
+    };
+
+    // The same days: the warning of the page says it already.
+    const same = render(summaryMissing);
+    await drawn();
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+    same.unmount();
+
+    // The chart also lacks the rate of the balance it starts from: that is said next to it.
+    render([{ currencyCode: 'USD', from: '2025-12-31', to: '2026-01-10' }]);
+    await drawn();
+    const alerts = screen.getAllByRole('alert');
+    expect(alerts).toHaveLength(2);
+    expect(alerts[1]).toHaveTextContent('USD from 31/12/2025 to 10/01/2026');
+  });
+
   it('cuts the time by the length of the period', async () => {
     let calls = stubEvolution();
     const year = renderApp('/bankroll?from=2026-01-01&to=2026-12-31');

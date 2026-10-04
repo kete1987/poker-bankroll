@@ -74,8 +74,14 @@ public final class Converter {
         return factor;
     }
 
-    /** The amount in the base currency, or {@code null} when a rate is missing. */
+    /**
+     * The amount in the base currency, or {@code null} when a rate is missing. Zero is zero in any
+     * currency: it needs no rate, so it never reports one missing (a room with nothing in it).
+     */
     public @Nullable BigDecimal convert(BigDecimal amount, String currency, @Nullable LocalDate day) {
+        if (amount.signum() == 0) {
+            return BigDecimal.ZERO;
+        }
         BigDecimal factor = factor(currency, day);
         return factor == null ? null : amount.multiply(factor, PRECISION);
     }

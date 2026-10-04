@@ -118,6 +118,15 @@ class BankrollConversionApiTests extends ApiIntegrationTest {
     }
 
     @Test
+    void anEmptyRoomNeedsNoRate() {
+        // Before the first rate of the dollar, the room in dollars has nothing: zero in any currency.
+        movement("2025-12-20", "DEPOSIT", winamax, null, "10");
+        String json = summary("?to=2025-12-31");
+        assertNumber(json, "$.converted.total.bankroll", "10");
+        assertThat(JsonPath.<List<Object>>read(json, "$.converted.missingRates")).isEmpty();
+    }
+
+    @Test
     void theEvolutionValuesEachBalanceAtTheEndOfEachPeriod() {
         januaryToMarch();
         String json = evolution("?groupBy=MONTH");
