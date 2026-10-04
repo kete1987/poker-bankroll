@@ -22,6 +22,7 @@ import io.github.kete1987.pokerbankroll.game.GameResponse.VariantRef;
 import io.github.kete1987.pokerbankroll.game.GameService;
 import io.github.kete1987.pokerbankroll.game.GameStatus;
 import io.github.kete1987.pokerbankroll.gameimport.GameCsv;
+import io.github.kete1987.pokerbankroll.tag.TagRef;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.jspecify.annotations.Nullable;
@@ -62,8 +63,7 @@ public class ExportService {
      * finished.
      */
     public ExportFile games(ExportFormat format, GameFilter filter) {
-        GameFilter finished = new GameFilter(filter.from(), filter.to(), filter.gameTypes(), filter.modality(),
-                filter.roomIds(), filter.variantIds(), GameStatus.FINISHED, filter.currencyCode(), filter.text());
+        GameFilter finished = filter.withStatus(GameStatus.FINISHED);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
             switch (format) {
@@ -146,6 +146,8 @@ public class ExportService {
                 gameColumn(labels, "net", Kind.MONEY, 12, GameResponse::net),
                 gameColumn(labels, "ticketPrizeValue", Kind.MONEY, 14, GameResponse::ticketPrizeValue),
                 gameColumn(labels, "ticketDescription", Kind.TEXT, 24, GameResponse::ticketDescription),
+                gameColumn(labels, "tags", Kind.TEXT, 24, game -> game.tags().isEmpty() ? null
+                        : String.join(", ", game.tags().stream().map(TagRef::name).toList())),
                 gameColumn(labels, "notes", Kind.TEXT, 40, GameResponse::notes));
     }
 

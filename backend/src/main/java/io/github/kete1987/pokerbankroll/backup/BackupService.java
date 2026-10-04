@@ -10,6 +10,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -46,6 +47,8 @@ import io.github.kete1987.pokerbankroll.room.RoomLogoRepository;
 import io.github.kete1987.pokerbankroll.room.RoomLogoService;
 import io.github.kete1987.pokerbankroll.room.RoomRepository;
 import io.github.kete1987.pokerbankroll.room.RoomRequest;
+import io.github.kete1987.pokerbankroll.tag.Tag;
+import io.github.kete1987.pokerbankroll.tag.TagRef;
 import io.github.kete1987.pokerbankroll.variant.Variant;
 import io.github.kete1987.pokerbankroll.variant.VariantCreateRequest;
 import io.github.kete1987.pokerbankroll.variant.VariantRepository;
@@ -55,7 +58,9 @@ import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Sort;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -165,7 +170,8 @@ public class BackupService {
                         game.getGameType(), game.getModality(), variant == null ? null : variant.getId(),
                         game.getStatus(), game.getName(), game.getBuyIn(), game.getEntries(), game.getPrize(),
                         game.getBounty(), game.getTicketPrizeValue(), game.getTicketDescription(),
-                        game.isPaidWithTicket(), game.getNotes()));
+                        game.isPaidWithTicket(), game.getNotes(),
+                        game.getTags().stream().map(Tag::toRef).sorted(TagRef.BY_NAME).map(TagRef::name).toList()));
             }
             entityManager.clear();
             if (page.size() < BATCH) {
@@ -206,8 +212,8 @@ public class BackupService {
         return Objects.requireNonNull(transaction.execute(status -> {
             // Nothing is recorded while the installation is replaced: writers wait, readers do not.
             // Rooms first, as recording a game or a movement locks its room before it writes.
-            entityManager.createNativeQuery(
-                    "lock table room, room_logo, variant, game, bankroll_movement in exclusive mode").executeUpdate();
+            entityManager.createNativeQuery("lock table room, room_logo, variant, game, bankroll_movement, tag, game_tag "
+                    + "in exclusive mode").executeUpdate();
             BackupContents current = currentContents();
             if (!dryRun && !replace && !current.empty()) {
                 throw new ApiException(ErrorCode.BACKUP_REPLACE_NOT_CONFIRMED);
@@ -355,7 +361,7 @@ public class BackupService {
                 violations(path, new GameRequest(game.playedOn(), game.playedAt(), game.roomId(), game.gameType(),
                         game.modality(), game.variantId(), game.status(), game.name(), game.buyIn(), game.entries(),
                         game.prize(), game.bounty(), game.ticketPrizeValue(), game.ticketDescription(),
-                        game.paidWithTicket(), game.notes()));
+                        game.paidWithTicket(), game.notes(), game.tags()));
                 if (game.status() == null) {
                     problem(path + ".status", BackupProblem.REQUIRED);
                 }
@@ -421,8 +427,8 @@ public class BackupService {
 
         void write() {
             entityManager.clear();
-            // Logos go with their rooms.
-            for (String table : List.of("game", "bankroll_movement", "room")) {
+            // Logos go with their rooms, and the tags of the games with them.
+            for (String table : List.of("game", "tag", "bankroll_movement", "room")) {
                 entityManager.createNativeQuery("delete from " + table).executeUpdate();
             }
             entityManager.createNativeQuery("delete from variant where code is null").executeUpdate();
@@ -498,36 +504,81 @@ public class BackupService {
         }
 
         /**
-         * The games, in the order of the file. They are the bulk of a backup, so they are inserted
-         * in batches with plain SQL: one by one through the entity, tens of thousands take minutes.
-         * The database computes the net and checks every rule, as for any other game.
+         * The games, in the order of the file, and their tags. They are the bulk of a backup, so they
+         * are inserted in batches with plain SQL: one by one through the entity, tens of thousands take
+         * minutes. The database computes the net and checks every rule, as for any other game.
          */
         private void writeGames(Map<Long, Long> newRoomIds, Map<Long, Long> newVariantIds) {
-            jdbc.batchUpdate("""
+            List<GameData> games = data.games();
+            Map<String, Long> tagIds = new HashMap<>();
+            List<long[]> gameTags = new ArrayList<>();
+            for (int start = 0; start < games.size(); start += BATCH) {
+                List<GameData> batch = games.subList(start, Math.min(start + BATCH, games.size()));
+                List<Long> ids = insertGames(batch, newRoomIds, newVariantIds);
+                for (int i = 0; i < batch.size(); i++) {
+                    for (String tag : namesOf(batch.get(i).tags())) {
+                        gameTags.add(new long[] {ids.get(i), tagIds.computeIfAbsent(key(tag), key -> insertTag(tag))});
+                    }
+                }
+            }
+            jdbc.batchUpdate("insert into game_tag (game_id, tag_id) values (?, ?) on conflict do nothing",
+                    gameTags, BATCH, (statement, pair) -> {
+                        statement.setLong(1, pair[0]);
+                        statement.setLong(2, pair[1]);
+                    });
+        }
+
+        /** Inserts the games in one batch; returns their ids, in the same order. */
+        private List<Long> insertGames(List<GameData> batch, Map<Long, Long> newRoomIds,
+                Map<Long, Long> newVariantIds) {
+            GeneratedKeyHolder keys = new GeneratedKeyHolder();
+            jdbc.batchUpdate(connection -> connection.prepareStatement("""
                     insert into game (played_on, played_at, room_id, game_type_code, modality_code, variant_id,
                                       status, name, buy_in, entries, prize, bounty, ticket_prize_value,
                                       ticket_description, paid_with_ticket, notes)
                     values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, data.games(), BATCH, (statement, source) -> {
-                        statement.setObject(1, source.playedOn());
-                        // A local time, as it is: not through java.sql.Time, which has a time zone.
-                        setNullable(statement, 2, source.playedAt(), Types.TIME);
-                        statement.setLong(3, newRoomIds.get(source.roomId()));
-                        statement.setString(4, source.gameType().name());
-                        statement.setString(5, (source.modality() == null ? Modality.NLHE : source.modality()).name());
-                        setNullable(statement, 6,
-                                source.variantId() == null ? null : newVariantIds.get(source.variantId()), Types.BIGINT);
-                        statement.setString(7, source.status().name());
-                        setNullable(statement, 8, blankToNull(source.name()), Types.VARCHAR);
-                        statement.setBigDecimal(9, source.buyIn());
-                        statement.setInt(10, source.entries() == null ? 1 : source.entries());
-                        statement.setBigDecimal(11, orZero(source.prize()));
-                        statement.setBigDecimal(12, orZero(source.bounty()));
-                        statement.setBigDecimal(13, orZero(source.ticketPrizeValue()));
-                        setNullable(statement, 14, blankToNull(source.ticketDescription()), Types.VARCHAR);
-                        statement.setBoolean(15, Boolean.TRUE.equals(source.paidWithTicket()));
-                        setNullable(statement, 16, blankToNull(source.notes()), Types.VARCHAR);
-                    });
+                    """, new String[] {"id"}), new BatchPreparedStatementSetter() {
+
+                        @Override
+                        public void setValues(PreparedStatement statement, int index) throws SQLException {
+                            GameData source = batch.get(index);
+                            statement.setObject(1, source.playedOn());
+                            // A local time, as it is: not through java.sql.Time, which has a time zone.
+                            setNullable(statement, 2, source.playedAt(), Types.TIME);
+                            statement.setLong(3, newRoomIds.get(source.roomId()));
+                            statement.setString(4, source.gameType().name());
+                            statement.setString(5,
+                                    (source.modality() == null ? Modality.NLHE : source.modality()).name());
+                            setNullable(statement, 6, source.variantId() == null ? null
+                                    : newVariantIds.get(source.variantId()), Types.BIGINT);
+                            statement.setString(7, source.status().name());
+                            setNullable(statement, 8, blankToNull(source.name()), Types.VARCHAR);
+                            statement.setBigDecimal(9, source.buyIn());
+                            statement.setInt(10, source.entries() == null ? 1 : source.entries());
+                            statement.setBigDecimal(11, orZero(source.prize()));
+                            statement.setBigDecimal(12, orZero(source.bounty()));
+                            statement.setBigDecimal(13, orZero(source.ticketPrizeValue()));
+                            setNullable(statement, 14, blankToNull(source.ticketDescription()), Types.VARCHAR);
+                            statement.setBoolean(15, Boolean.TRUE.equals(source.paidWithTicket()));
+                            setNullable(statement, 16, blankToNull(source.notes()), Types.VARCHAR);
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return batch.size();
+                        }
+                    }, keys);
+            return keys.getKeyList().stream().map(key -> ((Number) key.get("id")).longValue()).toList();
+        }
+
+        /**
+         * Creates a tag of the file. The restore deleted every tag, so it is new unless another name
+         * of the file is the same one for the database, ignoring case.
+         */
+        private long insertTag(String name) {
+            jdbc.update("insert into tag (name) values (?) on conflict ((lower(name))) do nothing", name);
+            return Objects.requireNonNull(
+                    jdbc.queryForObject("select id from tag where lower(name) = lower(?)", Long.class, name));
         }
 
         private void writeMovements(Map<Long, Long> newRoomIds) {
@@ -550,7 +601,8 @@ public class BackupService {
 
         private void violations(String path, Object request) {
             for (ConstraintViolation<Object> violation : validator.validate(request)) {
-                String field = violation.getPropertyPath().toString();
+                // A value of a list is named by its position: tags[2], not tags[2].<list element>.
+                String field = violation.getPropertyPath().toString().replace(".<list element>", "");
                 String constraint = violation.getConstraintDescriptor().getAnnotation().annotationType().getSimpleName();
                 // The constraints of the application have their message under their own name.
                 String message = messages.getMessage(constraint, null, violation.getMessage(), locale);
@@ -581,6 +633,20 @@ public class BackupService {
         } else {
             statement.setObject(index, value);
         }
+    }
+
+    /** The names of the tags of a game, stripped, once each ignoring case. */
+    private static List<String> namesOf(@Nullable List<@Nullable String> tags) {
+        if (tags == null) {
+            return List.of();
+        }
+        Map<String, String> byKey = new LinkedHashMap<>();
+        for (String tag : tags) {
+            if (tag != null && !tag.isBlank()) {
+                byKey.putIfAbsent(key(tag), tag.strip());
+            }
+        }
+        return List.copyOf(byKey.values());
     }
 
     private static String builtInKey(@Nullable GameType gameType, @Nullable String code) {

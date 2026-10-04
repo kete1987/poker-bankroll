@@ -19,7 +19,12 @@ public enum GroupBy {
     /** Name of the game, ignoring case and surrounding spaces; games without a name are one group. */
     NAME,
     /** Day of the week the game was played on. */
-    WEEKDAY;
+    WEEKDAY,
+    /**
+     * Tag of the game: a game with several tags is in the group of each, so the groups do not add up
+     * to the total; games without tags are one group.
+     */
+    TAG;
 
     /** Groups in time are ordered by date and carry the cumulative net. */
     boolean isPeriod() {

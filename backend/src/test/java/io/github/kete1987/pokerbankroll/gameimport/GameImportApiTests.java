@@ -146,6 +146,42 @@ class GameImportApiTests extends ApiIntegrationTest {
         json.extractingPath("$.totals[?(@.currencyCode == 'EUR')].net").asArray().containsExactly(12.65);
     }
 
+    // ---- tags ----
+
+    @Test
+    void importsTheTagsOfEachGameSeparatedBySemicolons() {
+        long game = insertGame(winamax, "TOURNAMENT", null);
+        tagGame(game, "Challenge");
+
+        assertThat(importCsv(HEADER + ",tags",
+                "2026-01-19,Winamax,TOURNAMENT,2,\"challenge; Satellite ;;\"",
+                "2026-01-20,Winamax,TOURNAMENT,2,satellite",
+                "2026-01-21,Winamax,TOURNAMENT,2,"))
+                .hasStatusOk().bodyJson().extractingPath("$.imported").isEqualTo(true);
+
+        // Existing tags are found ignoring case; the others are created once.
+        assertThat(jdbc.queryForList("select name from tag order by name", String.class))
+                .containsExactly("Challenge", "Satellite");
+        assertThat(mvc.get().uri("/games?from=2026-01-20")).bodyJson()
+                .extractingPath("$.items[*].tags[*].name").asArray().containsExactly("Satellite");
+        assertThat(jdbc.queryForList("""
+                select t.name from game g join game_tag gt on gt.game_id = g.id join tag t on t.id = gt.tag_id
+                where g.id <> ? order by g.played_on, t.name
+                """, String.class, game)).containsExactly("Challenge", "Satellite", "Satellite");
+    }
+
+    @Test
+    void tagsFollowTheRulesOfAGameRecordedByHand() {
+        var json = assertThat(importCsv(HEADER + ",tags",
+                "2026-01-19,Winamax,TOURNAMENT,2," + "x".repeat(41),
+                "2026-01-19,Winamax,TOURNAMENT,2,a;b;c;d;e;f;g;h;i;j;k")).hasStatusOk().bodyJson();
+
+        json.extractingPath("$.imported").isEqualTo(false);
+        json.extractingPath("$.errors[*].field").asArray().containsExactly("tags", "tags");
+        json.extractingPath("$.errors[*].code").asArray().containsExactly("TagName", "Size");
+        assertThat(count("tag")).isZero();
+    }
+
     // ---- rooms and variants ----
 
     @Test

@@ -2,8 +2,10 @@ package io.github.kete1987.pokerbankroll.demo;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +64,9 @@ public class DemoDataSeeder implements ApplicationRunner {
     private long pokerStars;
     private long unibet;
     private int gameCount;
+    /** A month of games tagged as a challenge. */
+    private LocalDate challengeFrom;
+    private LocalDate challengeTo;
 
     DemoDataSeeder(RoomService rooms, RoomLogoService logos, VariantService variants, GameService games,
             BankrollService bankroll, JdbcClient jdbc) {
@@ -87,6 +92,8 @@ public class DemoDataSeeder implements ApplicationRunner {
         }
         LocalDate today = LocalDate.now();
         LocalDate start = today.minusDays(DAYS);
+        challengeFrom = start.plusDays(200);
+        challengeTo = start.plusDays(230);
 
         createRoomsAndVariants();
         for (LocalDate day = start; day.isBefore(today); day = day.plusDays(1)) {
@@ -165,9 +172,12 @@ public class DemoDataSeeder implements ApplicationRunner {
         if (variant != null && variant.endsWith("KO") && chance(45)) {
             bounty = times(buyIn, 0.25 + random.nextDouble() * 2.2);
         }
+        // The tournaments of PokerStars on Fridays are the ones played with friends.
+        boolean withFriends = room == pokerStars && day.getDayOfWeek() == DayOfWeek.FRIDAY;
+        List<String> tags = tags(day, withFriends ? "Friends" : null);
         create(new GameRequest(day, timeOrNull(), room, GameType.TOURNAMENT,
                 chance(8) ? Modality.PLO : Modality.NLHE, variantId(GameType.TOURNAMENT, variant),
-                GameStatus.FINISHED, name, buyIn, entries, prize, bounty, null, null, null, null));
+                GameStatus.FINISHED, name, buyIn, entries, prize, bounty, null, null, null, null, tags));
     }
 
     /** A satellite; when it is won, the ticket is played right away in the target tournament. */
@@ -176,12 +186,13 @@ public class DemoDataSeeder implements ApplicationRunner {
         create(new GameRequest(day, LocalTime.of(19, 0), winamax, GameType.TOURNAMENT, Modality.NLHE,
                 variantId(GameType.TOURNAMENT, "REGULAR"), GameStatus.FINISHED, "Satellite Winamax Series",
                 money("2"), 1, null, null, won ? money("20") : null, won ? "Winamax Series 20 €" : null,
-                null, null));
+                null, null, tags(day, "Satellite", "Winamax Series")));
         if (won) {
             BigDecimal prize = chance(25) ? times(money("20"), 2 + random.nextDouble() * 6) : BigDecimal.ZERO;
             create(new GameRequest(day, LocalTime.of(21, 0), winamax, GameType.TOURNAMENT, Modality.NLHE,
                     variantId(GameType.TOURNAMENT, "REGULAR"), GameStatus.FINISHED, "Winamax Series",
-                    money("20"), 1, prize, null, null, null, true, "Played with the ticket won in the satellite"));
+                    money("20"), 1, prize, null, null, null, true, "Played with the ticket won in the satellite",
+                    tags(day, "Winamax Series")));
         }
     }
 
@@ -209,7 +220,7 @@ public class DemoDataSeeder implements ApplicationRunner {
         }
         create(new GameRequest(day, timeOrNull(), room, GameType.SIT_AND_GO, Modality.NLHE,
                 variantId(GameType.SIT_AND_GO, variant), GameStatus.FINISHED, null, buyIn, 1, prize, null, null,
-                null, null, notes));
+                null, null, notes, tags(day)));
     }
 
     private void recordCashGame(LocalDate day) {
@@ -219,18 +230,18 @@ public class DemoDataSeeder implements ApplicationRunner {
         create(new GameRequest(day, timeOrNull(), chance(70) ? winamax : pokerStars, GameType.CASH,
                 plo ? Modality.PLO : Modality.NLHE, null, GameStatus.FINISHED, null, buyIn, 1,
                 times(buyIn, result), null, null, null, null,
-                (plo ? "PLO" : "NL") + buyIn.intValue() + " 6-max"));
+                (plo ? "PLO" : "NL") + buyIn.intValue() + " 6-max", null));
     }
 
     private void recordGamesInPlay(LocalDate today) {
         create(new GameRequest(today, LocalTime.of(20, 30), winamax, GameType.TOURNAMENT, Modality.NLHE,
                 variantId(GameType.TOURNAMENT, "KO"), null, "Kill The Fish", money("5"), 2, null, null, null, null,
-                null, null));
+                null, null, List.of("Friends")));
         create(new GameRequest(today, LocalTime.of(21, 15), tripleEight, GameType.TOURNAMENT, Modality.NLHE,
                 variantId(GameType.TOURNAMENT, "REGULAR"), null, "Deepstack", money("2"), 1, null, null, null,
-                null, null, null));
+                null, null, null, null));
         create(new GameRequest(today, null, winamax, GameType.CASH, Modality.NLHE, null, null, null, money("5"), 1,
-                null, null, null, null, null, "NL5 6-max"));
+                null, null, null, null, null, "NL5 6-max", null));
     }
 
     private void recordMovements(LocalDate start, LocalDate today) {
@@ -255,6 +266,20 @@ public class DemoDataSeeder implements ApplicationRunner {
     private void create(GameRequest game) {
         games.create(game);
         gameCount++;
+    }
+
+    /** The given tags, plus the one of the challenge for the games played during it. */
+    private List<String> tags(LocalDate day, @Nullable String... tags) {
+        List<String> all = new ArrayList<>();
+        for (String tag : tags) {
+            if (tag != null) {
+                all.add(tag);
+            }
+        }
+        if (!day.isBefore(challengeFrom) && !day.isAfter(challengeTo)) {
+            all.add("Challenge");
+        }
+        return all;
     }
 
     private @Nullable Long variantId(GameType gameType, @Nullable String code) {

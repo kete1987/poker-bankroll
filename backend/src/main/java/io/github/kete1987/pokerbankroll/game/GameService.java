@@ -17,6 +17,8 @@ import io.github.kete1987.pokerbankroll.common.error.ApiException;
 import io.github.kete1987.pokerbankroll.common.error.ErrorCode;
 import io.github.kete1987.pokerbankroll.room.Room;
 import io.github.kete1987.pokerbankroll.room.RoomRepository;
+import io.github.kete1987.pokerbankroll.tag.Tag;
+import io.github.kete1987.pokerbankroll.tag.TagService;
 import io.github.kete1987.pokerbankroll.variant.Variant;
 import io.github.kete1987.pokerbankroll.variant.VariantRepository;
 import org.hibernate.jpa.HibernateHints;
@@ -38,13 +40,15 @@ public class GameService {
     private final GameRepository games;
     private final RoomRepository rooms;
     private final VariantRepository variants;
+    private final TagService tags;
     private final EntityManager entityManager;
 
-    GameService(GameRepository games, RoomRepository rooms, VariantRepository variants,
+    GameService(GameRepository games, RoomRepository rooms, VariantRepository variants, TagService tags,
             EntityManager entityManager) {
         this.games = games;
         this.rooms = rooms;
         this.variants = variants;
+        this.tags = tags;
         this.entityManager = entityManager;
     }
 
@@ -74,12 +78,25 @@ public class GameService {
         try (Stream<Game> found = entityManager.createQuery(query)
                 .setHint(HibernateHints.HINT_FETCH_SIZE, STREAM_FETCH_SIZE)
                 .getResultStream()) {
+            // Handed over a few at a time, so that the tags of those games are read together.
+            List<Game> pending = new ArrayList<>(Game.TAG_BATCH);
             found.forEach(one -> {
-                action.accept(GameResponse.of(one));
-                // Rooms and variants stay: they are few and shared by the games.
-                entityManager.detach(one);
+                pending.add(one);
+                if (pending.size() == Game.TAG_BATCH) {
+                    handOver(pending, action);
+                }
             });
+            handOver(pending, action);
         }
+    }
+
+    private void handOver(List<Game> pending, Consumer<GameResponse> action) {
+        for (Game one : pending) {
+            action.accept(GameResponse.of(one));
+        }
+        // Rooms, variants and tags stay: they are few and shared by the games.
+        pending.forEach(entityManager::detach);
+        pending.clear();
     }
 
     @Transactional(readOnly = true)
@@ -104,9 +121,10 @@ public class GameService {
     }
 
     public GameResponse create(GameRequest request) {
+        List<Tag> tagsOfGame = tags.resolve(request.tags());
         Game game = new Game();
         game.setStatus(statusOf(request, GameStatus.IN_PLAY));
-        apply(request, game);
+        apply(request, game, tagsOfGame);
         return GameResponse.of(games.saveAndFlush(game));
     }
 
@@ -129,8 +147,9 @@ public class GameService {
 
     public GameResponse update(long id, GameRequest request) {
         Game game = findForUpdate(id);
+        List<Tag> tagsOfGame = tags.resolve(request.tags());
         game.setStatus(statusOf(request, game.getStatus()));
-        apply(request, game);
+        apply(request, game, tagsOfGame);
         return GameResponse.of(games.saveAndFlush(game));
     }
 
@@ -200,8 +219,12 @@ public class GameService {
         return request.hasResult() ? GameStatus.FINISHED : whenNoResult;
     }
 
-    /** Copies the request into the game; rules within the request itself are already validated. */
-    private void apply(GameRequest request, Game game) {
+    /**
+     * Copies the request into the game; rules within the request itself are already validated. The
+     * tags are found or created before: creating one runs SQL, which would first write the changes
+     * of the game made so far, half of them.
+     */
+    private void apply(GameRequest request, Game game, List<Tag> tagsOfGame) {
         game.setRoom(roomOf(request, game.getRoom()));
         game.setGameType(request.gameType());
         game.setVariant(variantOf(request, game.getVariant()));
@@ -217,6 +240,7 @@ public class GameService {
         game.setTicketDescription(blankToNull(request.ticketDescription()));
         game.setPaidWithTicket(request.paidWithTicketOrDefault());
         game.setNotes(blankToNull(request.notes()));
+        game.setTags(tagsOfGame);
     }
 
     /**
