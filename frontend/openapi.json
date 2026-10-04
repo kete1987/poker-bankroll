@@ -102,6 +102,22 @@
         "required" : [ "current", "dryRun", "errorCount", "errors", "file", "formatVersion", "restored" ],
         "type" : "object"
       },
+      "BankrollEvolutionResponse" : {
+        "properties" : {
+          "currencies" : {
+            "items" : {
+              "$ref" : "#/components/schemas/CurrencyEvolution"
+            },
+            "type" : "array"
+          },
+          "groupBy" : {
+            "enum" : [ "DAY", "WEEK", "MONTH", "YEAR" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "currencies", "groupBy" ],
+        "type" : "object"
+      },
       "BankrollFigures" : {
         "properties" : {
           "adjustments" : {
@@ -221,6 +237,26 @@
         "required" : [ "currencyCode", "rooms", "total", "withoutRoom" ],
         "type" : "object"
       },
+      "CurrencyEvolution" : {
+        "properties" : {
+          "currencyCode" : {
+            "type" : "string"
+          },
+          "rooms" : {
+            "description" : "Rooms with movements or games in the range, or with a bankroll at its start, by name",
+            "items" : {
+              "$ref" : "#/components/schemas/RoomEvolution"
+            },
+            "type" : "array"
+          },
+          "total" : {
+            "$ref" : "#/components/schemas/EvolutionSeries",
+            "description" : "The rooms of the response in this currency plus, without a room filter, the movements that belong to no room"
+          }
+        },
+        "required" : [ "currencyCode", "rooms", "total" ],
+        "type" : "object"
+      },
       "CurrencyGroups" : {
         "properties" : {
           "currencyCode" : {
@@ -274,6 +310,64 @@
           }
         },
         "required" : [ "byGameType", "currencyCode", "inPlay", "total" ],
+        "type" : "object"
+      },
+      "EvolutionPeriod" : {
+        "properties" : {
+          "adjustments" : {
+            "description" : "Sum of the adjustments, positive or negative",
+            "type" : "number"
+          },
+          "bankroll" : {
+            "description" : "Bankroll at the end of the period: the starting bankroll plus deposited - withdrawn + adjustments + bonuses + gamesNet of this period and the earlier ones",
+            "type" : "number"
+          },
+          "bonuses" : {
+            "type" : "number"
+          },
+          "deposited" : {
+            "type" : "number"
+          },
+          "endsOn" : {
+            "description" : "Last day of the period, which may be after `to`",
+            "format" : "date",
+            "type" : "string"
+          },
+          "gamesNet" : {
+            "description" : "Net of the games, those in play included (their buy-in is already spent)",
+            "type" : "number"
+          },
+          "period" : {
+            "description" : "DAY: 2026-01-19; WEEK: its Monday, 2026-01-19; MONTH: 2026-01; YEAR: 2026",
+            "type" : "string"
+          },
+          "startsOn" : {
+            "description" : "First day of the period, which may be before `from`",
+            "format" : "date",
+            "type" : "string"
+          },
+          "withdrawn" : {
+            "type" : "number"
+          }
+        },
+        "required" : [ "adjustments", "bankroll", "bonuses", "deposited", "endsOn", "gamesNet", "period", "startsOn", "withdrawn" ],
+        "type" : "object"
+      },
+      "EvolutionSeries" : {
+        "properties" : {
+          "periods" : {
+            "description" : "Periods with movements or games, oldest first",
+            "items" : {
+              "$ref" : "#/components/schemas/EvolutionPeriod"
+            },
+            "type" : "array"
+          },
+          "startingBankroll" : {
+            "description" : "Bankroll before the first day of the range (`from`): everything earlier counts. Zero without `from`",
+            "type" : "number"
+          }
+        },
+        "required" : [ "periods", "startingBankroll" ],
         "type" : "object"
       },
       "FinishGameRequest" : {
@@ -943,6 +1037,21 @@
         "required" : [ "active", "figures", "room" ],
         "type" : "object"
       },
+      "RoomEvolution" : {
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "room" : {
+            "$ref" : "#/components/schemas/RoomRef"
+          },
+          "series" : {
+            "$ref" : "#/components/schemas/EvolutionSeries"
+          }
+        },
+        "required" : [ "active", "room", "series" ],
+        "type" : "object"
+      },
       "RoomRef" : {
         "properties" : {
           "id" : {
@@ -1272,6 +1381,66 @@
         },
         "summary" : "Restore a backup, replacing everything",
         "tags" : [ "Backup" ]
+      }
+    },
+    "/bankroll/evolution" : {
+      "get" : {
+        "description" : "For each period with movements or games: what was deposited, withdrawn, got as bonuses or adjusted, the net of the games (those in play included) and the bankroll when the period ends. Unlike the cumulative net of `/stats/groups`, the bankroll includes everything before the range (`startingBankroll`), so the last one without dates is the one of `/bankroll/summary`. Currencies and rooms with nothing in the range and no bankroll at its start are left out.",
+        "operationId" : "evolution",
+        "parameters" : [ {
+          "description" : "Length of the periods; weeks start on Monday",
+          "in" : "query",
+          "name" : "groupBy",
+          "required" : true,
+          "schema" : {
+            "enum" : [ "DAY", "WEEK", "MONTH", "YEAR" ],
+            "type" : "string"
+          }
+        }, {
+          "description" : "First day of the range: what happened before is the starting bankroll",
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Last day of the range: what happened after it does not count",
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "One or more rooms: only they count, without the movements that belong to no room",
+          "in" : "query",
+          "name" : "roomId",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BankrollEvolutionResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Poker bankroll per period, for each currency and room",
+        "tags" : [ "Bankroll" ]
       }
     },
     "/bankroll/movements" : {
