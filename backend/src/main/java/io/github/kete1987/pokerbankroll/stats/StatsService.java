@@ -1,10 +1,7 @@
 package io.github.kete1987.pokerbankroll.stats;
 
 import java.math.BigDecimal;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.YearMonth;
-import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -275,10 +272,10 @@ public class StatsService {
         static Grouping of(GroupBy groupBy) {
             return switch (groupBy) {
                 // Periods are read per day and added up here: no date arithmetic in the database.
-                case DAY -> period(LocalDate::toString);
-                case WEEK -> period(day -> day.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).toString());
-                case MONTH -> period(day -> YearMonth.from(day).toString());
-                case YEAR -> period(day -> String.valueOf(day.getYear()));
+                case DAY -> period(TimePeriod.DAY);
+                case WEEK -> period(TimePeriod.WEEK);
+                case MONTH -> period(TimePeriod.MONTH);
+                case YEAR -> period(TimePeriod.YEAR);
                 case GAME_TYPE -> new Grouping(0, (game, cb) -> List.of(),
                         row -> GroupKey.ofGameType(row.get(GAME_TYPE, GameType.class)));
                 case VARIANT -> new Grouping(3, (game, cb) -> {
@@ -331,9 +328,9 @@ public class StatsService {
             return name == null || name.isBlank() ? null : name.strip().toLowerCase(Locale.ROOT);
         }
 
-        private static Grouping period(Function<LocalDate, String> periodOf) {
+        private static Grouping period(TimePeriod period) {
             return new Grouping(1, (game, cb) -> List.of(game.get("playedOn")),
-                    row -> GroupKey.ofPeriod(periodOf.apply(row.get(FIRST_KEY, LocalDate.class))));
+                    row -> GroupKey.ofPeriod(period.keyOf(row.get(FIRST_KEY, LocalDate.class))));
         }
     }
 }

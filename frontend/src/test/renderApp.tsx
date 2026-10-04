@@ -74,6 +74,10 @@ export function stubApi(handlers: Record<string, ApiHandler>) {
     }),
     'GET /games/names': [],
     'GET /bankroll/summary': { currencies: [] },
+    'GET /bankroll/evolution': (call: ApiCall) => ({
+      groupBy: call.query.get('groupBy'),
+      currencies: [],
+    }),
     'GET /bankroll/movements': { items: [], page: 0, size: 25, totalItems: 0, totalPages: 0 },
     'GET /catalog': {
       currencies: [

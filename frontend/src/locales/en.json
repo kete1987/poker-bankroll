@@ -108,6 +108,22 @@
     "rooms": "Per room",
     "movements": "Movements",
     "noMovements": "There are no movements for these filters.",
+    "evolution": {
+      "title": "Evolution",
+      "total": "Total",
+      "deposits": "Deposits",
+      "withdrawals": "Withdrawals",
+      "start": "Start, {{date}}",
+      "empty": "Nothing to show for these filters.",
+      "autoAs": "Automatic ({{granularity}})",
+      "groupBy": {
+        "AUTO": "Automatic",
+        "DAY": "Days",
+        "WEEK": "Weeks",
+        "MONTH": "Months",
+        "YEAR": "Years"
+      }
+    },
     "total_one": "{{formatted}} movement",
     "total_other": "{{formatted}} movements",
     "withoutRoom": "No room",
