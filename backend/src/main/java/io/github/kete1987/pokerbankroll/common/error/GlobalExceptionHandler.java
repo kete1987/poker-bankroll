@@ -43,6 +43,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     ResponseEntity<Object> handleApiException(ApiException ex, WebRequest request) {
         ErrorCode code = ex.getCode();
         ProblemDetail problem = problem(code, code.status(), ex.getArgs());
+        if (ex.getIndex() != null) {
+            problem.setProperty("index", ex.getIndex());
+        }
         return handleExceptionInternal(ex, problem, new HttpHeaders(), code.status(), request);
     }
 

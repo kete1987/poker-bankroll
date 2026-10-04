@@ -440,6 +440,8 @@
   },
   "games": {
     "add": "Add game",
+    "addSeveral": "Add several",
+    "duplicate": "Duplicate game",
     "loadError": "The data could not be loaded. Check that the API is available and reload the page.",
     "saved": {
       "title": "Game saved",
@@ -479,7 +481,9 @@
       "deleteGame": "Delete {{game}}",
       "edit": "Edit",
       "delete": "Delete",
-      "moreFor": "Actions for {{game}}"
+      "moreFor": "Actions for {{game}}",
+      "duplicate": "Duplicate",
+      "duplicateGame": "Duplicate {{game}}"
     },
     "list": {
       "empty": "There are no finished games yet.",
@@ -525,6 +529,36 @@
       "label": "Sort by",
       "descending": "Highest or latest first: reverse the order",
       "ascending": "Lowest or earliest first: reverse the order"
+    }
+  },
+  "bulkAdd": {
+    "title": "Add several games",
+    "count": "Number of games",
+    "rows": {
+      "title": "Each game",
+      "finishedHelp": "The prize and bounties of each game: leave them empty if it won nothing.",
+      "finishedNoBountyHelp": "The prize of each game: leave it empty if it won nothing.",
+      "inPlayHelp": "They are recorded in play: you will set the result of each one when it finishes.",
+      "label": "Games to add",
+      "prize": "Prize of game {{number}}",
+      "bounty": "Bounties of game {{number}}",
+      "notes": "Notes of game {{number}}"
+    },
+    "totals": {
+      "label": "Totals",
+      "invested": "Invested",
+      "won": "Won",
+      "net": "Net"
+    },
+    "save_one": "Add {{count}} game",
+    "save_other": "Add {{count}} games",
+    "done_one": "{{formatted}} game added",
+    "done_other": "{{formatted}} games added",
+    "inPlay": "They are in play: finish each one when you know its result.",
+    "errors": {
+      "count": "From {{min}} to {{max}}",
+      "notSaved": "The games were not saved",
+      "ofGame": "Game {{number}}: {{message}}"
     }
   },
   "filters": {

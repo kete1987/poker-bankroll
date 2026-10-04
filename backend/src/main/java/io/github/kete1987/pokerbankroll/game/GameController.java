@@ -107,6 +107,18 @@ class GameController {
         return ResponseEntity.created(location).body(game);
     }
 
+    @PostMapping("/batch")
+    @Operation(summary = "Record several games at once",
+            description = "From 1 to " + GameBatchRequest.MAX_GAMES + " games, recorded in the order sent and "
+                    + "each one as `POST /games` records it, all of them or none. Validation errors name the "
+                    + "game by its position (`games[3].prize`, zero-based); any other error of one game has "
+                    + "that position in an `index` property.")
+    @ApiResponse(responseCode = "201", description = "Created")
+    @ResponseStatus(HttpStatus.CREATED)
+    GameBatchResponse createBatch(@Valid @RequestBody GameBatchRequest request) {
+        return new GameBatchResponse(service.createAll(request.games()));
+    }
+
     @PutMapping("/{id}")
     @Operation(summary = "Update a game", description = "Replaces every field; omitted optional fields take their default.")
     GameResponse update(@PathVariable long id, @Valid @RequestBody GameRequest request) {

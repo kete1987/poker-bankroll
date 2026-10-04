@@ -1,6 +1,6 @@
 import { Alert, Button, Group, Loader, Modal, Pagination, Stack, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconPlus } from '@tabler/icons-react';
+import { IconPlaylistAdd, IconPlus } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -9,6 +9,7 @@ import {
   useAddRebuy,
   useAddReEntry,
   useCreateGame,
+  useCreateGames,
   useDeleteGame,
   useFinishGame,
   useGames,
@@ -23,6 +24,7 @@ import { ExportMenu } from '../components/ExportMenu';
 import { useNarrowScreen } from '../components/useNarrowScreen';
 import { Page } from '../components/Page';
 import { useFormat } from '../format/useFormat';
+import { BulkAddForm } from '../games/BulkAddForm';
 import { FinishGameDialog } from '../games/FinishGameDialog';
 import { describeGame } from '../games/labels';
 import { GameCards } from '../games/GameCards';
@@ -35,7 +37,9 @@ import { toGameQuery, useGameFilters } from '../games/useGameFilters';
 
 /** What is open on top of the page, and for which game. */
 type Dialog =
-  { kind: 'add' } | { kind: 'edit' | 'delete' | 'finish' | 'reEntry' | 'rebuy'; game: Game };
+  | { kind: 'add'; copyOf?: Game }
+  | { kind: 'addSeveral' }
+  | { kind: 'edit' | 'delete' | 'finish' | 'reEntry' | 'rebuy'; game: Game };
 
 /** Games: the ones in play on top, then every finished one with filters, order and pages. */
 export function GamesPage() {
@@ -53,6 +57,7 @@ export function GamesPage() {
   const games = useGames(gameQuery);
 
   const createGame = useCreateGame();
+  const createGames = useCreateGames();
   const updateGame = useUpdateGame();
   const deleteGame = useDeleteGame();
   const finishGame = useFinishGame();
@@ -77,6 +82,25 @@ export function GamesPage() {
     }
   }
 
+  function onSavedSeveral(saved: Game[]) {
+    const count = saved.length;
+    const title = t('bulkAdd.done', { count, formatted: format.number(count) });
+    // The games of a batch share their room, so their currency.
+    const currencyCode = saved[0]?.currencyCode;
+    if (currencyCode === undefined || saved.every((one) => one.status === 'IN_PLAY')) {
+      notify(title, t('bulkAdd.inPlay'));
+    } else {
+      const netCents = saved.reduce((sum, one) => sum + Math.round(one.net * 100), 0);
+      notify(
+        title,
+        t('games.saved.finished', { net: format.signedMoney(netCents / 100, currencyCode) }),
+      );
+    }
+    close();
+  }
+
+  const duplicate = (game: Game) => setDialog({ kind: 'add', copyOf: game });
+
   const formReady = rooms.data && variants.data;
   const loadFailed = rooms.isError || variants.isError;
   const pageCount = games.data?.totalPages ?? 0;
@@ -97,10 +121,19 @@ export function GamesPage() {
 
   return (
     <Page title={t('nav.games')}>
-      <Group justify="space-between">
-        <Button leftSection={<IconPlus size={16} />} onClick={() => setDialog({ kind: 'add' })}>
-          {t('games.add')}
-        </Button>
+      <Group justify="space-between" gap="xs">
+        <Group gap="xs">
+          <Button leftSection={<IconPlus size={16} />} onClick={() => setDialog({ kind: 'add' })}>
+            {t('games.add')}
+          </Button>
+          <Button
+            variant="default"
+            leftSection={<IconPlaylistAdd size={16} />}
+            onClick={() => setDialog({ kind: 'addSeveral' })}
+          >
+            {t('games.addSeveral')}
+          </Button>
+        </Group>
         {/* Every game the filters of the table select, whatever its page and order. */}
         <ExportMenu
           label={t('export.games.label')}
@@ -128,6 +161,7 @@ export function GamesPage() {
           onReEntry={(game) => setDialog({ kind: 'reEntry', game })}
           onRebuy={(game) => setDialog({ kind: 'rebuy', game })}
           onEdit={(game) => setDialog({ kind: 'edit', game })}
+          onDuplicate={duplicate}
           onDelete={(game) => setDialog({ kind: 'delete', game })}
         />
       )}
@@ -156,6 +190,7 @@ export function GamesPage() {
             sortDescending={filters.sortDescending}
             onSort={(sortField, sortDescending) => update({ sortField, sortDescending })}
             onEdit={(game) => setDialog({ kind: 'edit', game })}
+            onDuplicate={duplicate}
             onDelete={(game) => setDialog({ kind: 'delete', game })}
           />
           <Group justify="space-between">
@@ -182,7 +217,13 @@ export function GamesPage() {
         <Modal
           opened
           onClose={close}
-          title={dialog.kind === 'add' ? t('games.add') : t('games.edit')}
+          title={
+            dialog.kind === 'edit'
+              ? t('games.edit')
+              : dialog.kind === 'add' && dialog.copyOf
+                ? t('games.duplicate')
+                : t('games.add')
+          }
           size="lg"
           fullScreen={narrow}
           closeButtonProps={{ 'aria-label': t('actions.close') }}
@@ -194,6 +235,7 @@ export function GamesPage() {
               <GameForm
                 rooms={rooms.data}
                 variants={variants.data}
+                copyOf={dialog.copyOf}
                 onSave={(game) => createGame.mutateAsync(game)}
                 onSaved={onSaved}
                 onCancel={close}
@@ -209,6 +251,33 @@ export function GamesPage() {
                 onCancel={close}
               />
             )
+          ) : (
+            <Group justify="center" py="xl">
+              <Loader />
+            </Group>
+          )}
+        </Modal>
+      )}
+
+      {dialog?.kind === 'addSeveral' && (
+        <Modal
+          opened
+          onClose={close}
+          title={t('bulkAdd.title')}
+          size="xl"
+          fullScreen={narrow}
+          closeButtonProps={{ 'aria-label': t('actions.close') }}
+        >
+          {loadFailed ? (
+            <Alert color="red">{t('games.loadError')}</Alert>
+          ) : formReady ? (
+            <BulkAddForm
+              rooms={rooms.data}
+              variants={variants.data}
+              onSave={async (games) => (await createGames.mutateAsync({ games })).games}
+              onSaved={onSavedSeveral}
+              onCancel={close}
+            />
           ) : (
             <Group justify="center" py="xl">
               <Loader />

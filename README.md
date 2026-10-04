@@ -22,7 +22,8 @@ here is results and bankroll management.
 ## Features
 
 - Quick entry of games: tournaments (re-entries, bounties, ticket prizes), Sit&Go and spins
-  (Expresso...) and cash games, in No-Limit Hold'em or PLO
+  (Expresso...) and cash games, in No-Limit Hold'em or PLO; duplicate a game, or add several
+  alike at once (ten Expressos of an evening) with the result of each one in a row
 - Dashboard with net result, ROI and ITM, broken down by game type
 - Daily and monthly results, net evolution chart
 - Poker bankroll per room and currency: deposits, withdrawals, bonuses and the result of your games

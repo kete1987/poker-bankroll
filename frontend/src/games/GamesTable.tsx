@@ -2,6 +2,7 @@ import { ActionIcon, Center, Group, Table, Text, UnstyledButton } from '@mantine
 import {
   IconChevronDown,
   IconChevronUp,
+  IconCopy,
   IconPencil,
   IconSelector,
   IconTrash,
@@ -21,6 +22,7 @@ interface GamesTableProps {
   sortDescending: boolean;
   onSort: (field: SortField, descending: boolean) => void;
   onEdit: (game: Game) => void;
+  onDuplicate: (game: Game) => void;
   onDelete: (game: Game) => void;
 }
 
@@ -31,6 +33,7 @@ export function GamesTable({
   sortDescending,
   onSort,
   onEdit,
+  onDuplicate,
   onDelete,
 }: GamesTableProps) {
   const { t } = useTranslation();
@@ -108,6 +111,14 @@ export function GamesTable({
                     onClick={() => onEdit(game)}
                   >
                     <IconPencil size={16} stroke={1.5} />
+                  </ActionIcon>
+                  <ActionIcon
+                    variant="subtle"
+                    color="gray"
+                    aria-label={t('games.actions.duplicateGame', { game: describeGame(t, game) })}
+                    onClick={() => onDuplicate(game)}
+                  >
+                    <IconCopy size={16} stroke={1.5} />
                   </ActionIcon>
                   <ActionIcon
                     variant="subtle"

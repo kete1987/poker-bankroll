@@ -1,5 +1,5 @@
 import { ActionIcon, Button, Card, Group, Stack, Table, Text, Title } from '@mantine/core';
-import { IconFlag, IconPencil, IconPlus, IconTrash } from '@tabler/icons-react';
+import { IconCopy, IconFlag, IconPencil, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 
 import type { Game } from '../api/types';
@@ -18,6 +18,7 @@ interface GamesInPlayProps {
   onReEntry: (game: Game) => void;
   onRebuy: (game: Game) => void;
   onEdit: (game: Game) => void;
+  onDuplicate: (game: Game) => void;
   onDelete: (game: Game) => void;
 }
 
@@ -29,6 +30,7 @@ export function GamesInPlay({
   onReEntry,
   onRebuy,
   onEdit,
+  onDuplicate,
   onDelete,
 }: GamesInPlayProps) {
   const { t } = useTranslation();
@@ -105,7 +107,12 @@ export function GamesInPlay({
                       </Group>
                       <Group gap={4} wrap="nowrap">
                         <RoomLabel room={game.room} />
-                        <GameMenu game={game} onEdit={onEdit} onDelete={onDelete} />
+                        <GameMenu
+                          game={game}
+                          onEdit={onEdit}
+                          onDuplicate={onDuplicate}
+                          onDelete={onDelete}
+                        />
                       </Group>
                     </Group>
                     <Group justify="space-between" wrap="nowrap" align="flex-start" gap="xs">
@@ -176,6 +183,14 @@ export function GamesInPlay({
                             onClick={() => onEdit(game)}
                           >
                             <IconPencil size={16} stroke={1.5} />
+                          </ActionIcon>
+                          <ActionIcon
+                            variant="subtle"
+                            color="gray"
+                            aria-label={t('games.actions.duplicateGame', { game: name })}
+                            onClick={() => onDuplicate(game)}
+                          >
+                            <IconCopy size={16} stroke={1.5} />
                           </ActionIcon>
                           <ActionIcon
                             variant="subtle"

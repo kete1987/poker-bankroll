@@ -1,5 +1,6 @@
 package io.github.kete1987.pokerbankroll.game;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -107,6 +108,23 @@ public class GameService {
         game.setStatus(statusOf(request, GameStatus.IN_PLAY));
         apply(request, game);
         return GameResponse.of(games.saveAndFlush(game));
+    }
+
+    /**
+     * Records several games in the order given, each one as {@link #create} does, in one
+     * transaction: all of them or none. A business error of one game says its position in the list.
+     */
+    public List<GameResponse> createAll(List<GameRequest> requests) {
+        List<GameResponse> created = new ArrayList<>(requests.size());
+        for (int index = 0; index < requests.size(); index++) {
+            try {
+                created.add(create(requests.get(index)));
+            } catch (ApiException ex) {
+                // Thrown out of the transaction: nothing of the batch is kept.
+                throw ex.atIndex(index);
+            }
+        }
+        return created;
     }
 
     public GameResponse update(long id, GameRequest request) {
