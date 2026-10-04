@@ -173,6 +173,11 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   - **Bankroll** = deposited − withdrawn + adjustments + result, per room and per currency.
   - `GET /bankroll/summary` with dates gives the figures of that period (the result is what was won
     or lost in it); without them, the bankroll as it is now.
+  - `GET /bankroll/evolution?groupBy=DAY|WEEK|MONTH|YEAR` gives, per currency, the total and each
+    room, the bankroll period by period: a `startingBankroll` (everything before `from`) and, for
+    each period with movements or games, what changed it and the bankroll at its end. The last one
+    without dates is the bankroll of the summary (pinned by `BankrollEvolutionApiTests`). Periods
+    are cut by `stats/TimePeriod`, shared with `/stats/groups`.
 - **Bankroll movement**: `DEPOSIT` (money set aside for poker; the first one is the initial
   bankroll), `WITHDRAWAL`, `BONUS` (poker money not coming from a game: rakeback, promotions) or
   `ADJUSTMENT` (manual correction). The amount is positive and the type gives its direction; only
@@ -406,6 +411,11 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   A new breakdown is a `GroupBy` of the backend, its entry in `DIMENSIONS` (`stats/useStatsFilters.ts`),
   its label in `Breakdown` and its name in both locale files. Names are asked for tournaments
   unless the filter already names types or variants.
+- The bankroll screen draws the bankroll over time (`bankroll/BankrollEvolutionChart.tsx`): one
+  line per room, the total on top with deposits and withdrawals marked, for the period, rooms and
+  currency of the page. The cut (`group` in the URL) is automatic unless chosen: from the length
+  of the period, or, with an open end, from when there was activity, which the evolution by months
+  says first (`bankroll/evolution.ts`).
 - **Phones**: below the `sm` breakpoint (`components/useNarrowScreen`) nothing may need horizontal
   scrolling. The hook chooses what is rendered (not CSS that hides one of two copies, which tests
   and screen readers would both see):

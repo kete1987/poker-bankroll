@@ -28,6 +28,7 @@ import { useCatalog } from '../api/catalog';
 import { exportMovements } from '../api/exports';
 import { useRooms } from '../api/rooms';
 import type { BankrollFigures, Movement, MovementType } from '../api/types';
+import { BankrollEvolutionChart } from '../bankroll/BankrollEvolutionChart';
 import { MovementCards } from '../bankroll/MovementCards';
 import { MovementForm } from '../bankroll/MovementForm';
 import { MovementsTable } from '../bankroll/MovementsTable';
@@ -188,6 +189,16 @@ export function BankrollPage() {
               })}
             </StatCard>
           </SimpleGrid>
+
+          {currencyCode && (
+            <BankrollEvolutionChart
+              range={range}
+              roomIds={roomIds}
+              currencyCode={currencyCode}
+              granularity={filters.granularity}
+              onGranularityChange={(granularity) => update({ granularity })}
+            />
+          )}
 
           {ofCurrency && (
             <Stack gap="xs">
