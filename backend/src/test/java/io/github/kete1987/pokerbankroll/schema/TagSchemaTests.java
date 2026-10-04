@@ -56,6 +56,12 @@ class TagSchemaTests {
     }
 
     @Test
+    void aTagNameHasNoSeparatorOfTheFiles() {
+        assertThatThrownBy(() -> insertTag("Friends;Family")).isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> insertTag("Friends, family")).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
     void aGameHasEachTagOnce() {
         long game = insertGame();
         long tag = insertTag("Series");

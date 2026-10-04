@@ -2,8 +2,9 @@
 
 CREATE TABLE tag (
     id   BIGINT      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    -- Stored trimmed; two tags never differ only in case.
-    name VARCHAR(40) NOT NULL CHECK (name = btrim(name) AND name <> '')
+    -- Stored trimmed; two tags never differ only in case. No ';' nor ',', which separate the tags
+    -- of a game in the CSV and Excel files.
+    name VARCHAR(40) NOT NULL CHECK (name = btrim(name) AND name <> '' AND name !~ '[;,]')
 );
 
 CREATE UNIQUE INDEX tag_name_key ON tag (lower(name));

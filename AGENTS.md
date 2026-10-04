@@ -147,7 +147,7 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
     the cash result of the games and equals their effect on the bankroll.
   - Cash games are one sitting: one entry, no bounty or ticket fields (enforced by the database).
 - **Tag**: free-form label of games (`challenge`, `with friends`...); a game has up to 10. Table
-  `tag` (name unique ignoring case, 1 to 40 characters, no `;`, which separates them in CSV files)
+  `tag` (name unique ignoring case, 1 to 40 characters, no `;` or `,`, which separate them in CSV and Excel files)
   and `game_tag`. A game is given its tags **by name** (`GameRequest.tags`): existing ones are
   matched ignoring case and keep their spelling, missing ones are created (`TagService.resolve`,
   `insert ... on conflict do nothing`, so two requests creating the same tag both succeed). A tag

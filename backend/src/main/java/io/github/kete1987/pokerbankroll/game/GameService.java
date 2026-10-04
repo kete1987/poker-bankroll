@@ -121,10 +121,12 @@ public class GameService {
     }
 
     public GameResponse create(GameRequest request) {
+        // The room is locked before the tags are written, in the order of a restore of a backup.
+        Room room = roomOf(request, null);
         List<Tag> tagsOfGame = tags.resolve(request.tags());
         Game game = new Game();
         game.setStatus(statusOf(request, GameStatus.IN_PLAY));
-        apply(request, game, tagsOfGame);
+        apply(request, game, room, tagsOfGame);
         return GameResponse.of(games.saveAndFlush(game));
     }
 
@@ -147,9 +149,10 @@ public class GameService {
 
     public GameResponse update(long id, GameRequest request) {
         Game game = findForUpdate(id);
+        Room room = roomOf(request, game.getRoom());
         List<Tag> tagsOfGame = tags.resolve(request.tags());
         game.setStatus(statusOf(request, game.getStatus()));
-        apply(request, game, tagsOfGame);
+        apply(request, game, room, tagsOfGame);
         return GameResponse.of(games.saveAndFlush(game));
     }
 
@@ -221,11 +224,11 @@ public class GameService {
 
     /**
      * Copies the request into the game; rules within the request itself are already validated. The
-     * tags are found or created before: creating one runs SQL, which would first write the changes
-     * of the game made so far, half of them.
+     * room (locked) and the tags (found or created) come in: creating a tag runs SQL, which would
+     * first write the changes of the game made so far, half of them.
      */
-    private void apply(GameRequest request, Game game, List<Tag> tagsOfGame) {
-        game.setRoom(roomOf(request, game.getRoom()));
+    private void apply(GameRequest request, Game game, Room room, List<Tag> tagsOfGame) {
+        game.setRoom(room);
         game.setGameType(request.gameType());
         game.setVariant(variantOf(request, game.getVariant()));
         game.setModality(request.modalityOrDefault());

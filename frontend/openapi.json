@@ -597,7 +597,7 @@
             "type" : [ "string", "null" ]
           },
           "tags" : {
-            "description" : "Names of its tags, at most 10, each from 1 to 40 characters without semicolons. Matched with the existing tags ignoring case and surrounding spaces; the missing ones are created. Names repeated ignoring case are one tag. Omitted or null: no tags (an update replaces the tags of the game)",
+            "description" : "Names of its tags, at most 10, each from 1 to 40 characters without commas or semicolons. Matched with the existing tags ignoring case and surrounding spaces; the missing ones are created. Names repeated ignoring case are one tag. Omitted or null: no tags (an update replaces the tags of the game)",
             "items" : {
               "type" : "string"
             },
@@ -1288,7 +1288,7 @@
       "TagRequest" : {
         "properties" : {
           "name" : {
-            "description" : "New name, from 1 to 40 characters without semicolons; surrounding spaces are removed. When another tag already has it (ignoring case), this tag is merged into that one",
+            "description" : "New name, from 1 to 40 characters without commas or semicolons; surrounding spaces are removed. When another tag already has it (ignoring case), this tag is merged into that one",
             "type" : "string"
           }
         },

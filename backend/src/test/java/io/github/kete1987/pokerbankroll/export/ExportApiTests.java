@@ -159,7 +159,7 @@ class ExportApiTests extends ApiIntegrationTest {
                  "variantId": %d, "modality": "PLO", "name": "Fish, chips & \\"more\\"", "buyIn": 10, "entries": 3,
                  "prize": 80, "bounty": 12.5, "ticketPrizeValue": 109, "ticketDescription": "Sunday Million",
                  "paidWithTicket": true, "notes": "Table 12\\nSeat 3; ñandú €",
-                 "tags": ["Satélite", "with friends, \\"quoted\\""]}""".formatted(winamax, ko));
+                 "tags": ["Satélite", "with \\"quoted\\" friends"]}""".formatted(winamax, ko));
         // Only what is required, nothing won.
         game("""
                 {"playedOn": "2026-01-19", "roomId": %d, "gameType": "TOURNAMENT", "buyIn": 2.5,

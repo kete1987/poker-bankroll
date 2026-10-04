@@ -95,7 +95,7 @@ class TagApiTests extends ApiIntegrationTest {
     }
 
     @Test
-    void aGameHasAtMostTenTagsOfFortyCharactersWithoutSemicolons() {
+    void aGameHasAtMostTenTagsOfFortyCharactersWithoutSeparators() {
         var json = assertThat(postJson("/games", game("\"tags\": [\"a\",\"b\",\"c\",\"d\",\"e\",\"f\",\"g\",\"h\",\"i\","
                 + "\"j\",\"k\"]"))).hasStatus(HttpStatus.BAD_REQUEST).bodyJson();
         json.extractingPath("$.errors[*].field").asArray().containsExactly("tags");
@@ -103,12 +103,12 @@ class TagApiTests extends ApiIntegrationTest {
 
         String tooLong = "x".repeat(41);
         var names = assertThat(postJson("/games", game("\"tags\": [\"" + tooLong + "\", \"  \", \"a;b\", null, \"  "
-                + "y".repeat(40) + "  \"]"))).hasStatus(HttpStatus.BAD_REQUEST).bodyJson();
+                + "y".repeat(40) + "  \", \"c,d\"]"))).hasStatus(HttpStatus.BAD_REQUEST).bodyJson();
         names.extractingPath("$.errors[*].field").asArray()
-                .containsExactlyInAnyOrder("tags[0]", "tags[1]", "tags[2]", "tags[3]");
+                .containsExactlyInAnyOrder("tags[0]", "tags[1]", "tags[2]", "tags[3]", "tags[5]");
         names.extractingPath("$.errors[?(@.field == 'tags[0]')].code").asArray().containsExactly("TagName");
         names.extractingPath("$.errors[?(@.field == 'tags[0]')].message").asArray()
-                .containsExactly("A tag has from 1 to 40 characters and no semicolons.");
+                .containsExactly("A tag has from 1 to 40 characters and no commas or semicolons.");
         names.extractingPath("$.errors[?(@.field == 'tags[3]')].code").asArray().containsExactly("NotNull");
         assertThat(jdbc.queryForObject("select count(*) from tag", Integer.class)).isZero();
     }

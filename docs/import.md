@@ -71,7 +71,8 @@ The current list, with the variants you have added, is in *Settings → Variants
 ### Tags
 
 `tags` holds the tags of the game separated by **semicolons** (`;`); spaces around each one are
-removed and empty ones are skipped. Each tag has at most 40 characters and a game at most 10 tags.
+removed and empty ones are skipped. Each tag has at most 40 characters, no commas, and a game at
+most 10 tags.
 A tag is looked up among the existing ones ignoring upper and lower case, and **created** when there
 is none. Tags are in *Settings → Tags*.
 

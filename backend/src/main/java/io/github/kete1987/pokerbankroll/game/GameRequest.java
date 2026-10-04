@@ -70,7 +70,7 @@ public record GameRequest(
         @Nullable @Size(max = 5000) String notes,
 
         @Schema(description = "Names of its tags, at most " + GameRequest.MAX_TAGS + ", each from 1 to 40 characters "
-                + "without semicolons. Matched with the existing tags ignoring case and surrounding spaces; the "
+                + "without commas or semicolons. Matched with the existing tags ignoring case and surrounding spaces; the "
                 + "missing ones are created. Names repeated ignoring case are one tag. Omitted or null: no tags "
                 + "(an update replaces the tags of the game)")
         @Nullable @Size(max = GameRequest.MAX_TAGS) List<@NotNull @TagName String> tags) implements TicketPrize {

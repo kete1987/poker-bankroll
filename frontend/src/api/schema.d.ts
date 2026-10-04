@@ -862,7 +862,7 @@ export interface components {
              * @enum {string|null}
              */
             status?: "IN_PLAY" | "FINISHED" | null;
-            /** @description Names of its tags, at most 10, each from 1 to 40 characters without semicolons. Matched with the existing tags ignoring case and surrounding spaces; the missing ones are created. Names repeated ignoring case are one tag. Omitted or null: no tags (an update replaces the tags of the game) */
+            /** @description Names of its tags, at most 10, each from 1 to 40 characters without commas or semicolons. Matched with the existing tags ignoring case and surrounding spaces; the missing ones are created. Names repeated ignoring case are one tag. Omitted or null: no tags (an update replaces the tags of the game) */
             tags?: string[] | null;
             ticketDescription?: string | null;
             /** @description Value of a tournament ticket won as a prize; informative, not part of net. Defaults to 0 */
@@ -1172,7 +1172,7 @@ export interface components {
             name: string;
         };
         TagRequest: {
-            /** @description New name, from 1 to 40 characters without semicolons; surrounding spaces are removed. When another tag already has it (ignoring case), this tag is merged into that one */
+            /** @description New name, from 1 to 40 characters without commas or semicolons; surrounding spaces are removed. When another tag already has it (ignoring case), this tag is merged into that one */
             name: string;
         };
         TagResponse: {

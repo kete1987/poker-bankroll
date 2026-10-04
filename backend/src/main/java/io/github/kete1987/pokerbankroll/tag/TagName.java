@@ -13,8 +13,9 @@ import jakarta.validation.Payload;
 
 /**
  * The name of a tag: from 1 to {@value #MAX_LENGTH} characters once the surrounding spaces are
- * removed, and no {@value #SEPARATOR}, which separates the tags of a game in the CSV files. A
- * {@code null} is valid: combine it with {@code @NotNull}.
+ * removed, and no {@value #SEPARATOR}, which separates the tags of a game in the CSV files, nor a
+ * comma, which separates them in the Excel files and ends one in the forms. A {@code null} is
+ * valid: combine it with {@code @NotNull}.
  */
 @Documented
 @Target({ElementType.METHOD, ElementType.FIELD, ElementType.PARAMETER, ElementType.TYPE_USE})
@@ -25,7 +26,7 @@ public @interface TagName {
     int MAX_LENGTH = 40;
     char SEPARATOR = ';';
 
-    String message() default "must have from 1 to 40 characters and no semicolon";
+    String message() default "must have from 1 to 40 characters and no comma or semicolon";
 
     Class<?>[] groups() default {};
 
@@ -40,7 +41,8 @@ public @interface TagName {
                 return true;
             }
             String stripped = name.strip();
-            return !stripped.isEmpty() && stripped.length() <= MAX_LENGTH && stripped.indexOf(SEPARATOR) < 0;
+            return !stripped.isEmpty() && stripped.length() <= MAX_LENGTH
+                    && stripped.indexOf(SEPARATOR) < 0 && stripped.indexOf(',') < 0;
         }
     }
 }
