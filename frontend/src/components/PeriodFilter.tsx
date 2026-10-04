@@ -26,6 +26,8 @@ export function PeriodFilter({ range, onChange }: PeriodFilterProps) {
         label={t('filters.period')}
         w={170}
         allowDeselect={false}
+        // Every period in sight, without scrolling the list.
+        maxDropdownHeight={320}
         data={PERIODS.map((value) => ({ value, label: t(`filters.periods.${value}`) }))}
         value={showDates ? 'custom' : period}
         onChange={(value) => {
