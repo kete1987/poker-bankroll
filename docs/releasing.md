@@ -31,6 +31,22 @@ for `linux/amd64` and `linux/arm64`, always with the same tags:
 
 Pre-releases never move `0.X` or `latest`.
 
+## Release files
+
+Every GitHub Release (pre-releases too) has one file attached, `poker-bankroll-X.Y.Z.zip`, with a
+folder `poker-bankroll/` holding what is needed to run that version without cloning the
+repository:
+
+- `docker-compose.yml`: `deploy/docker-compose.yml` of the tagged commit, as it is.
+- `.env`: `deploy/.env.example` of the tagged commit with `POKER_BANKROLL_VERSION=X.Y.Z`, so the
+  folder runs the version it came with and is updated on purpose. The password is still the
+  placeholder (`change-me`): the [installation guide](install.md) has people change it.
+
+It is made by `.github/scripts/release-bundle.sh X.Y.Z <dir>` in the `GitHub Release` job, after
+the release is created. Like the images, it is never replaced: re-running a release only attaches
+it when it is missing. Run the script locally to see what a release would attach (it needs
+`zip`).
+
 `edge` builds of `main` supersede each other: when a new merge arrives while the previous build is
 still running, the older one is cancelled. `edge` always ends up on the latest merge, but a
 `sha-<commit>` image may be missing for a commit that was followed quickly by another one. Use
@@ -47,7 +63,8 @@ versions, not `sha-*`, for anything you need to keep.
    patch releases usually go straight to the release.
 4. **Release**: when the milestone is done, cut `0.2.0`. GitHub Actions publishes the images
    (`0.2.0`, `0.2`, `latest`) and creates the GitHub Release with notes generated from the merged
-   PRs, grouped by their labels.
+   PRs, grouped by their labels, and `poker-bankroll-0.2.0.zip` attached (see
+   [Release files](#release-files)).
 5. **Close the milestone** in GitHub.
 
 ```
@@ -113,7 +130,9 @@ the fix from `main` as `0.1.1` and skip all of this.
   `latest` to follow stable releases, an exact version such as `0.1.0` to decide when to update,
   or `edge` for a test stack.
 - **Update**: `docker compose pull && docker compose up -d`, or in Portainer *Pull and redeploy*.
-  Only the layers that changed are downloaded.
+  Only the layers that changed are downloaded. An installation made from the release zip is pinned
+  to its version: set the new one in `.env` and take the new `docker-compose.yml` (step by step in
+  the [installation guide](install.md#7-update-to-a-new-version)).
 - **Roll back**: set the previous version and redeploy. Database migrations only go forward: if the
   newer version already migrated the database, the older one may refuse to start. In that case
   restore the backup taken before the update (see the backups documentation).

@@ -227,6 +227,7 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Create the release with generated notes
         env:
           GH_TOKEN: ${{ github.token }}
@@ -241,3 +242,20 @@ jobs:
           flags=(--generate-notes --verify-tag)
           if [ "$PRERELEASE" = true ]; then flags+=(--prerelease); fi
           gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" "${flags[@]}"
+      # poker-bankroll-X.Y.Z.zip: docker-compose.yml and a .env that runs this version, what the
+      # installation guide (docs/install.md) has people download instead of cloning the repository.
+      - name: Attach the files to run this version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.version.outputs.release-tag }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          asset="poker-bankroll-$VERSION.zip"
+          # Like the images, an attached file is never replaced (e.g. when the run is repeated).
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' \
+              | grep -qxF "$asset"; then
+            echo "::notice::$asset is already attached to $TAG; not replacing it"
+            exit 0
+          fi
+          zip_file=$(.github/scripts/release-bundle.sh "$VERSION" "$RUNNER_TEMP")
+          gh release upload "$TAG" "$zip_file" --repo "$GITHUB_REPOSITORY"
