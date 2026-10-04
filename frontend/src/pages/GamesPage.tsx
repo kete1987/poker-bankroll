@@ -17,6 +17,7 @@ import {
   useUpdateGame,
 } from '../api/games';
 import { useRooms } from '../api/rooms';
+import { useTemplates } from '../api/templates';
 import type { Game } from '../api/types';
 import { useVariants } from '../api/variants';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -32,16 +33,23 @@ import { GameFilters } from '../games/GameFilters';
 import { GameForm } from '../games/GameForm';
 import { GamesInPlay } from '../games/GamesInPlay';
 import { GamesTable } from '../games/GamesTable';
+import { QuickStart } from '../games/QuickStart';
 import { RebuyDialog } from '../games/RebuyDialog';
+import { SaveTemplateDialog } from '../games/SaveTemplateDialog';
+import type { GameStart } from '../games/templates';
 import { toGameQuery, useGameFilters } from '../games/useGameFilters';
 
 /** What is open on top of the page, and for which game. */
 type Dialog =
-  | { kind: 'add'; copyOf?: Game }
+  /** A new game; filled from a game (a duplicate) or a template when `copyOf` is given. */
+  | { kind: 'add'; copyOf?: GameStart; duplicate?: boolean }
   | { kind: 'addSeveral' }
-  | { kind: 'edit' | 'delete' | 'finish' | 'reEntry' | 'rebuy'; game: Game };
+  | { kind: 'edit' | 'delete' | 'finish' | 'reEntry' | 'rebuy' | 'saveTemplate'; game: Game };
 
-/** Games: the ones in play on top, then every finished one with filters, order and pages. */
+/**
+ * Games: the templates to start one in a click and the ones in play on top, then every finished
+ * one with filters, order and pages.
+ */
 export function GamesPage() {
   const { t } = useTranslation();
   const format = useFormat();
@@ -52,6 +60,8 @@ export function GamesPage() {
   const { filters, update, clear, hasFilters } = useGameFilters();
   const rooms = useRooms();
   const variants = useVariants();
+  const templates = useTemplates();
+  const usableTemplates = templates.data?.filter((template) => template.usable) ?? [];
   const inPlay = useGamesInPlay();
   const gameQuery = toGameQuery(filters);
   const games = useGames(gameQuery);
@@ -99,7 +109,8 @@ export function GamesPage() {
     close();
   }
 
-  const duplicate = (game: Game) => setDialog({ kind: 'add', copyOf: game });
+  const duplicate = (game: Game) => setDialog({ kind: 'add', copyOf: game, duplicate: true });
+  const saveAsTemplate = (game: Game) => setDialog({ kind: 'saveTemplate', game });
 
   const formReady = rooms.data && variants.data;
   const loadFailed = rooms.isError || variants.isError;
@@ -153,6 +164,13 @@ export function GamesPage() {
         />
       </Group>
 
+      {usableTemplates.length > 0 && (
+        <QuickStart
+          templates={usableTemplates}
+          onCustomize={(template) => setDialog({ kind: 'add', copyOf: template })}
+        />
+      )}
+
       {inPlay.data && inPlay.data.items.length > 0 && (
         <GamesInPlay
           games={inPlay.data.items}
@@ -162,6 +180,7 @@ export function GamesPage() {
           onRebuy={(game) => setDialog({ kind: 'rebuy', game })}
           onEdit={(game) => setDialog({ kind: 'edit', game })}
           onDuplicate={duplicate}
+          onSaveAsTemplate={saveAsTemplate}
           onDelete={(game) => setDialog({ kind: 'delete', game })}
         />
       )}
@@ -191,6 +210,7 @@ export function GamesPage() {
             onSort={(sortField, sortDescending) => update({ sortField, sortDescending })}
             onEdit={(game) => setDialog({ kind: 'edit', game })}
             onDuplicate={duplicate}
+            onSaveAsTemplate={saveAsTemplate}
             onDelete={(game) => setDialog({ kind: 'delete', game })}
           />
           <Group justify="space-between">
@@ -220,7 +240,7 @@ export function GamesPage() {
           title={
             dialog.kind === 'edit'
               ? t('games.edit')
-              : dialog.kind === 'add' && dialog.copyOf
+              : dialog.kind === 'add' && dialog.duplicate
                 ? t('games.duplicate')
                 : t('games.add')
           }
@@ -236,6 +256,7 @@ export function GamesPage() {
                 rooms={rooms.data}
                 variants={variants.data}
                 copyOf={dialog.copyOf}
+                templates={templates.data}
                 onSave={(game) => createGame.mutateAsync(game)}
                 onSaved={onSaved}
                 onCancel={close}
@@ -274,6 +295,7 @@ export function GamesPage() {
             <BulkAddForm
               rooms={rooms.data}
               variants={variants.data}
+              templates={templates.data}
               onSave={async (games) => (await createGames.mutateAsync({ games })).games}
               onSaved={onSavedSeveral}
               onCancel={close}
@@ -285,6 +307,8 @@ export function GamesPage() {
           )}
         </Modal>
       )}
+
+      {dialog?.kind === 'saveTemplate' && <SaveTemplateDialog game={dialog.game} onClose={close} />}
 
       {dialog?.kind === 'finish' && (
         <FinishGameDialog

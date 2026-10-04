@@ -15,6 +15,7 @@ const EMPTY: BackupContents = {
   games: 0,
   gamesInPlay: 0,
   movements: 0,
+  templates: 0,
   from: null,
   to: null,
   empty: true,
@@ -26,6 +27,7 @@ const IN_FILE: BackupContents = {
   games: 3100,
   gamesInPlay: 3,
   movements: 12,
+  templates: 3,
   from: '2019-03-02',
   to: '2026-01-19',
   empty: false,
@@ -37,6 +39,7 @@ const INSTALLED: BackupContents = {
   games: 57,
   gamesInPlay: 1,
   movements: 5,
+  templates: 0,
   from: '2026-05-01',
   to: '2026-09-30',
   empty: false,
@@ -181,6 +184,7 @@ describe('backup, in the Import / Export section', () => {
       ['Games', '3,100', '0'],
       ['Games in play', '3', '0'],
       ['Bankroll movements', '12', '0'],
+      ['Game templates', '3', '0'],
       ['Dates of the games', 'From 02/03/2019 to 19/01/2026', '—'],
     ]);
     expect(screen.getByText('poker-bankroll-backup-2026-10-02.json')).toBeInTheDocument();

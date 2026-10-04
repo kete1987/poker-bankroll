@@ -16,13 +16,22 @@ import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { ApiError } from '../api/client';
-import type { Game, GameRequest, GameStatus, GameType, Room, Variant } from '../api/types';
+import type {
+  Game,
+  GameRequest,
+  GameStatus,
+  GameTemplate,
+  GameType,
+  Room,
+  Variant,
+} from '../api/types';
 import { useNarrowScreen } from '../components/useNarrowScreen';
 import { useFormat } from '../format/useFormat';
 import { amountOrNull, type Amount } from './amount';
 import { loadGameDefaults, saveGameDefaults, todayIso } from './gameDefaults';
 import { variantLabel } from './labels';
 import { NameInput } from './NameInput';
+import { TemplatePicker } from './TemplatePicker';
 import { useNameSuggestions, type NameFields } from './useNameSuggestions';
 
 /** Several games of one sitting: tournaments or Sit & Go (a cash game is one sitting already). */
@@ -59,6 +68,8 @@ interface BulkAddValues extends NameFields {
 interface BulkAddFormProps {
   rooms: Room[];
   variants: Variant[];
+  /** Templates the games can be filled from; only usable ones of tournaments and Sit & Go. */
+  templates?: GameTemplate[];
   /** Saves the games, all of them or none; rejects with an `ApiError` when the backend refuses. */
   onSave: (games: GameRequest[]) => Promise<Game[]>;
   onSaved: (games: Game[]) => void;
@@ -69,7 +80,14 @@ interface BulkAddFormProps {
  * Form to record several games alike at once (ten Expressos of an evening): what they share is
  * written once, then the result of each one, in rows. In play, the rows only take notes.
  */
-export function BulkAddForm({ rooms, variants, onSave, onSaved, onCancel }: BulkAddFormProps) {
+export function BulkAddForm({
+  rooms,
+  variants,
+  templates = [],
+  onSave,
+  onSaved,
+  onCancel,
+}: BulkAddFormProps) {
   const { t } = useTranslation();
   const format = useFormat();
   const narrow = useNarrowScreen();
@@ -107,6 +125,25 @@ export function BulkAddForm({ rooms, variants, onSave, onSaved, onCancel }: Bulk
 
   const names = useNameSuggestions(form, { gameType: values.gameType, currency, variantOptions });
   const { filledByName } = names;
+
+  /** Fills what the games share from a template, as if each field had been chosen by hand. */
+  function pickTemplate(template: GameTemplate) {
+    if (!isBulkType(template.gameType)) {
+      return;
+    }
+    const offered = (id: number | undefined, candidates: { id: number; active: boolean }[]) =>
+      candidates.some((candidate) => candidate.id === id && candidate.active);
+    names.choose(template.currencyCode);
+    form.setValues({
+      gameType: template.gameType,
+      roomId: offered(template.room.id, activeRooms) ? String(template.room.id) : null,
+      variantId: offered(template.variant?.id, variants) ? String(template.variant!.id) : null,
+      modality: template.modality,
+      name: template.name ?? '',
+      buyIn: template.buyIn,
+    });
+    form.clearErrors();
+  }
 
   const amountProps = {
     min: 0,
@@ -249,6 +286,13 @@ export function BulkAddForm({ rooms, variants, onSave, onSaved, onCancel }: Bulk
             {failure}
           </Alert>
         )}
+
+        <TemplatePicker
+          templates={templates.filter(
+            (template) => template.usable && isBulkType(template.gameType),
+          )}
+          onPick={pickTemplate}
+        />
 
         <SegmentedControl
           fullWidth
@@ -487,6 +531,10 @@ function Figure({ label, value }: { label: string; value: string }) {
       </Text>
     </Stack>
   );
+}
+
+function isBulkType(gameType: GameType): gameType is BulkGameType {
+  return (GAME_TYPES as readonly GameType[]).includes(gameType);
 }
 
 /** The number of games asked for, when it is one that can be added. */

@@ -193,7 +193,8 @@
     "active": "Active",
     "tabs": {
       "rooms": "Rooms",
-      "variants": "Variants"
+      "variants": "Variants",
+      "templates": "Templates"
     },
     "rooms": {
       "add": "Add room",
@@ -311,7 +312,7 @@
   },
   "backup": {
     "title": "Backup of everything",
-    "intro": "A backup is one file with everything this installation holds: rooms and their logos, variants, every game (those in play too) and bankroll movements. Keep it somewhere safe, or restore it in another installation to move to another computer.",
+    "intro": "A backup is one file with everything this installation holds: rooms and their logos, variants, every game (those in play too), bankroll movements and game templates. Keep it somewhere safe, or restore it in another installation to move to another computer.",
     "docs": "Backups and when to use each kind",
     "download": "Download backup",
     "downloaded": "Backup downloaded",
@@ -332,6 +333,7 @@
       "games": "Games",
       "gamesInPlay": "Games in play",
       "movements": "Bankroll movements",
+      "templates": "Game templates",
       "dates": "Dates of the games"
     },
     "counts": {
@@ -483,7 +485,9 @@
       "delete": "Delete",
       "moreFor": "Actions for {{game}}",
       "duplicate": "Duplicate",
-      "duplicateGame": "Duplicate {{game}}"
+      "duplicateGame": "Duplicate {{game}}",
+      "saveAsTemplate": "Save as template",
+      "saveAsTemplateGame": "Save {{game}} as a template"
     },
     "list": {
       "empty": "There are no finished games yet.",
@@ -559,6 +563,44 @@
       "count": "From {{min}} to {{max}}",
       "notSaved": "The games were not saved",
       "ofGame": "Game {{number}}: {{message}}"
+    }
+  },
+  "templates": {
+    "from": "From template",
+    "fromPlaceholder": "Fill the form from a template",
+    "quickStart": {
+      "title": "Quick start",
+      "start": "Start {{template}}",
+      "customize": "Change {{template}} before starting it",
+      "started": "{{template}} started",
+      "notStarted": "{{template}} was not started"
+    },
+    "save": {
+      "title": "Save as template",
+      "intro": "A template starts games like this one in a click, from the Games page: same room, type, variant, name and buy-in.",
+      "submit": "Save template",
+      "done": "Template saved"
+    },
+    "fields": {
+      "label": "Label",
+      "labelHelp": "Optional: without it, the template is named after its room, game and buy-in."
+    },
+    "intro": "The games you play often. Each template is a button on the Games page that starts its game in a click: in play, with today's date. Its small arrow opens the form filled from it, to change something first.",
+    "add": "Add template",
+    "edit": "Edit template",
+    "created": "Template created",
+    "saved": "Template saved",
+    "editTemplate": "Edit {{template}}",
+    "deleteTemplate": "Delete {{template}}",
+    "unusable": "Inactive room or variant",
+    "empty": "There are no templates yet. Add one here, or save a game as a template from its actions.",
+    "columns": {
+      "template": "Template"
+    },
+    "delete": {
+      "title": "Delete template",
+      "confirm": "Delete the template {{template}}? The games started from it are kept.",
+      "done": "Template deleted"
     }
   },
   "filters": {

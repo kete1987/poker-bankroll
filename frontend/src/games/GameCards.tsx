@@ -1,5 +1,6 @@
 import { Card, Group, Menu, Select, SimpleGrid, Stack, Text } from '@mantine/core';
 import {
+  IconBookmarkPlus,
   IconCopy,
   IconDotsVertical,
   IconPencil,
@@ -24,6 +25,7 @@ interface GameCardsProps {
   onSort: (field: SortField, descending: boolean) => void;
   onEdit: (game: Game) => void;
   onDuplicate: (game: Game) => void;
+  onSaveAsTemplate: (game: Game) => void;
   onDelete: (game: Game) => void;
 }
 
@@ -39,16 +41,18 @@ export function CardFigure({ label, children }: { label: string; children: React
   );
 }
 
-/** Edit, duplicate and delete, behind one button: a card has no room for them. */
+/** Edit, duplicate, save as template and delete, behind one button: a card has no room for them. */
 export function GameMenu({
   game,
   onEdit,
   onDuplicate,
+  onSaveAsTemplate,
   onDelete,
 }: {
   game: Game;
   onEdit: (game: Game) => void;
   onDuplicate: (game: Game) => void;
+  onSaveAsTemplate: (game: Game) => void;
   onDelete: (game: Game) => void;
 }) {
   const { t } = useTranslation();
@@ -70,6 +74,12 @@ export function GameMenu({
         <Menu.Item leftSection={<IconCopy size={16} />} onClick={() => onDuplicate(game)}>
           {t('games.actions.duplicate')}
         </Menu.Item>
+        <Menu.Item
+          leftSection={<IconBookmarkPlus size={16} />}
+          onClick={() => onSaveAsTemplate(game)}
+        >
+          {t('games.actions.saveAsTemplate')}
+        </Menu.Item>
         <Menu.Item color="red" leftSection={<IconTrash size={16} />} onClick={() => onDelete(game)}>
           {t('games.actions.delete')}
         </Menu.Item>
@@ -89,6 +99,7 @@ export function GameCards({
   onSort,
   onEdit,
   onDuplicate,
+  onSaveAsTemplate,
   onDelete,
 }: GameCardsProps) {
   const { t } = useTranslation();
@@ -141,6 +152,7 @@ export function GameCards({
                     game={game}
                     onEdit={onEdit}
                     onDuplicate={onDuplicate}
+                    onSaveAsTemplate={onSaveAsTemplate}
                     onDelete={onDelete}
                   />
                 </Group>
