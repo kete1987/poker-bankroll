@@ -1,0 +1,24 @@
+# Demo: the released images with a year of made-up results, to look at the app before installing
+# it. Used on top of docker-compose.yml, with the variables of demo.env (which also names both
+# files), from this folder:
+#
+#   docker compose --env-file demo.env up -d       # then open http://localhost:8081
+#   docker compose --env-file demo.env down -v     # throws the demo and its data away
+#
+# It is a separate Compose project (poker-bankroll-demo) with its own database volume and port, so
+# it never touches a real installation, not even one in this same folder (its .env is not read).
+# Nothing to set up: the database password is fixed in demo.env, which is fine for data that is
+# made up and thrown away, never for a real installation.
+name: poker-bankroll-demo
+
+services:
+  api:
+    environment:
+      # Fills the empty database with the demo data on startup (DemoDataSeeder).
+      SPRING_PROFILES_ACTIVE: demo
+      # The demo makes up its own exchange rates of the dollar: nothing to download.
+      POKER_BANKROLL_EXCHANGE_RATES_ENABLED: 'false'
+
+  # No backups of made-up data: the service only starts with --profile backup.
+  backup:
+    profiles: [backup]
