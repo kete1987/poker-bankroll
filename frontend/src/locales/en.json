@@ -573,6 +573,9 @@
     "any": "All",
     "clear": "Clear filters",
     "periods": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "thisWeek": "This week",
       "all": "All time",
       "thisMonth": "This month",
       "lastMonth": "Last month",
