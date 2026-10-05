@@ -38,7 +38,8 @@ left exactly as it was, and the page lists what is wrong and where in the file.
 ### Move to another computer
 
 1. On the old installation: *Import / Export* → **Download backup**.
-2. Set up the new installation as in the README and open it: it is empty.
+2. Set up the new installation as in the README (or the [installation guide](install.md)) and
+   open it: it is empty.
 3. On the new one: *Import / Export* → **Choose backup file** → **Restore this backup**.
 
 The new installation can be a newer version than the old one, not an older one: the file says

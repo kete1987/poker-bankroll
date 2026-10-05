@@ -1,5 +1,8 @@
 # Documentation
 
+- [Installation guide](install.md) ([en español](install.es.md)): step by step for people who
+  have never used Docker, on Windows, macOS or Linux: install, start, stop, update, backups,
+  common problems and use from a phone.
 - [Importing games](import.md): the CSV format to load games recorded somewhere else, with an
   [example file](../frontend/public/import-example.csv).
 - [Currencies](currencies.md): rooms in several currencies, the base currency everything mixed is

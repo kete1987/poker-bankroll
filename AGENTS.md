@@ -24,7 +24,8 @@ Issue titles carry an ID (`[INF-1]`, `[API-3]`, `[UI-2]`...) used across discuss
 |---|---|
 | `backend/` | REST API — Java 25, Spring Boot 4.1, Flyway, springdoc-openapi |
 | `frontend/` | Web app — React 19, TypeScript 7, Vite 8, React Router 8, TanStack Query 5, Mantine 9, react-i18next, ECharts 6 |
-| `deploy/` | `docker-compose.yml` (db + api + web + backup, released images), `docker-compose.build.yml` (builds them from the checkout), `.env.example` |
+| `deploy/` | `docker-compose.yml` (db + api + web + backup, released images), `docker-compose.build.yml` (builds them from the checkout), `docker-compose.demo.yml` + `demo.env` (the demo with sample data), `.env.example` |
+| `docs/images/` | Screenshots of the READMEs (demo data only) |
 | `docs/` | User and developer documentation |
 | `.github/workflows/` | CI (tests per PR) and release (multi-arch images to GHCR on tag) |
 
@@ -79,6 +80,8 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 | `docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build` (in `deploy/`) | Build both images from the checkout and run db + api + web on `http://localhost:${WEB_PORT:-8080}` |
 | `docker compose up -d` (in `deploy/`) | Run the released images from GHCR (`POKER_BANKROLL_VERSION`, default `latest`) |
 | `docker compose down` / `down -v` | Stop the stack / also delete the database volume |
+| `docker compose -p poker-bankroll-demo -f docker-compose.yml -f docker-compose.demo.yml --env-file demo.env up -d` (in `deploy/`) | Run the released images with the demo data on `http://localhost:8081`, as the separate project `poker-bankroll-demo` (see "Demo data") |
+| `docker compose -p poker-bankroll-demo -f docker-compose.yml -f docker-compose.demo.yml --env-file demo.env down -v` (in `deploy/`) | Remove the demo and its database |
 | `docker compose exec backup /backup.sh` (in `deploy/`) | Take a database backup now (Git Bash: prefix `MSYS_NO_PATHCONV=1`) |
 
 - Images: `backend/Dockerfile` (layered Spring Boot jar on Alpine with a Java runtime linked by
@@ -96,6 +99,9 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   `POKER_BANKROLL_EXCHANGE_RATES_ENABLED=false` turns the downloads off.
 - `docker-compose.yml` has no `build` sections on purpose: it is also pasted as a Portainer stack,
   where there is no source code to build from. Building lives in `docker-compose.build.yml`.
+- `docs/install.md` and `docs/install.es.md` walk people who have never used Docker through
+  running the stack from the release zip (see "Releases"), and name its commands, services,
+  variables, port and volume: change them in the same PR as `docker-compose.yml` or `.env.example`.
 - `backup` (`prodrigestivill/postgres-backup-local`, pinned tag) dumps the database daily to
   `BACKUP_DIR` (default `deploy/backups/`, git-ignored) with daily/weekly/monthly retention.
   Keep its PostgreSQL major in sync with the `db` image. Restore procedure: `docs/backups.md`.
@@ -440,6 +446,15 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   runtime of the API image has no `java.desktop` (`ImageIO`, `java.awt`).
 - To look at the frontend with data: run the API with the command above and `npm run dev` in
   `frontend/`, then open `http://localhost:5173`.
+- The released images run it too, with no source code or setup: `deploy/docker-compose.demo.yml`
+  on top of `docker-compose.yml`, with the variables of `deploy/demo.env`. It is its own Compose
+  project (`poker-bankroll-demo`: own volume, port 8081, fixed throwaway password, no backup
+  service, no exchange-rate downloads) and never reads `.env`. Every documented command gives
+  `-p poker-bankroll-demo` and both `-f` files: a `COMPOSE_PROJECT_NAME` or `COMPOSE_FILE` of the
+  shell wins over files, and `down -v` would then delete a real installation. To try it with
+  images built from the checkout, add `-f docker-compose.build.yml` before the demo file.
+- The screenshots of the READMEs (`docs/images/`) are taken with the demo data, never with real
+  results: English UI, light theme, desktop size plus one at phone width.
 
 ### Database
 - Schema changes only through Flyway migrations in `backend/src/main/resources/db/migration/`.
@@ -628,6 +643,9 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - `.github/workflows/release.yml` publishes both images to GHCR (amd64 + arm64): `edge` on every
   push to `main`; `X.Y.Z`, `X.Y` and `latest` on a `vX.Y.Z` tag (pre-release tags only `X.Y.Z-pre`),
   plus the GitHub Release with generated notes.
+- Every GitHub Release gets `poker-bankroll-X.Y.Z.zip` attached (`.github/scripts/release-bundle.sh`):
+  `deploy/docker-compose.yml` and `deploy/.env.example` as `.env` with `POKER_BANKROLL_VERSION=X.Y.Z`,
+  what the installation guide has people download. It is never replaced once attached.
 - The git tag is the only source of the version (`-Drevision` for Maven, `APP_VERSION` for the web
   build). Do not edit versions by hand in `pom.xml` or `package.json`.
 - Cut releases with `scripts/release.sh X.Y.Z` from an up-to-date `main`, or from GitHub with
