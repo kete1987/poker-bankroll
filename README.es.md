@@ -10,6 +10,22 @@ tus resultados.
 > [issues](https://github.com/kete1987/poker-bankroll/issues) y en el
 > [tablero del proyecto](https://github.com/users/kete1987/projects/3).
 
+## Capturas
+
+Hechas con los [datos de ejemplo](#pruébala-con-datos-de-ejemplo): todos los resultados son
+inventados. La interfaz está en inglés; también se puede usar en español.
+
+| Panel | Partidas |
+|---|---|
+| ![Panel: neto, ROI, ITM y bankroll, y los resultados por tipo de juego](docs/images/dashboard.png) | ![Partidas: inicio rápido, partidas en juego y la lista de partidas con filtros](docs/images/games.png) |
+| **Estadísticas** | **Bankroll** |
+| ![Estadísticas: el neto a lo largo del tiempo, mes a mes](docs/images/statistics.png) | ![Bankroll: depósitos, resultado y su evolución por sala](docs/images/bankroll.png) |
+
+En el móvil, las listas pasan a ser tarjetas y los filtros se pliegan, así que nada necesita
+desplazamiento horizontal:
+
+<img src="docs/images/phone-games.png" alt="Las partidas en un móvil, como tarjetas" width="300">
+
 ## Por qué
 
 Muchos jugadores llevan sus resultados en una hoja de cálculo. Funciona hasta que deja de
@@ -23,14 +39,22 @@ Aquí el foco son los resultados y la gestión de la banca.
 ## Funcionalidades
 
 - Alta rápida de partidas: torneos (re-entries, primas, premios en ticket), Sit&Go y spins
-  (Expresso...) y cash, en No-Limit Hold'em o PLO
-- Dashboard con resultado neto, ROI e ITM por modalidad
-- Resultados por día y por mes, gráfica de evolución
-- Bankroll de póker por sala y moneda: depósitos, retiradas, bonos y el resultado de tus partidas
-- Varias monedas (EUR y USD de serie, ampliable)
-- Interfaz en español e inglés
+  (Expresso...) y cash, en No-Limit Hold'em o PLO; duplicar una partida, o añadir varias iguales
+  de una vez (los diez Expressos de una noche) con el resultado de cada una en una fila
+- Plantillas de las partidas que juegas a menudo: un clic y empieza una
+- Etiquetas propias en las partidas ("challenge", "con amigos"...), para filtrar y desglosar por ellas
+- Dashboard con resultado neto, ROI e ITM, desglosado por tipo de partida o variante
+- Estadísticas por día, semana, mes o año con la gráfica de evolución del neto, y desgloses por
+  sala, tipo de partida, variante, buy-in, nombre del torneo, día de la semana o etiqueta
+- Bankroll de póker por sala y moneda: depósitos, retiradas, bonos y el resultado de tus partidas,
+  y su evolución en el tiempo
+- Varias monedas (EUR y USD de serie, ampliable): cada sala tiene la suya, y lo que las mezcla se
+  muestra en una moneda base, convertido con el tipo del BCE de cada día
+  ([detalles](docs/currencies.md), en inglés)
+- Interfaz en español e inglés, adaptada también al móvil
 - Importación de partidas desde un fichero CSV ([formato](docs/import.md), en inglés), para traer tu
   historial de una hoja de cálculo
+- Exportación de las partidas y los movimientos de bankroll que estás viendo, en CSV o Excel
 - Copia de seguridad de todo en un fichero, que se descarga y se restaura desde la aplicación:
   para mudarte a otro equipo o recuperarte de un problema
 - Copias de seguridad diarias de la base de datos
@@ -78,8 +102,56 @@ Para construir las imágenes desde el código:
 Las versiones, actualizaciones y vueltas atrás se explican en
 [docs/releasing.md](docs/releasing.md) (en inglés).
 
+La API descarga los tipos de cambio del Banco Central Europeo desde
+[Frankfurter](https://frankfurter.dev) (`api.frankfurter.dev`), así que necesita salida a internet
+para ellos; todo lo demás funciona sin ella. Pon `EXCHANGE_RATES_ENABLED=false` en `.env` para
+desactivar las descargas (ver [docs/currencies.md](docs/currencies.md), en inglés).
+
 > La aplicación no tiene login. Úsala en tu red local y no la expongas a internet sin
 > poner autenticación delante.
+
+### Pruébala con datos de ejemplo
+
+Para ver la aplicación antes de usarla de verdad, arráncala con un año de resultados
+**inventados**: cuatro salas, unas 400 partidas, partidas en juego y movimientos de bankroll, nada
+real. Solo necesitas Docker con Compose: usa las imágenes publicadas, no se construye nada.
+
+```bash
+git clone https://github.com/kete1987/poker-bankroll.git
+cd poker-bankroll/deploy
+docker compose -p poker-bankroll-demo -f docker-compose.yml -f docker-compose.demo.yml --env-file demo.env up -d
+```
+
+(Sin git, basta con descargar `docker-compose.yml`, `docker-compose.demo.yml` y `demo.env` de
+[`deploy/`](deploy) en una misma carpeta.)
+
+Abre `http://localhost:8081` (otro puerto: cambia `WEB_PORT` en `demo.env`). Cuando termines,
+tira la demo con sus datos:
+
+```bash
+docker compose -p poker-bankroll-demo -f docker-compose.yml -f docker-compose.demo.yml --env-file demo.env down -v
+```
+
+La demo es un proyecto de Compose aparte (`poker-bankroll-demo`, con
+[`docker-compose.demo.yml`](deploy/docker-compose.demo.yml) encima de `docker-compose.yml`), con
+su propia base de datos, una contraseña de usar y tirar y sin copias de seguridad. No lee `.env`
+y nunca toca una instalación real, ni siquiera una en la misma carpeta.
+
+Para ejecutarla desde el código, con la API y la web en modo desarrollo (necesitas JDK 25,
+Node 24 y Docker):
+
+```bash
+# Terminal 1, desde la raíz del repositorio: API en :8080
+cd backend && ./mvnw spring-boot:test-run -Dspring-boot.run.profiles=demo
+```
+
+```bash
+# Terminal 2, desde la raíz del repositorio: web en :5173
+cd frontend && npm ci && npm run dev
+```
+
+Los datos de ejemplo solo se cargan en una base de datos vacía, y nunca sin el perfil `demo`: una
+instalación real ([Puesta en marcha](#puesta-en-marcha)) siempre empieza con la base de datos vacía.
 
 ## Copias de seguridad
 

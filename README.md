@@ -10,6 +10,20 @@ your results evolve over time.
 > [issues](https://github.com/kete1987/poker-bankroll/issues) and the
 > [project board](https://github.com/users/kete1987/projects/3).
 
+## Screenshots
+
+Taken with the [demo data](#try-it-with-demo-data): every result is made up.
+
+| Dashboard | Games |
+|---|---|
+| ![Dashboard: net, ROI, ITM and bankroll, and the results per game type](docs/images/dashboard.png) | ![Games: quick start, games in play and the list of games with filters](docs/images/games.png) |
+| **Statistics** | **Bankroll** |
+| ![Statistics: net over time, month by month](docs/images/statistics.png) | ![Bankroll: deposits, result and its evolution per room](docs/images/bankroll.png) |
+
+On a phone, lists become cards and the filters fold away, so nothing needs horizontal scrolling:
+
+<img src="docs/images/phone-games.png" alt="The games on a phone, as cards" width="300">
+
 ## Why
 
 Many players track results in a spreadsheet. It works until it doesn't: formulas break,
@@ -24,13 +38,17 @@ here is results and bankroll management.
 - Quick entry of games: tournaments (re-entries, bounties, ticket prizes), Sit&Go and spins
   (Expresso...) and cash games, in No-Limit Hold'em or PLO; duplicate a game, or add several
   alike at once (ten Expressos of an evening) with the result of each one in a row
+- Templates of the games you play often: one click starts one
+- Tags of your own on games ("challenge", "with friends"...), to filter and break down by them
 - Dashboard with net result, ROI and ITM, broken down by game type
-- Daily and monthly results, net evolution chart
-- Poker bankroll per room and currency: deposits, withdrawals, bonuses and the result of your games
+- Statistics by day, week, month or year with the net evolution chart, and broken down by room,
+  type, variant, buy-in, tournament name, day of the week or tag
+- Poker bankroll per room and currency: deposits, withdrawals, bonuses and the result of your
+  games, and its evolution over time
 - Multiple currencies (EUR and USD out of the box, extensible): each room keeps its own, and what
   mixes them is shown in a base currency, converted with the ECB rate of each day
   ([details](docs/currencies.md))
-- English and Spanish UI
+- English and Spanish UI, laid out for phones too
 - Import of games from a CSV file ([format](docs/import.md)), to bring your history from a spreadsheet
 - Export of the games and the bankroll movements you are looking at, as CSV or Excel
 - Backup of everything to one file, downloaded and restored from the app: to move to another
@@ -88,8 +106,33 @@ to turn the downloads off (see [docs/currencies.md](docs/currencies.md)).
 
 ### Try it with demo data
 
-To look at the app without recording anything, run it from the source with a throwaway database
-filled with a year of made-up results (requires JDK 25, Node 24 and Docker):
+To look at the app before using it for real, start it with a year of **made-up** results: four
+rooms, about 400 games, games in play and bankroll movements, nothing real. It only needs Docker
+with Compose: it runs the released images, nothing is built.
+
+```bash
+git clone https://github.com/kete1987/poker-bankroll.git
+cd poker-bankroll/deploy
+docker compose -p poker-bankroll-demo -f docker-compose.yml -f docker-compose.demo.yml --env-file demo.env up -d
+```
+
+(Without git, it is enough to download `docker-compose.yml`, `docker-compose.demo.yml` and
+`demo.env` from [`deploy/`](deploy) into one folder.)
+
+Open `http://localhost:8081` (another port: change `WEB_PORT` in `demo.env`). When you are done,
+throw the demo away with its data:
+
+```bash
+docker compose -p poker-bankroll-demo -f docker-compose.yml -f docker-compose.demo.yml --env-file demo.env down -v
+```
+
+The demo is a Compose project of its own (`poker-bankroll-demo`, from
+[`docker-compose.demo.yml`](deploy/docker-compose.demo.yml) on top of `docker-compose.yml`), with
+its own database, a throwaway password and no backups. It does not read `.env` and never touches
+a real installation, even one in the same folder.
+
+To run it from the source instead, with the API and the web in development mode (requires
+JDK 25, Node 24 and Docker):
 
 ```bash
 # Terminal 1, from the repository root: API on :8080
@@ -101,7 +144,8 @@ cd backend && ./mvnw spring-boot:test-run -Dspring-boot.run.profiles=demo
 cd frontend && npm ci && npm run dev
 ```
 
-The demo data is only loaded into an empty database, and never unless the `demo` profile is active.
+The demo data is only loaded into an empty database, and never unless the `demo` profile is
+active: a real installation ([Quick start](#quick-start)) always starts with an empty database.
 
 ## Backups
 
