@@ -548,8 +548,12 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   - The filters of a screen go in `components/FilterBar`: the period stays in sight and the others
     fold under a "Filters" button that says how many are set.
   - Large dialogs open full screen (`fullScreen={narrow}`).
+  - The text of every field is 16 px (`src/phone.css`): every browser of iOS zooms the page in
+    when a field with smaller text gets the focus, and leaves it wider than the screen. Never
+    stop it by disabling the zoom (`maximum-scale`, `user-scalable=no`).
   A new table or row of filters needs its phone layout; tests run as on a phone with
-  `onANarrowScreen()` (`test/narrowScreen.ts`, see `pages/Phone.test.tsx`).
+  `onANarrowScreen()` (`test/narrowScreen.ts`, see `pages/Phone.test.tsx`). Check a new screen at
+  375 and 390 px, and on a real iPhone when it has fields.
 - A period is chosen with `components/PeriodFilter` (`components/period.ts` has the predefined
   ranges, from today to all time, in the time zone of the browser; this week goes from Monday to
   Sunday, like the `WEEK` grouping). `periodOf` names the range of the URL, so no two predefined
