@@ -1,0 +1,11 @@
+/*
+ * Every browser of iOS zooms the page in when a field whose text is smaller than 16 px gets the
+ * focus, and does not zoom back out: the page is left wider than the screen. On phones (below the
+ * `sm` breakpoint, as `components/useNarrowScreen`), the text of every field is 16 px. Tags and
+ * other fields made of pills inherit it. The zoom of the user is left alone.
+ */
+@media (max-width: 47.9375em) {
+  .mantine-Input-input {
+    font-size: 16px;
+  }
+}

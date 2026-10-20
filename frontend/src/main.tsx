@@ -1,5 +1,6 @@
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
+import './phone.css';
 import './i18n';
 
 import { StrictMode } from 'react';
