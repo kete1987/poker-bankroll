@@ -6,7 +6,7 @@ Gestor de banca de póker autoalojado. Registra los resultados de tus torneos, S
 spins y partidas de cash, lleva tu bankroll de póker en cada sala y consulta cómo evolucionan
 tus resultados.
 
-> **Estado: primera versión (0.1).** Se puede usar y es joven. Lo que viene después está en las
+> **Estado: 0.2.** Se usa a diario y aún es joven. Lo que viene después está en las
 > [issues](https://github.com/kete1987/poker-bankroll/issues) y en el
 > [tablero del proyecto](https://github.com/users/kete1987/projects/3).
 
@@ -93,8 +93,8 @@ Abre `http://<tu-host>:8080` (el puerto se cambia con `WEB_PORT` en `.env`). Los
 en el volumen de Docker `poker-bankroll_db-data`, que se conserva al actualizar el stack.
 
 Las imágenes vienen de GHCR (`linux/amd64` y `linux/arm64`). Se eligen con
-`POKER_BANKROLL_VERSION`: `latest` (última versión estable), una serie como `0.1` (solo
-correcciones), una versión concreta como `0.1.0`, o `edge` (último merge a `main`).
+`POKER_BANKROLL_VERSION`: `latest` (última versión estable), una serie como `0.2` (solo
+correcciones), una versión concreta como `0.2.1`, o `edge` (último merge a `main`).
 
 **Portainer:** crea un stack, pega [`deploy/docker-compose.yml`](deploy/docker-compose.yml) y define
 las variables de [`deploy/.env.example`](deploy/.env.example) (al menos `POSTGRES_PASSWORD`, y
