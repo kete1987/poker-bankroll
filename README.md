@@ -6,7 +6,7 @@ Self-hosted poker bankroll manager. Record the results of your tournaments, Sit&
 spins and cash games, keep track of your poker bankroll in each poker room, and see how
 your results evolve over time.
 
-> **Status: first version (0.1).** It is usable and young. What comes next is in the
+> **Status: 0.2.** Used every day and still young. What comes next is in the
 > [issues](https://github.com/kete1987/poker-bankroll/issues) and the
 > [project board](https://github.com/users/kete1987/projects/3).
 
@@ -89,8 +89,8 @@ Open `http://<your-host>:8080` (change the port with `WEB_PORT` in `.env`). Data
 `poker-bankroll_db-data` Docker volume, which is kept when the stack is updated.
 
 The images come from GHCR (`linux/amd64` and `linux/arm64`). Choose them with
-`POKER_BANKROLL_VERSION`: `latest` (last stable release), a series such as `0.1` (fixes only), an
-exact version such as `0.1.0`, or `edge` (last merge to `main`).
+`POKER_BANKROLL_VERSION`: `latest` (last stable release), a series such as `0.2` (fixes only), an
+exact version such as `0.2.1`, or `edge` (last merge to `main`).
 
 **Portainer:** create a stack, paste [`deploy/docker-compose.yml`](deploy/docker-compose.yml) and
 set the variables of [`deploy/.env.example`](deploy/.env.example) (`POSTGRES_PASSWORD` at least,

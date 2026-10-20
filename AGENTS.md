@@ -15,7 +15,8 @@ each poker room, and see statistics over time.
 - Open source (MIT). Code, commits, issues and docs are in **English**; the UI ships in
   English and Spanish.
 
-Roadmap and tasks: GitHub issues, milestones (`v0.1 MVP`, `v0.2`, `Backlog`) and the project board.
+Roadmap and tasks: GitHub issues, milestones (one per minor version: `v0.1 MVP` and `v0.2`, both
+released; `Backlog` for what has no version yet) and the project board.
 Issue titles carry an ID (`[INF-1]`, `[API-3]`, `[UI-2]`...) used across discussions.
 
 ## Repository layout
