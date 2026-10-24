@@ -21,6 +21,12 @@ public enum ErrorCode {
     CONFLICT(HttpStatus.CONFLICT),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR),
 
+    // MCP access (the REST API keeps its existing LAN-only access model).
+    MCP_UNAUTHORIZED(HttpStatus.UNAUTHORIZED),
+    MCP_ORIGIN_FORBIDDEN(HttpStatus.FORBIDDEN),
+    MCP_REQUEST_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE),
+    MCP_RESULT_TOO_LARGE(HttpStatus.BAD_REQUEST),
+
     // Catalog
     UNKNOWN_CURRENCY(HttpStatus.BAD_REQUEST),
 

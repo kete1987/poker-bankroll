@@ -14,10 +14,10 @@ import org.springframework.data.domain.Sort.Order;
  * Parses the {@code sort} parameter of the games list: {@code <field>,<asc|desc>}, e.g.
  * {@code net,desc}. The order is always total (ties are broken by date and id), so pages are stable.
  */
-final class GameSort {
+public final class GameSort {
 
     /** Newest first; within a day by start time (games without time last), then newest created. */
-    static final String DEFAULT = "playedOn,desc";
+    public static final String DEFAULT = "playedOn,desc";
 
     /** As they were played; recorded again in this order, games keep the order they are listed in. */
     static final String OLDEST_FIRST = "playedOn,asc";
@@ -27,7 +27,7 @@ final class GameSort {
     private GameSort() {
     }
 
-    static Sort parse(@Nullable String value) {
+    public static Sort parse(@Nullable String value) {
         // limit -1 keeps empty components, so "," or "net," are rejected instead of half-parsed.
         String[] parts = (value == null || value.isBlank() ? DEFAULT : value).split(",", -1);
         String field = parts[0].strip();

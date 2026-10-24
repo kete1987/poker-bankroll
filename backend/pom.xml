@@ -36,11 +36,25 @@
         <springdoc.version>3.1.1</springdoc.version>
         <commons-csv.version>1.14.1</commons-csv.version>
         <fastexcel.version>0.20.2</fastexcel.version>
+        <spring-ai.version>2.0.2</spring-ai.version>
+        <mcp.version>2.1.0</mcp.version>
         <!-- Extended by plugins such as JaCoCo; referenced by surefire as @{argLine}. -->
         <argLine/>
     </properties>
 
     <dependencies>
+        <!-- Only the MCP SDK and Spring MVC transport: no model provider or AI client. The
+             endpoint and tools are explicitly registered behind our optional MCP configuration. -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>mcp-spring-webmvc</artifactId>
+            <version>${spring-ai.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.modelcontextprotocol.sdk</groupId>
+            <artifactId>mcp-json-jackson3</artifactId>
+            <version>${mcp.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc</artifactId>
