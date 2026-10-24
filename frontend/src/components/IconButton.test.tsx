@@ -8,7 +8,8 @@ import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { IconButton } from './IconButton';
 
 function renderInMantine(children: ReactNode) {
-  return render(<MantineProvider>{children}</MantineProvider>);
+  // jsdom has no layout: test mode disables detached-target detection and transitions.
+  return render(<MantineProvider env="test">{children}</MantineProvider>);
 }
 
 describe('IconButton', () => {
@@ -49,6 +50,9 @@ describe('IconButton', () => {
     expect(await screen.findByRole('tooltip')).toHaveTextContent(
       'Switch between light and dark mode',
     );
+
+    await userEvent.tab();
+    await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument());
   });
 
   it('leaves no tooltip after a tap where the pointer cannot hover', async () => {
