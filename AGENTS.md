@@ -46,6 +46,7 @@ Use the Maven wrapper; on Windows use `mvnw.cmd` instead of `./mvnw`.
 |---|---|
 | `./mvnw verify` | Compile and run all tests (starts a PostgreSQL container) |
 | `./mvnw test -Dtest=ClassName` | Run a single test class |
+| `./mvnw test -Dtest='Mcp*Tests'` | MCP configuration, access and real HTTP protocol tests (Docker required) |
 | `./mvnw test -Dtest=OpenApiContractTests -Dopenapi.update=true` | Rewrite `frontend/openapi.json` from the API (after changing an endpoint, request or response) |
 | `./mvnw spring-boot:test-run` | Run the API on `:8080` against a throwaway PostgreSQL container (no exchange rates downloaded: `src/test/resources/config/application.yaml`) |
 | `./mvnw spring-boot:test-run -Dspring-boot.run.profiles=demo` | Same, with a year of made-up data (see "Demo data") |
@@ -401,6 +402,23 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   Endpoints that create a resource declare `@ApiResponse(responseCode = "201")`.
 
 ### Backend code
+- Optional read-only MCP lives in `mcp/`, at `/api/mcp` in the existing API process. It uses
+  MCP Java SDK 2.1.0 and Spring AI MVC transport 2.0.2, registered explicitly (no starter or
+  automatic tool scanning). Streamable HTTP is stateless; no stdio or model provider. Tool
+  handlers delegate to application services, including `CatalogService` and `GameSort` shared
+  with REST. Only tools listed by `McpTools.specifications` are exposed, with read-only hints.
+- `poker-bankroll.mcp.enabled` defaults to false. Enabling requires `.token` (32–256 URL-safe
+  characters); every MCP request needs its bearer token. `.allowed-origins` is an exact allowlist
+  for requests with Origin; empty denies all such requests, while native clients can omit it.
+  `McpAccessFilter` only covers MCP, not REST. Never log tokens or put them in URLs. Compose
+  maps `MCP_ENABLED`, `MCP_TOKEN`, `MCP_ALLOWED_ORIGINS`; user setup: `docs/mcp.md` / `mcp.es.md`.
+- MCP tool arguments are strict typed `McpQuery` values, constrained by each published schema
+  and Bean Validation before service calls. Lists are paged (50 default, 200 maximum), request
+  bodies limited to 64 KiB including chunked bodies, serialized tool data to 1 MiB. Oversized
+  results fail explicitly; never silently truncate aggregate totals or drop `missingRates`.
+  Tool errors carry `isError`, structured application codes and field errors; protocol errors
+  belong to the SDK. `McpApiTests` uses real HTTP to verify access, legacy negotiation and REST
+  parity (including mixed currencies and in-play games); disabled MCP shares the normal context.
 - Base package `io.github.kete1987.pokerbankroll`, organised **by feature**
   (`catalog`, `room`, `variant`, `game`, `bankroll`, `stats`...), with cross-cutting code in `common`.
 - A feature has a JPA entity, a Spring Data repository, a `@Service` with the rules (transactional,

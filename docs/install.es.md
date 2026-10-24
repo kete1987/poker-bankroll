@@ -342,6 +342,16 @@ Si no se abre:
 > tus datos. Úsala solo en una red de confianza, como la de tu casa, y **no la abras nunca a
 > internet** (nada de abrir puertos en el router).
 
+### Opcional: conectar un asistente
+
+Para consultar esta instalación desde Codex, Claude Code u otro cliente MCP, sigue
+[Configuración MCP](mcp.es.md). En `.env` o Portainer, `MCP_ENABLED` vale `false` por defecto;
+activarlo requiere un `MCP_TOKEN` aleatorio independiente. `MCP_ALLOWED_ORIGINS` normalmente
+se deja vacío para clientes nativos. Aplica los cambios con `docker compose up -d`.
+MCP se ejecuta en el contenedor `api` existente, a través de `web`, en el mismo puerto,
+en `/api/mcp`. El token solo protege ese endpoint: conserva la web y REST en tu red de confianza.
+El asistente recibe los datos devueltos por sus consultas y se aplica el tratamiento de datos de su proveedor.
+
 ## 10. A qué se conecta en internet
 
 Tus datos se quedan en tu ordenador. Aparte de descargar Docker y la aplicación (al instalar o

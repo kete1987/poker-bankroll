@@ -108,6 +108,13 @@ to turn the downloads off (see [docs/currencies.md](docs/currencies.md)).
 > The app has no login. Run it on your local network and do not expose it to the internet
 > without putting authentication in front of it.
 
+### Query it from an assistant
+
+An optional read-only MCP server runs in the API container at `/api/mcp`, using Streamable
+HTTP. Connect Codex, Claude Code or another compatible client to query your deployed results
+and bankroll. It is disabled by default and requires its own bearer token; this does not
+add authentication to the web app or REST API. See [MCP setup](docs/mcp.md).
+
 ### Try it with demo data
 
 To look at the app before using it for real, start it with a year of **made-up** results: four

@@ -114,6 +114,13 @@ desactivar las descargas (ver [docs/currencies.md](docs/currencies.md), en ingl�
 > La aplicación no tiene login. Úsala en tu red local y no la expongas a internet sin
 > poner autenticación delante.
 
+### Consúltala desde un asistente
+
+El servidor MCP opcional de solo lectura se ejecuta en el contenedor de API, en `/api/mcp`,
+con Streamable HTTP. Conecta Codex, Claude Code u otro cliente compatible para consultar
+resultados y bankroll de tu instalación. Está desactivado por defecto y requiere su propio
+bearer token; no añade autenticación a la web ni a REST. Véase [Configuración MCP](docs/mcp.es.md).
+
 ### Pruébala con datos de ejemplo
 
 Para ver la aplicación antes de usarla de verdad, arráncala con un año de resultados

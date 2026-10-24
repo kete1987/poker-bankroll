@@ -56,6 +56,12 @@ springdoc:
     path: /swagger-ui.html
 
 poker-bankroll:
+  # Optional read-only MCP at /api/mcp. Generate a separate random bearer token (32+ characters).
+  # An Origin header is rejected unless it exactly matches an entry here. CLI clients omit it.
+  mcp:
+    enabled: false
+    token: ""
+    allowed-origins: []
   # Exchange rates of the European Central Bank, downloaded from Frankfurter (https://frankfurter.dev,
   # free, no key) to show amounts of several currencies together. The API needs outgoing internet
   # access to api.frankfurter.dev; without it everything works, with the rates already there and the
