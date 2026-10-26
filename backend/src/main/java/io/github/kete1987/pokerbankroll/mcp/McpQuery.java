@@ -17,6 +17,7 @@ import io.github.kete1987.pokerbankroll.game.GameFilter;
 import io.github.kete1987.pokerbankroll.game.GameSort;
 import io.github.kete1987.pokerbankroll.game.GameStatus;
 import io.github.kete1987.pokerbankroll.stats.GroupBy;
+import io.github.kete1987.pokerbankroll.mcp.McpOperationService.ResourceType;
 import org.jspecify.annotations.Nullable;
 
 /** The published schema limits each tool to its own subset of these typed parameters. */
@@ -37,7 +38,9 @@ record McpQuery(
         @Nullable GroupBy groupBy,
         @Nullable Boolean byGameType,
         @Nullable Boolean active,
-        @Nullable GameType gameType) {
+        @Nullable GameType gameType,
+        @Nullable ResourceType resourceType,
+        @Positive @Nullable Long resourceId) {
 
     @AssertTrue(message = "{McpDateRange}")
     public boolean isDateRangeValid() {

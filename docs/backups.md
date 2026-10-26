@@ -35,6 +35,14 @@ In the app, open **Import / Export** and go to *Backup of everything*.
 It is all or nothing: if the file has an error, or anything fails halfway, the installation is
 left exactly as it was, and the page lists what is wrong and where in the file.
 
+The MCP write receipt journal is operational data and is not exported in this JSON file
+(PostgreSQL dumps include it). A successful JSON restore clears cached receipt contents/IDs
+and invalidates old operation keys, which remain reserved so delayed retries cannot recreate
+old writes. MCP then returns `MCP_OPERATION_INVALIDATED`; inspect restored data before
+intending another write. Dry runs and failed restores leave receipts intact. A JSON move to
+a new installation does not transfer receipt history. When restoring an older PostgreSQL
+dump, operations after that dump have no receipt there: do not blindly retry them.
+
 ### Move to another computer
 
 1. On the old installation: *Import / Export* → **Download backup**.

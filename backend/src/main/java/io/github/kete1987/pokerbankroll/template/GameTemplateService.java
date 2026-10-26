@@ -56,6 +56,11 @@ public class GameTemplateService {
         return GameTemplateResponse.of(templates.saveAndFlush(template));
     }
 
+    @Transactional(readOnly = true)
+    public GameTemplateStart startFields(long id) {
+        return templates.findStartFieldsById(id).orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
+    }
+
     public GameTemplateResponse update(long id, GameTemplateRequest request) {
         GameTemplate template = find(id);
         apply(request, template);

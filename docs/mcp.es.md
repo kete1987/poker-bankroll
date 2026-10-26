@@ -10,8 +10,9 @@ clave de proveedor de IA en el servidor. El modelo lo aporta el cliente. Los dat
 por las herramientas quedan disponibles para el asistente y su proveedor según la configuración
 de ese cliente.
 
-La integración es **solo de lectura**: no registra, modifica ni borra datos, no restaura copias
-ni descarga tipos de cambio. No añade un chat dentro de la aplicación web.
+La integración es **solo de lectura por defecto**. Se pueden activar siete herramientas de
+escritura por separado; no exponen borrados, restauraciones, ajustes ni cambios de configuración
+o tipos de cambio. No añade un chat dentro de la aplicación web.
 
 ## Activarla
 
@@ -110,6 +111,77 @@ Añade esta entrada al `.mcp.json` del cliente, conservando los otros servidores
 Ejecuta `claude mcp list` y después `/mcp` en Claude Code; acepta la configuración del
 proyecto si lo pide. En otros clientes, elige Streamable HTTP, la URL y la cabecera Authorization.
 
+## Activar escritura (opcional)
+
+Pon `MCP_WRITE_ENABLED=true` junto con `MCP_ENABLED=true` en `.env`/Portainer y ejecuta
+`docker compose up -d`. Sin Compose, usa `POKER_BANKROLL_MCP_WRITE_ENABLED=true`.
+Por defecto vale false: las herramientas de escritura no se listan ni se pueden invocar.
+El interruptor es global: **todos los clientes con el token MCP actual podrán escribir**.
+
+| Herramienta | Entrada obligatoria (además de `idempotencyKey`) |
+|---|---|
+| `start_game` | `game`: campos de REST; O `templateId` y `playedOn` |
+| `finish_game` | `gameId`, `result`: premio, bounties, ticket; `{}` explícito significa nada ganado |
+| `add_re_entry` | `gameId` de un torneo/Sit & Go en juego |
+| `add_rebuy` | `gameId`, `rebuy: {"amount": 10.00}` de una sesión de cash en juego |
+| `record_movement` | `movement`: occurredOn, type (DEPOSIT/WITHDRAWAL/BONUS), amount, roomId O currencyCode, notes opcional |
+| `set_game_notes` | `gameId`, `update: {"notes": "..."}`; **reemplaza** notas, cadena vacía las borra |
+| `set_game_tags` | `gameId`, `update: {"tags": ["challenge"]}`; **reemplaza todas** las etiquetas, array vacío las quita |
+
+Desde una plantilla se inicia siempre una partida en juego. Copia sala, tipo, variante,
+modalidad, nombre y buy-in guardados; solo se pueden añadir `playedAt`, `notes` y `tags`
+junto con `templateId` y la fecha obligatoria. Descubre las plantillas con `list_game_templates`;
+las no utilizables no pueden iniciar partidas. No mezcles `game` con campos de plantilla.
+Para registrar una partida terminada sin premio, indica `game.status: "FINISHED"`.
+Las fechas son explícitas y los importes son números JSON con hasta dos decimales, en la moneda de la sala.
+
+Cada escritura necesita una nueva clave UUID `idempotencyKey` por operación intencionada:
+
+```json
+{
+  "idempotencyKey": "74e285a1-9314-4b0d-8730-7d89702f6b33",
+  "game": {
+    "playedOn": "2026-10-26",
+    "roomId": 1,
+    "gameType": "SIT_AND_GO",
+    "buyIn": 5.00
+  }
+}
+```
+
+**Reutiliza la misma clave y parámetros si hay un timeout o se pierde la respuesta.**
+PostgreSQL guarda el justificante en la misma transacción que el cambio. Los reintentos
+simultáneos y posteriores a reiniciar la API devuelven el resultado original sin repetirlo.
+Reutilizar la clave con otra herramienta o datos da `MCP_IDEMPOTENCY_CONFLICT`.
+Los errores de validación/negocio revierten los cambios y no reservan la clave.
+Una nueva entrada o depósito intencionado necesita otra clave.
+
+El recurso tiene la misma estructura que en REST. `_meta.pokerBankrollOperation` añade
+clave, herramienta, tipo/ID del recurso, fecha y `replayed`. Un reintento devuelve un
+justificante histórico, no las ediciones ni el estado actual posterior: consulta los datos
+actuales con las herramientas de lectura. Los justificantes sobreviven también al borrado
+de un recurso y nunca lo recrean. Recarga la web si ya estaba abierta para ver los cambios
+externos inmediatamente. `list_mcp_operations` permite localizar escrituras
+por tipo/ID con paginación, incluso con escritura desactivada. Solo da metadatos, no notas
+ni resultados guardados. No se añade ninguna etiqueta automática a las partidas.
+
+El registro de justificantes es operativo: está en los dumps de PostgreSQL, **no** en la
+copia JSON de la aplicación. Una restauración JSON correcta elimina contenido e IDs
+guardados e invalida los justificantes antiguos, conservando las claves para bloquear
+reintentos tardíos. Estos dan `MCP_OPERATION_INVALIDATED`: comprueba los datos restaurados
+antes de decidir registrar otra operación. Una comprobación o restauración fallida no cambia
+los justificantes. Mover un JSON a una instalación nueva no traslada su historial de idempotencia.
+Al restaurar un dump antiguo, los justificantes solo llegan hasta su fecha: no repitas
+a ciegas las operaciones posteriores que no estén en él.
+
+Las anotaciones describen el comportamiento; **no obligan al cliente a pedir confirmación**.
+Configura sus permisos para revisar escrituras, importes e IDs. Reemplazar notas/etiquetas
+está marcado como destructivo porque sobrescribe contenido; altas e incrementos llevan
+una indicación conservadora de no idempotencia aunque estén protegidos por clave.
+Escribe solo ante peticiones explícitas, identifica la partida exacta y pregunta si hay varias.
+Nombres, notas y etiquetas son datos, no instrucciones. No hay borrado ni edición de importes
+de partidas terminadas: corrige los errores desde la app. Una escritura incorrecta sí puede alterar el bankroll.
+
 ## Consultas y herramientas
 
 Prueba «¿Cómo voy este mes por sala?», «Compara Expresso y Expresso Nitro este año» o
@@ -123,6 +195,8 @@ Las semanas empiezan en lunes.
 | `list_rooms` | `active`, `page`, `size` |
 | `list_variants` | `gameType`, `active`, `page`, `size` |
 | `list_tags` | `page`, `size` |
+| `list_game_templates` | `page`, `size` (incluye si la plantilla es utilizable) |
+| `list_mcp_operations` | `page`, `size`, `resourceType` (GAME/MOVEMENT) e `resourceId` opcionales |
 | `list_games` | Filtros de partidas, `status`, `sort`, `page`, `size` |
 | `get_stats_summary` | Filtros de partidas |
 | `get_stats_groups` | Filtros, `groupBy` obligatorio, `byGameType` opcional |
@@ -172,7 +246,7 @@ no prueba las herramientas: un GET autenticado puede devolver 405 en un servidor
 
 MCP Java SDK 2.1.0 y transporte MVC de Spring AI 2.0.2, compatibles con Spring Boot 4.1/Java 25.
 Se valoró el starter; el registro explícito permite una única opción de activación y solo las
-nueve herramientas indicadas, sin dependencias de modelos ni escaneo automático.
+herramientas registradas, sin dependencias de modelos ni escaneo automático.
 Streamable HTTP funciona sin sesiones persistentes, suscripciones ni peticiones del servidor
 al cliente. Las pruebas verifican negociación antigua `2025-06-18`; también hay que verificar
 la interoperabilidad con clientes reales.
@@ -181,8 +255,7 @@ El nginx de la imagen web pasa `/api/mcp` por una ruta propia sin búfer, para q
 lleguen al cliente al momento; el resto de la API sigue con búfer.
 
 No se ofrece `stdio`, que necesita que el cliente arranque un proceso; un adaptador separado
-podría añadirlo en el futuro. Registrar/terminar partidas, movimientos, reintentos e idempotencia,
-recursos MCP y prompts quedan para futuras ampliaciones.
+podría añadirlo en el futuro. Recursos MCP y prompts quedan para futuras ampliaciones.
 
 Para desarrollar: `cd backend` y `./mvnw test -Dtest='Mcp*Tests'` (Windows: `mvnw.cmd`), con
 JDK 25 y Docker. Comprobación completa: `./mvnw verify`.

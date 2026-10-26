@@ -406,23 +406,45 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   Endpoints that create a resource declare `@ApiResponse(responseCode = "201")`.
 
 ### Backend code
-- Optional read-only MCP lives in `mcp/`, at `/api/mcp` in the existing API process. It uses
+- Optional MCP lives in `mcp/`, at `/api/mcp` in the existing API process. It uses
   MCP Java SDK 2.1.0 and Spring AI MVC transport 2.0.2, registered explicitly (no starter or
   automatic tool scanning). Streamable HTTP is stateless; no stdio or model provider. Tool
   handlers delegate to application services, including `CatalogService` and `GameSort` shared
-  with REST. Only tools listed by `McpTools.specifications` are exposed, with read-only hints.
+  with REST. `McpTools` registers reads (including templates and operation traces);
+  `McpWriteTools` registers seven writes only with `poker-bankroll.mcp.write-enabled=true`.
+  `MCP_WRITE_ENABLED` in Compose defaults to false. It is global: the same bearer token
+  authorizes writes for all clients when enabled. Annotations are hints, not enforced approval.
 - `poker-bankroll.mcp.enabled` defaults to false. Enabling requires `.token` (32–256 URL-safe
   characters); every MCP request needs its bearer token. `.allowed-origins` is an exact allowlist
   for requests with Origin; empty denies all such requests, while native clients can omit it.
   `McpAccessFilter` only covers MCP, not REST. Never log tokens or put them in URLs. Compose
   maps `MCP_ENABLED`, `MCP_TOKEN`, `MCP_ALLOWED_ORIGINS`; user setup: `docs/mcp.md` / `mcp.es.md`.
-- MCP tool arguments are strict typed `McpQuery` values, constrained by each published schema
-  and Bean Validation before service calls. Lists are paged (50 default, 200 maximum), request
+- MCP tools share `McpToolExecutor`: strict JSON schema, typed input (`McpQuery` for reads,
+  `McpWriteInputs` with validated application requests for writes), Bean Validation, structured
+  errors and bounded results. The transport reads decimal JSON numbers as BigDecimal.
+  Lists are paged (50 default, 200 maximum), request
   bodies limited to 64 KiB including chunked bodies, serialized tool data to 1 MiB. Oversized
   results fail explicitly; never silently truncate aggregate totals or drop `missingRates`.
   Tool errors carry `isError`, structured application codes and field errors; protocol errors
   belong to the SDK. `McpApiTests` uses real HTTP to verify access, legacy negotiation and REST
   parity (including mixed currencies and in-play games); disabled MCP shares the normal context.
+- Every MCP write requires a UUID idempotency key. `McpOperationService` claims it in
+  `mcp_operation` with `INSERT ... ON CONFLICT`, runs the service and saves its result in
+  the same transaction. PostgreSQL serializes matching concurrent keys across API instances;
+  payload fingerprints normalize object ordering/decimal scale. Same key and input replays the
+  original snapshot; different tool/input fails. Failed transactions reserve no key. Receipts
+  have resource type/ID and time; no automatic game tag. Never prune keys casually: it would
+  allow old retries to duplicate writes. `list_mcp_operations` exposes bounded metadata.
+- Notes/tags writes use `GameService.setNotes/setTags`, acquiring `findForUpdateById` and
+  replacing only that field; never reconstruct a full update from stale game data. Their
+  annotations warn about replacement. Templates start in play without overriding saved fields.
+  Template starts read a scalar `GameTemplateStart` projection, not room/variant entities:
+  otherwise the persistence context could hide a concurrent deactivation from GameService
+  after it acquires the recording lock.
+- MCP receipts are operational data, not part of app JSON backups (pg_dump includes them).
+  A JSON restore locks `mcp_operation` before room/game tables, matching write lock order.
+  It clears result snapshots/IDs and invalidates old keys atomically with the restore; delayed
+  retries fail rather than recreate pre-restore operations. Dry runs and failures roll back.
 - Base package `io.github.kete1987.pokerbankroll`, organised **by feature**
   (`catalog`, `room`, `variant`, `game`, `bankroll`, `stats`...), with cross-cutting code in `common`.
 - A feature has a JPA entity, a Spring Data repository, a `@Service` with the rules (transactional,

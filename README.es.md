@@ -116,10 +116,12 @@ desactivar las descargas (ver [docs/currencies.md](docs/currencies.md), en ingl�
 
 ### Consúltala desde un asistente
 
-El servidor MCP opcional de solo lectura se ejecuta en el contenedor de API, en `/api/mcp`,
+El servidor MCP opcional se ejecuta en el contenedor de API, en `/api/mcp`,
 con Streamable HTTP. Conecta Codex, Claude Code u otro cliente compatible para consultar
 resultados y bankroll de tu instalación. Está desactivado por defecto y requiere su propio
-bearer token; no añade autenticación a la web ni a REST. Véase [Configuración MCP](docs/mcp.es.md).
+bearer token; no añade autenticación a la web ni a REST. La escritura está desactivada por
+defecto; `MCP_WRITE_ENABLED` añade registro de partidas/movimientos y acciones de partidas,
+con claves de idempotencia persistentes. Véase [Configuración MCP](docs/mcp.es.md).
 
 ### Pruébala con datos de ejemplo
 

@@ -60,6 +60,7 @@ poker-bankroll:
   # An Origin header is rejected unless it exactly matches an entry here. CLI clients omit it.
   mcp:
     enabled: false
+    write-enabled: false
     token: ""
     allowed-origins: []
   # Exchange rates of the European Central Bank, downloaded from Frankfurter (https://frankfurter.dev,

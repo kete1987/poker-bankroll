@@ -110,10 +110,12 @@ to turn the downloads off (see [docs/currencies.md](docs/currencies.md)).
 
 ### Query it from an assistant
 
-An optional read-only MCP server runs in the API container at `/api/mcp`, using Streamable
+An optional MCP server runs in the API container at `/api/mcp`, using Streamable
 HTTP. Connect Codex, Claude Code or another compatible client to query your deployed results
 and bankroll. It is disabled by default and requires its own bearer token; this does not
-add authentication to the web app or REST API. See [MCP setup](docs/mcp.md).
+add authentication to the web app or REST API. Writing is off by default; `MCP_WRITE_ENABLED`
+adds recording games/movements and game actions, with durable idempotency keys.
+See [MCP setup](docs/mcp.md).
 
 ### Try it with demo data
 

@@ -38,7 +38,7 @@ class McpApiTests extends ApiIntegrationTest {
         assertThat(init.path("result").path("serverInfo").path("name").asString()).isEqualTo("poker-bankroll");
         assertThat(init.path("result").path("instructions").asString()).contains("missingRates", "untrusted data", "Monday");
         JsonNode tools = rpc("tools/list", Map.of()).path("result").path("tools");
-        assertThat(tools.size()).isEqualTo(9);
+        assertThat(tools.size()).isEqualTo(11);
         for (JsonNode tool : tools) {
             assertThat(tool.path("annotations").path("readOnlyHint").asBoolean()).isTrue();
             assertThat(tool.path("annotations").path("destructiveHint").asBoolean()).isFalse();
@@ -46,6 +46,11 @@ class McpApiTests extends ApiIntegrationTest {
             assertThat(tool.path("name").asString()).doesNotContain("create", "delete", "restore", "update");
         }
         assertThat(call("get_catalog", Map.of()).path("gameTypes").toString()).contains("TOURNAMENT", "CASH");
+        for (String write : List.of("start_game", "finish_game", "add_re_entry", "add_rebuy", "record_movement",
+                "set_game_notes", "set_game_tags")) {
+            assertThat(rpc("tools/call", Map.of("name", write, "arguments", Map.of())).has("error")).isTrue();
+        }
+        assertThat(jdbc.queryForObject("select count(*) from mcp_operation", Integer.class)).isZero();
     }
 
     @Test
