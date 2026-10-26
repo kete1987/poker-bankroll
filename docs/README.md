@@ -10,5 +10,5 @@
 - [Backups](backups.md): the backup you download and restore from the app, and the automatic
   ones of the stack: where they are kept and how to restore one.
 - [Releasing](releasing.md): versions, updates and rollbacks.
-- [MCP](mcp.md) ([en español](mcp.es.md)): optional read-only queries from Codex, Claude Code
+- [MCP](mcp.md) ([en español](mcp.es.md)): queries and optional writes from Codex, Claude Code
   and other Streamable HTTP clients, including deployment, access and troubleshooting.

@@ -160,6 +160,20 @@ public class GameService {
         games.delete(findForUpdate(id));
     }
 
+    /** Changes no money, status or other fields, even when another writer finishes the game. */
+    public GameResponse setNotes(long id, GameNotesRequest request) {
+        Game game = findForUpdate(id);
+        game.setNotes(blankToNull(request.notes()));
+        return GameResponse.of(games.saveAndFlush(game));
+    }
+
+    /** Replaces only the tags while holding the same row lock as every other game change. */
+    public GameResponse setTags(long id, GameTagsRequest request) {
+        Game game = findForUpdate(id);
+        game.setTags(tags.resolve(request.tags()));
+        return GameResponse.of(games.saveAndFlush(game));
+    }
+
     /** Sets the result of a game in play and finishes it. */
     public GameResponse finish(long id, FinishGameRequest result) {
         Game game = findInPlay(id);

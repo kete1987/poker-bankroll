@@ -56,6 +56,11 @@ public class GameTemplateService {
         return GameTemplateResponse.of(templates.saveAndFlush(template));
     }
 
+    @Transactional(readOnly = true)
+    public GameTemplateResponse get(long id) {
+        return GameTemplateResponse.of(find(id));
+    }
+
     public GameTemplateResponse update(long id, GameTemplateRequest request) {
         GameTemplate template = find(id);
         apply(request, template);

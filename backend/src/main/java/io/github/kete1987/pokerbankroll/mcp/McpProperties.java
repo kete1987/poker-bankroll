@@ -6,7 +6,7 @@ import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties("poker-bankroll.mcp")
-record McpProperties(boolean enabled, String token, List<String> allowedOrigins) {
+record McpProperties(boolean enabled, String token, List<String> allowedOrigins, boolean writeEnabled) {
 
     McpProperties {
         token = token == null ? "" : token;
@@ -27,6 +27,7 @@ record McpProperties(boolean enabled, String token, List<String> allowedOrigins)
 
     @Override
     public String toString() {
-        return "McpProperties[enabled=" + enabled + ", token=[redacted], allowedOrigins=" + allowedOrigins + "]";
+        return "McpProperties[enabled=" + enabled + ", writeEnabled=" + writeEnabled
+                + ", token=[redacted], allowedOrigins=" + allowedOrigins + "]";
     }
 }

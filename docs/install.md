@@ -337,7 +337,9 @@ If it does not open:
 To query this installation from Codex, Claude Code or another MCP client, follow
 [MCP setup](mcp.md). In `.env` or Portainer, `MCP_ENABLED` defaults to `false`;
 enabling it requires a separate random `MCP_TOKEN`. `MCP_ALLOWED_ORIGINS` is normally empty
-for native clients. Apply changes with `docker compose up -d`. MCP runs in the existing
+for native clients. `MCP_WRITE_ENABLED=false` keeps it read-only; enabling writing grants
+access to every client with that token (see the MCP guide for idempotency and permissions).
+Apply changes with `docker compose up -d`. MCP runs in the existing
 `api` container through `web`, on the same port, at `/api/mcp`.
 Its token protects only that endpoint: keep the web app and REST API on your trusted network.
 The assistant receives the data returned by its queries; its provider's data handling applies.

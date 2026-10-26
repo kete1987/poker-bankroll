@@ -237,8 +237,8 @@ public class BackupService {
         Locale locale = LocaleContextHolder.getLocale();
         return Objects.requireNonNull(transaction.execute(status -> {
             // Nothing is recorded while the installation is replaced: writers wait, readers do not.
-            // Rooms first, as recording a game or a movement locks its room before it writes.
-            entityManager.createNativeQuery("lock table room, room_logo, variant, game, bankroll_movement, tag, game_tag, "
+            // MCP claims its operation key first, then records through the normal room/game locks.
+            entityManager.createNativeQuery("lock table mcp_operation, room, room_logo, variant, game, bankroll_movement, tag, game_tag, "
                     + "game_template, exchange_rate, currency_setting in exclusive mode").executeUpdate();
             BackupContents current = currentContents();
             if (!dryRun && !replace && !current.empty()) {
@@ -247,6 +247,9 @@ public class BackupService {
             Restore restore = new Restore(data, locale);
             restore.check();
             if (restore.errorCount == 0) {
+                // Drop cached user data and stale IDs, but reserve the old keys so a delayed retry
+                // cannot recreate a pre-restore write. A dry run rolls this change back too.
+                jdbc.update("update mcp_operation set invalidated = true, result = null, resource_id = null");
                 restore.write();
             }
             boolean restored = !dryRun && restore.errorCount == 0;

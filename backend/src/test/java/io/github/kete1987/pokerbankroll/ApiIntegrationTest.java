@@ -28,6 +28,7 @@ public abstract class ApiIntegrationTest {
 
     @AfterEach
     void restoreDatabase() {
+        jdbc.update("delete from mcp_operation");
         jdbc.update("delete from game_template");
         jdbc.update("delete from game");
         jdbc.update("delete from tag");
