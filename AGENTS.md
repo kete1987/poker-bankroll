@@ -95,6 +95,10 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   `./mvnw spring-boot:run`, add its module there.
 - The nginx config is part of the web image: `frontend/nginx/default.conf.template` (SPA fallback,
   long cache for `/assets/`, `/api/` proxied to `${API_UPSTREAM}`, default `api:8080`, `/healthz`).
+  `/api/` is proxied buffered; MCP (`/api/mcp` and below, not `/api/mcpx`) has its own location
+  without buffering, for its SSE responses. Both include `frontend/nginx/api-proxy.conf` (copied to
+  `/etc/nginx/snippets/`, outside `conf.d`) with the proxy headers, body size and timeout: nginx
+  drops every inherited `proxy_set_header` in a location that sets one, so add them there.
 - Only `web` publishes a port; `api` and `db` are reachable only inside the Compose network.
 - The API makes outgoing HTTPS requests: logos loaded from a URL, and the exchange rates, from
   `api.frankfurter.dev` (see "Exchange rates"). Without internet everything else works;

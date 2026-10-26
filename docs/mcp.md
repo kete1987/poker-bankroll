@@ -176,6 +176,9 @@ dependencies or automatic tool scanning. Streamable HTTP is stateless: no persis
 subscriptions or server-initiated client requests are needed. Legacy protocol negotiation is
 tested with `2025-06-18`; interoperability must also be checked with real clients.
 
+The nginx of the web image proxies `/api/mcp` in a location of its own without buffering, so
+SSE events reach the client at once; the rest of the API stays buffered.
+
 `stdio` would require the client to launch a process and is not provided. A separate adapter
 could supply it later. Recording/finishing games and movements, retry/idempotency semantics,
 MCP resources and prompts are future work.

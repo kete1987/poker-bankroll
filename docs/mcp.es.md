@@ -177,6 +177,9 @@ Streamable HTTP funciona sin sesiones persistentes, suscripciones ni peticiones 
 al cliente. Las pruebas verifican negociación antigua `2025-06-18`; también hay que verificar
 la interoperabilidad con clientes reales.
 
+El nginx de la imagen web pasa `/api/mcp` por una ruta propia sin búfer, para que los eventos SSE
+lleguen al cliente al momento; el resto de la API sigue con búfer.
+
 No se ofrece `stdio`, que necesita que el cliente arranque un proceso; un adaptador separado
 podría añadirlo en el futuro. Registrar/terminar partidas, movimientos, reintentos e idempotencia,
 recursos MCP y prompts quedan para futuras ampliaciones.
