@@ -21,6 +21,8 @@ LABEL org.opencontainers.image.source="https://github.com/kete1987/poker-bankrol
 ENV API_UPSTREAM=api:8080
 
 COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template
+# Included by the template; outside conf.d, which nginx loads as a whole at http level.
+COPY nginx/api-proxy.conf /etc/nginx/snippets/api-proxy.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 8080

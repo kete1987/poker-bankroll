@@ -40,24 +40,20 @@ server {
         return 200 "ok\n";
     }
 
-    # Backend: API, actuator and OpenAPI all live under /api.
+    # Backend: API, actuator and OpenAPI all live under /api. Responses are buffered, so a slow
+    # client does not keep a backend connection busy while it downloads (exports, backups...).
     location /api/ {
         proxy_pass http://${API_UPSTREAM};
-        # Streamable HTTP MCP can return SSE. Deliver events immediately and preserve the
-        # connection to the backend; the timeout below also applies to these responses.
-        proxy_http_version 1.1;
-        proxy_set_header Connection "";
+        include /etc/nginx/snippets/api-proxy.conf;
+    }
+
+    # MCP (Streamable HTTP, docs/mcp.md): /api/mcp and anything below it, not /api/mcpx. Its
+    # responses can be SSE, so they are not buffered: each event reaches the client at once.
+    # A regular expression, checked after the prefixes, so it wins over /api/.
+    location ~ ^/api/mcp(/|$) {
+        proxy_pass http://${API_UPSTREAM};
+        include /etc/nginx/snippets/api-proxy.conf;
         proxy_buffering off;
-        proxy_set_header Host $http_host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $client_proto;
-        proxy_set_header X-Forwarded-Host $client_host;
-        proxy_set_header X-Forwarded-Port $client_port;
-        # Room for CSV imports and for restoring a backup (32 MB at most), and time: a large file
-        # takes longer than the default minute.
-        client_max_body_size 40m;
-        proxy_read_timeout 300s;
     }
 
     # Hashed build assets never change: cache them for a year.
