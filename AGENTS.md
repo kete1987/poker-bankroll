@@ -438,6 +438,9 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - Notes/tags writes use `GameService.setNotes/setTags`, acquiring `findForUpdateById` and
   replacing only that field; never reconstruct a full update from stale game data. Their
   annotations warn about replacement. Templates start in play without overriding saved fields.
+  Template starts read a scalar `GameTemplateStart` projection, not room/variant entities:
+  otherwise the persistence context could hide a concurrent deactivation from GameService
+  after it acquires the recording lock.
 - MCP receipts are operational data, not part of app JSON backups (pg_dump includes them).
   A JSON restore locks `mcp_operation` before room/game tables, matching write lock order.
   It clears result snapshots/IDs and invalidates old keys atomically with the restore; delayed

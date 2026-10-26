@@ -47,9 +47,9 @@ class McpWriteTools {
                 q -> operations.execute("start_game", q.idempotencyKey(), q, ResourceType.GAME, () -> {
                     GameRequest request = q.game();
                     if (request == null) {
-                        var template = templates.get(q.templateId());
-                        request = new GameRequest(q.playedOn(), q.playedAt(), template.room().id(), template.gameType(),
-                                template.modality(), template.variant() == null ? null : template.variant().id(),
+                        var template = templates.startFields(q.templateId());
+                        request = new GameRequest(q.playedOn(), q.playedAt(), template.roomId(), template.gameType(),
+                                template.modality(), template.variantId(),
                                 GameStatus.IN_PLAY, template.name(), template.buyIn(), 1, null, null, null, null,
                                 false, q.notes(), q.tags());
                     }

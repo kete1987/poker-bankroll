@@ -15,11 +15,15 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 
 import io.github.kete1987.pokerbankroll.ApiIntegrationTest;
+import io.github.kete1987.pokerbankroll.template.GameTemplateService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -32,6 +36,7 @@ class McpWriteApiTests extends ApiIntegrationTest {
 
     @LocalServerPort int port;
     @Autowired JsonMapper mapper;
+    @MockitoSpyBean GameTemplateService templates;
     private final HttpClient client = HttpClient.newHttpClient();
     long room;
 
@@ -105,6 +110,43 @@ class McpWriteApiTests extends ApiIntegrationTest {
         assertThat(success("start_game", keyed(Map.of("game", direct))).path("status").asString()).isEqualTo("FINISHED");
         jdbc.update("update room set active = false where id = ?", room);
         assertError("start_game", keyed(Map.of("templateId", templateId, "playedOn", "2026-01-19")), "ROOM_INACTIVE");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ROOM", "VARIANT"})
+    void templateStartsSeeDeactivationCommittedAfterReadingTheTemplate(String target) throws Exception {
+        long variantId = builtInVariantId("SIT_AND_GO", "EXPRESSO");
+        long templateId = restPost("/game-templates", Map.of("roomId", room, "gameType", "SIT_AND_GO",
+                "variantId", variantId, "buyIn", 5)).path("id").asLong();
+        var snapshotRead = new CountDownLatch(1);
+        var continueStart = new CountDownLatch(1);
+        org.mockito.Mockito.doAnswer(invocation -> {
+            Object snapshot = invocation.callRealMethod();
+            snapshotRead.countDown();
+            if (!continueStart.await(15, java.util.concurrent.TimeUnit.SECONDS)) {
+                throw new IllegalStateException("Timed out waiting for the concurrent deactivation");
+            }
+            return snapshot;
+        }).when(templates).startFields(templateId);
+        try (var pool = Executors.newVirtualThreadPerTaskExecutor()) {
+            var future = pool.submit(() -> result("start_game",
+                    keyed(Map.of("templateId", templateId, "playedOn", "2026-01-19"))));
+            try {
+                assertThat(snapshotRead.await(15, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+                if (target.equals("ROOM")) {
+                    jdbc.update("update room set active = false where id = ?", room);
+                } else {
+                    jdbc.update("update variant set active = false where id = ?", variantId);
+                }
+            } finally {
+                continueStart.countDown();
+            }
+            JsonNode failure = future.get(20, java.util.concurrent.TimeUnit.SECONDS);
+            assertThat(failure.path("isError").asBoolean()).as(failure.toString()).isTrue();
+            assertThat(failure.path("structuredContent").path("code").asString()).isEqualTo(target + "_INACTIVE");
+        }
+        assertThat(jdbc.queryForObject("select count(*) from game", Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from mcp_operation", Integer.class)).isZero();
     }
 
     @Test
