@@ -1632,11 +1632,11 @@ export interface operations {
                 /** @description Length of the periods; weeks start on Monday */
                 groupBy: "DAY" | "WEEK" | "MONTH" | "YEAR";
                 /** @description First day of the range: what happened before is the starting bankroll */
-                from?: string;
+                from?: string | null;
                 /** @description Last day of the range: what happened after it does not count */
-                to?: string;
+                to?: string | null;
                 /** @description One or more rooms: only they count, without the movements that belong to no room */
-                roomId?: number[];
+                roomId?: number[] | null;
             };
             header?: never;
             path?: never;
@@ -1659,16 +1659,16 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description On or after this date */
-                from?: string;
+                from?: string | null;
                 /** @description On or before this date */
-                to?: string;
-                type?: "DEPOSIT" | "WITHDRAWAL" | "BONUS" | "ADJUSTMENT";
+                to?: string | null;
+                type?: "DEPOSIT" | "WITHDRAWAL" | "BONUS" | "ADJUSTMENT" | null;
                 /** @description One or more rooms: movements of any of them */
-                roomId?: number[];
+                roomId?: number[] | null;
                 /** @description true: only movements that belong to no room; false: only those of a room */
-                withoutRoom?: boolean;
+                withoutRoom?: boolean | null;
                 /** @description Currency of the amount, e.g. EUR */
-                currency?: string;
+                currency?: string | null;
                 /** @description Zero-based page number */
                 page?: number;
                 size?: number;
@@ -1786,11 +1786,11 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description Only movements and games on or after this date: with dates, the figures are those of the period (what the bankroll changed, what was won or lost) */
-                from?: string;
+                from?: string | null;
                 /** @description Only movements and games on or before this date */
-                to?: string;
+                to?: string | null;
                 /** @description One or more rooms: only they are listed and added up, without the movements that belong to no room */
-                roomId?: number[];
+                roomId?: number[] | null;
             };
             header?: never;
             path?: never;
@@ -1944,22 +1944,22 @@ export interface operations {
             query: {
                 format: "CSV" | "XLSX";
                 /** @description Played on or after this date */
-                from?: string;
+                from?: string | null;
                 /** @description Played on or before this date */
-                to?: string;
+                to?: string | null;
                 /** @description One or more game types: games of any of them */
-                gameType?: ("TOURNAMENT" | "SIT_AND_GO" | "CASH")[];
-                modality?: "NLHE" | "PLO";
+                gameType?: ("TOURNAMENT" | "SIT_AND_GO" | "CASH")[] | null;
+                modality?: "NLHE" | "PLO" | null;
                 /** @description One or more rooms: games in any of them */
-                roomId?: number[];
+                roomId?: number[] | null;
                 /** @description One or more variants: games of any of them */
-                variantId?: number[];
+                variantId?: number[] | null;
                 /** @description One or more tags: games that have any of them */
-                tagId?: number[];
+                tagId?: number[] | null;
                 /** @description Currency of the room, e.g. EUR */
-                currency?: string;
+                currency?: string | null;
                 /** @description Text contained in the name or the notes, ignoring case */
-                q?: string;
+                q?: string | null;
             };
             header?: never;
             path?: never;
@@ -1984,16 +1984,16 @@ export interface operations {
             query: {
                 format: "CSV" | "XLSX";
                 /** @description On or after this date */
-                from?: string;
+                from?: string | null;
                 /** @description On or before this date */
-                to?: string;
-                type?: "DEPOSIT" | "WITHDRAWAL" | "BONUS" | "ADJUSTMENT";
+                to?: string | null;
+                type?: "DEPOSIT" | "WITHDRAWAL" | "BONUS" | "ADJUSTMENT" | null;
                 /** @description One or more rooms: movements of any of them */
-                roomId?: number[];
+                roomId?: number[] | null;
                 /** @description true: only movements that belong to no room; false: only those of a room */
-                withoutRoom?: boolean;
+                withoutRoom?: boolean | null;
                 /** @description Currency of the amount, e.g. EUR */
-                currency?: string;
+                currency?: string | null;
             };
             header?: never;
             path?: never;
@@ -2107,23 +2107,23 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description Played on or after this date */
-                from?: string;
+                from?: string | null;
                 /** @description Played on or before this date */
-                to?: string;
+                to?: string | null;
                 /** @description One or more game types: games of any of them */
-                gameType?: ("TOURNAMENT" | "SIT_AND_GO" | "CASH")[];
-                modality?: "NLHE" | "PLO";
+                gameType?: ("TOURNAMENT" | "SIT_AND_GO" | "CASH")[] | null;
+                modality?: "NLHE" | "PLO" | null;
                 /** @description One or more rooms: games in any of them */
-                roomId?: number[];
+                roomId?: number[] | null;
                 /** @description One or more variants: games of any of them */
-                variantId?: number[];
+                variantId?: number[] | null;
                 /** @description One or more tags: games that have any of them */
-                tagId?: number[];
-                status?: "IN_PLAY" | "FINISHED";
+                tagId?: number[] | null;
+                status?: "IN_PLAY" | "FINISHED" | null;
                 /** @description Currency of the room, e.g. EUR */
-                currency?: string;
+                currency?: string | null;
                 /** @description Text contained in the name or the notes, ignoring case */
-                q?: string;
+                q?: string | null;
                 /** @description Zero-based page number */
                 page?: number;
                 size?: number;
@@ -2201,7 +2201,7 @@ export interface operations {
                 /** @description Text contained in the name, ignoring case and searched literally; with less than 2 characters, surrounding spaces apart, nothing is suggested */
                 q?: string;
                 /** @description Only the games of this type: their names, counts and figures */
-                gameType?: "TOURNAMENT" | "SIT_AND_GO" | "CASH";
+                gameType?: "TOURNAMENT" | "SIT_AND_GO" | "CASH" | null;
                 limit?: number;
             };
             header?: never;
@@ -2393,7 +2393,7 @@ export interface operations {
     list_1: {
         parameters: {
             query?: {
-                active?: boolean;
+                active?: boolean | null;
             };
             header?: never;
             path?: never;
@@ -2534,7 +2534,7 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description The `logoVersion` of the room */
-                v?: string;
+                v?: string | null;
             };
             header?: never;
             path: {
@@ -2663,22 +2663,22 @@ export interface operations {
                 /** @description Also break each group down by game type */
                 byGameType?: boolean;
                 /** @description Played on or after this date */
-                from?: string;
+                from?: string | null;
                 /** @description Played on or before this date */
-                to?: string;
+                to?: string | null;
                 /** @description One or more game types: games of any of them */
-                gameType?: ("TOURNAMENT" | "SIT_AND_GO" | "CASH")[];
-                modality?: "NLHE" | "PLO";
+                gameType?: ("TOURNAMENT" | "SIT_AND_GO" | "CASH")[] | null;
+                modality?: "NLHE" | "PLO" | null;
                 /** @description One or more rooms: games in any of them */
-                roomId?: number[];
+                roomId?: number[] | null;
                 /** @description One or more variants: games of any of them */
-                variantId?: number[];
+                variantId?: number[] | null;
                 /** @description One or more tags: games that have any of them */
-                tagId?: number[];
+                tagId?: number[] | null;
                 /** @description Currency of the room, e.g. EUR */
-                currency?: string;
+                currency?: string | null;
                 /** @description Text contained in the name or the notes, ignoring case */
-                q?: string;
+                q?: string | null;
             };
             header?: never;
             path?: never;
@@ -2701,22 +2701,22 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description Played on or after this date */
-                from?: string;
+                from?: string | null;
                 /** @description Played on or before this date */
-                to?: string;
+                to?: string | null;
                 /** @description One or more game types: games of any of them */
-                gameType?: ("TOURNAMENT" | "SIT_AND_GO" | "CASH")[];
-                modality?: "NLHE" | "PLO";
+                gameType?: ("TOURNAMENT" | "SIT_AND_GO" | "CASH")[] | null;
+                modality?: "NLHE" | "PLO" | null;
                 /** @description One or more rooms: games in any of them */
-                roomId?: number[];
+                roomId?: number[] | null;
                 /** @description One or more variants: games of any of them */
-                variantId?: number[];
+                variantId?: number[] | null;
                 /** @description One or more tags: games that have any of them */
-                tagId?: number[];
+                tagId?: number[] | null;
                 /** @description Currency of the room, e.g. EUR */
-                currency?: string;
+                currency?: string | null;
                 /** @description Text contained in the name or the notes, ignoring case */
-                q?: string;
+                q?: string | null;
             };
             header?: never;
             path?: never;
@@ -2804,8 +2804,8 @@ export interface operations {
     list: {
         parameters: {
             query?: {
-                gameType?: "TOURNAMENT" | "SIT_AND_GO" | "CASH";
-                active?: boolean;
+                gameType?: "TOURNAMENT" | "SIT_AND_GO" | "CASH" | null;
+                active?: boolean | null;
             };
             header?: never;
             path?: never;
