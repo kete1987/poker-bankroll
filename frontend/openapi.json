@@ -1890,7 +1890,7 @@
           "required" : false,
           "schema" : {
             "format" : "date",
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "Last day of the range: what happened after it does not count",
@@ -1899,7 +1899,7 @@
           "required" : false,
           "schema" : {
             "format" : "date",
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "One or more rooms: only they count, without the movements that belong to no room",
@@ -1911,7 +1911,7 @@
               "format" : "int64",
               "type" : "integer"
             },
-            "type" : "array"
+            "type" : [ "array", "null" ]
           }
         } ],
         "responses" : {
@@ -1941,7 +1941,7 @@
           "required" : false,
           "schema" : {
             "format" : "date",
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "On or before this date",
@@ -1950,7 +1950,7 @@
           "required" : false,
           "schema" : {
             "format" : "date",
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "in" : "query",
@@ -1958,7 +1958,7 @@
           "required" : false,
           "schema" : {
             "enum" : [ "DEPOSIT", "WITHDRAWAL", "BONUS", "ADJUSTMENT" ],
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "One or more rooms: movements of any of them",
@@ -1970,7 +1970,7 @@
               "format" : "int64",
               "type" : "integer"
             },
-            "type" : "array"
+            "type" : [ "array", "null" ]
           }
         }, {
           "description" : "true: only movements that belong to no room; false: only those of a room",
@@ -1978,7 +1978,7 @@
           "name" : "withoutRoom",
           "required" : false,
           "schema" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           }
         }, {
           "description" : "Currency of the amount, e.g. EUR",
@@ -1986,7 +1986,7 @@
           "name" : "currency",
           "required" : false,
           "schema" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "Zero-based page number",
@@ -2150,7 +2150,7 @@
           "required" : false,
           "schema" : {
             "format" : "date",
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "Only movements and games on or before this date",
@@ -2159,7 +2159,7 @@
           "required" : false,
           "schema" : {
             "format" : "date",
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "One or more rooms: only they are listed and added up, without the movements that belong to no room",
@@ -2171,7 +2171,7 @@
               "format" : "int64",
               "type" : "integer"
             },
-            "type" : "array"
+            "type" : [ "array", "null" ]
           }
         } ],
         "responses" : {
@@ -2366,7 +2366,7 @@
           "required" : false,
           "schema" : {
             "format" : "date",
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "Played on or before this date",
@@ -2375,7 +2375,7 @@
           "required" : false,
           "schema" : {
             "format" : "date",
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "One or more game types: games of any of them",
@@ -2387,7 +2387,7 @@
               "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
               "type" : "string"
             },
-            "type" : "array"
+            "type" : [ "array", "null" ]
           }
         }, {
           "in" : "query",
@@ -2395,7 +2395,7 @@
           "required" : false,
           "schema" : {
             "enum" : [ "NLHE", "PLO" ],
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "One or more rooms: games in any of them",
@@ -2407,7 +2407,7 @@
               "format" : "int64",
               "type" : "integer"
             },
-            "type" : "array"
+            "type" : [ "array", "null" ]
           }
         }, {
           "description" : "One or more variants: games of any of them",
@@ -2419,7 +2419,7 @@
               "format" : "int64",
               "type" : "integer"
             },
-            "type" : "array"
+            "type" : [ "array", "null" ]
           }
         }, {
           "description" : "One or more tags: games that have any of them",
@@ -2431,7 +2431,7 @@
               "format" : "int64",
               "type" : "integer"
             },
-            "type" : "array"
+            "type" : [ "array", "null" ]
           }
         }, {
           "description" : "Currency of the room, e.g. EUR",
@@ -2439,7 +2439,7 @@
           "name" : "currency",
           "required" : false,
           "schema" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "Text contained in the name or the notes, ignoring case",
@@ -2447,7 +2447,7 @@
           "name" : "q",
           "required" : false,
           "schema" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         } ],
         "responses" : {
@@ -2491,7 +2491,7 @@
           "required" : false,
           "schema" : {
             "format" : "date",
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "On or before this date",
@@ -2500,7 +2500,7 @@
           "required" : false,
           "schema" : {
             "format" : "date",
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "in" : "query",
@@ -2508,7 +2508,7 @@
           "required" : false,
           "schema" : {
             "enum" : [ "DEPOSIT", "WITHDRAWAL", "BONUS", "ADJUSTMENT" ],
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "One or more rooms: movements of any of them",
@@ -2520,7 +2520,7 @@
               "format" : "int64",
               "type" : "integer"
             },
-            "type" : "array"
+            "type" : [ "array", "null" ]
           }
         }, {
           "description" : "true: only movements that belong to no room; false: only those of a room",
@@ -2528,7 +2528,7 @@
           "name" : "withoutRoom",
           "required" : false,
           "schema" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           }
         }, {
           "description" : "Currency of the amount, e.g. EUR",
@@ -2536,7 +2536,7 @@
           "name" : "currency",
           "required" : false,
           "schema" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         } ],
         "responses" : {
@@ -2682,7 +2682,7 @@
           "required" : false,
           "schema" : {
             "format" : "date",
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "Played on or before this date",
@@ -2691,7 +2691,7 @@
           "required" : false,
           "schema" : {
             "format" : "date",
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "One or more game types: games of any of them",
@@ -2703,7 +2703,7 @@
               "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
               "type" : "string"
             },
-            "type" : "array"
+            "type" : [ "array", "null" ]
           }
         }, {
           "in" : "query",
@@ -2711,7 +2711,7 @@
           "required" : false,
           "schema" : {
             "enum" : [ "NLHE", "PLO" ],
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "One or more rooms: games in any of them",
@@ -2723,7 +2723,7 @@
               "format" : "int64",
               "type" : "integer"
             },
-            "type" : "array"
+            "type" : [ "array", "null" ]
           }
         }, {
           "description" : "One or more variants: games of any of them",
@@ -2735,7 +2735,7 @@
               "format" : "int64",
               "type" : "integer"
             },
-            "type" : "array"
+            "type" : [ "array", "null" ]
           }
         }, {
           "description" : "One or more tags: games that have any of them",
@@ -2747,7 +2747,7 @@
               "format" : "int64",
               "type" : "integer"
             },
-            "type" : "array"
+            "type" : [ "array", "null" ]
           }
         }, {
           "in" : "query",
@@ -2755,7 +2755,7 @@
           "required" : false,
           "schema" : {
             "enum" : [ "IN_PLAY", "FINISHED" ],
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "Currency of the room, e.g. EUR",
@@ -2763,7 +2763,7 @@
           "name" : "currency",
           "required" : false,
           "schema" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "Text contained in the name or the notes, ignoring case",
@@ -2771,7 +2771,7 @@
           "name" : "q",
           "required" : false,
           "schema" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "Zero-based page number",
@@ -2899,7 +2899,7 @@
           "required" : false,
           "schema" : {
             "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "in" : "query",
@@ -3170,7 +3170,7 @@
           "name" : "active",
           "required" : false,
           "schema" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           }
         } ],
         "responses" : {
@@ -3384,7 +3384,7 @@
           "name" : "v",
           "required" : false,
           "schema" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         } ],
         "responses" : {
@@ -3545,7 +3545,7 @@
           "required" : false,
           "schema" : {
             "format" : "date",
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "Played on or before this date",
@@ -3554,7 +3554,7 @@
           "required" : false,
           "schema" : {
             "format" : "date",
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "One or more game types: games of any of them",
@@ -3566,7 +3566,7 @@
               "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
               "type" : "string"
             },
-            "type" : "array"
+            "type" : [ "array", "null" ]
           }
         }, {
           "in" : "query",
@@ -3574,7 +3574,7 @@
           "required" : false,
           "schema" : {
             "enum" : [ "NLHE", "PLO" ],
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "One or more rooms: games in any of them",
@@ -3586,7 +3586,7 @@
               "format" : "int64",
               "type" : "integer"
             },
-            "type" : "array"
+            "type" : [ "array", "null" ]
           }
         }, {
           "description" : "One or more variants: games of any of them",
@@ -3598,7 +3598,7 @@
               "format" : "int64",
               "type" : "integer"
             },
-            "type" : "array"
+            "type" : [ "array", "null" ]
           }
         }, {
           "description" : "One or more tags: games that have any of them",
@@ -3610,7 +3610,7 @@
               "format" : "int64",
               "type" : "integer"
             },
-            "type" : "array"
+            "type" : [ "array", "null" ]
           }
         }, {
           "description" : "Currency of the room, e.g. EUR",
@@ -3618,7 +3618,7 @@
           "name" : "currency",
           "required" : false,
           "schema" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "Text contained in the name or the notes, ignoring case",
@@ -3626,7 +3626,7 @@
           "name" : "q",
           "required" : false,
           "schema" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         } ],
         "responses" : {
@@ -3656,7 +3656,7 @@
           "required" : false,
           "schema" : {
             "format" : "date",
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "Played on or before this date",
@@ -3665,7 +3665,7 @@
           "required" : false,
           "schema" : {
             "format" : "date",
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "One or more game types: games of any of them",
@@ -3677,7 +3677,7 @@
               "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
               "type" : "string"
             },
-            "type" : "array"
+            "type" : [ "array", "null" ]
           }
         }, {
           "in" : "query",
@@ -3685,7 +3685,7 @@
           "required" : false,
           "schema" : {
             "enum" : [ "NLHE", "PLO" ],
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "One or more rooms: games in any of them",
@@ -3697,7 +3697,7 @@
               "format" : "int64",
               "type" : "integer"
             },
-            "type" : "array"
+            "type" : [ "array", "null" ]
           }
         }, {
           "description" : "One or more variants: games of any of them",
@@ -3709,7 +3709,7 @@
               "format" : "int64",
               "type" : "integer"
             },
-            "type" : "array"
+            "type" : [ "array", "null" ]
           }
         }, {
           "description" : "One or more tags: games that have any of them",
@@ -3721,7 +3721,7 @@
               "format" : "int64",
               "type" : "integer"
             },
-            "type" : "array"
+            "type" : [ "array", "null" ]
           }
         }, {
           "description" : "Currency of the room, e.g. EUR",
@@ -3729,7 +3729,7 @@
           "name" : "currency",
           "required" : false,
           "schema" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "description" : "Text contained in the name or the notes, ignoring case",
@@ -3737,7 +3737,7 @@
           "name" : "q",
           "required" : false,
           "schema" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         } ],
         "responses" : {
@@ -3848,14 +3848,14 @@
           "required" : false,
           "schema" : {
             "enum" : [ "TOURNAMENT", "SIT_AND_GO", "CASH" ],
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         }, {
           "in" : "query",
           "name" : "active",
           "required" : false,
           "schema" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
           }
         } ],
         "responses" : {
