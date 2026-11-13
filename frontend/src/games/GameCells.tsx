@@ -1,10 +1,11 @@
-import { Badge, Group, Text, Tooltip } from '@mantine/core';
+import { Group, Text, Tooltip } from '@mantine/core';
 import { IconNote, IconTicket } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 
 import type { Game } from '../api/types';
 import { useFormat } from '../format/useFormat';
 import { variantLabel } from './labels';
+import { TagBadge } from './TagBadge';
 
 /** Date of a game, with its start time when it has one: below it, or next to it (`inline`). */
 export function GameDate({ game, inline = false }: { game: Game; inline?: boolean }) {
@@ -59,9 +60,7 @@ export function GameName({ game }: { game: Game }) {
       {game.tags.length > 0 && (
         <Group gap={4} mt={4} role="list" aria-label={t('tags.ofGame')}>
           {game.tags.map((tag) => (
-            <Badge key={tag.id} role="listitem" size="xs" variant="light" color="gray" tt="none">
-              {tag.name}
-            </Badge>
+            <TagBadge key={tag.id} role="listitem" tag={tag} />
           ))}
         </Group>
       )}

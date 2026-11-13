@@ -699,6 +699,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tags/{id}/color": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set a tag color
+         * @description Changes only its color. Null or omitted color restores the neutral default.
+         */
+        put: operations["setTagColor"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/variants": {
         parameters: {
             query?: never;
@@ -1518,7 +1538,16 @@ export interface components {
             /** @description One summary per currency, in its own money, by code */
             currencies: components["schemas"]["CurrencySummary"][];
         };
+        TagColorRequest: {
+            /**
+             * @description Palette code; null or omitted restores the neutral default
+             * @enum {string|null}
+             */
+            color?: "RED" | "PINK" | "GRAPE" | "VIOLET" | "INDIGO" | "BLUE" | "CYAN" | "TEAL" | "GREEN" | "LIME" | "YELLOW" | "ORANGE" | null;
+        };
         TagRef: {
+            /** @enum {string|null} */
+            color?: "RED" | "PINK" | "GRAPE" | "VIOLET" | "INDIGO" | "BLUE" | "CYAN" | "TEAL" | "GREEN" | "LIME" | "YELLOW" | "ORANGE" | null;
             /** Format: int64 */
             id: number;
             name: string;
@@ -1528,6 +1557,8 @@ export interface components {
             name: string;
         };
         TagResponse: {
+            /** @enum {string|null} */
+            color?: "RED" | "PINK" | "GRAPE" | "VIOLET" | "INDIGO" | "BLUE" | "CYAN" | "TEAL" | "GREEN" | "LIME" | "YELLOW" | "ORANGE" | null;
             /**
              * Format: int64
              * @description Games that have the tag, in play or finished
@@ -2798,6 +2829,32 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    setTagColor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TagColorRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TagResponse"];
+                };
             };
         };
     };

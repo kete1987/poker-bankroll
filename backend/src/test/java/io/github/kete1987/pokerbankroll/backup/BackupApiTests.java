@@ -70,7 +70,7 @@ class BackupApiTests extends ApiIntegrationTest {
         byte[] file = backup();
         JsonNode document = JSON.readTree(file);
 
-        assertThat(document.get("formatVersion").asInt()).isEqualTo(1);
+        assertThat(document.get("formatVersion").asInt()).isEqualTo(2);
         assertThat(document.get("appVersion").asString()).isNotBlank();
         assertThat(document.get("exportedAt").asString()).startsWith(LocalDate.now().getYear() + "-").endsWith("Z");
         assertThat(document.get("rooms")).hasSize(4);
@@ -193,7 +193,7 @@ class BackupApiTests extends ApiIntegrationTest {
         var json = assertThat(result).hasStatusOk().bodyJson();
         json.extractingPath("$.dryRun").isEqualTo(false);
         json.extractingPath("$.restored").isEqualTo(true);
-        json.extractingPath("$.formatVersion").isEqualTo(1);
+        json.extractingPath("$.formatVersion").isEqualTo(2);
         json.extractingPath("$.file.rooms").isEqualTo(4);
         json.extractingPath("$.file.variants").isEqualTo(2);
         json.extractingPath("$.file.games").isEqualTo(9);
@@ -480,7 +480,7 @@ class BackupApiTests extends ApiIntegrationTest {
     @Test
     void aFileOfANewerFormatIsRejected() {
         populate();
-        byte[] file = edited(backup(), document -> document.put("formatVersion", 2));
+        byte[] file = edited(backup(), document -> document.put("formatVersion", 3));
         Map<String, JsonNode> before = rawViews();
 
         MvcTestResult result = restore(file, "?replace=true");
@@ -488,7 +488,7 @@ class BackupApiTests extends ApiIntegrationTest {
         var json = assertThat(result).hasStatus(HttpStatus.BAD_REQUEST).bodyJson();
         json.extractingPath("$.code").isEqualTo("BACKUP_FORMAT_TOO_NEW");
         json.extractingPath("$.detail").asString()
-                .contains("made by a newer version", "format 2", "up to format 1");
+                .contains("made by a newer version", "format 3", "up to format 2");
         assertThat(restore(file, "?dryRun=true")).hasStatus(HttpStatus.BAD_REQUEST);
         assertThat(rawViews()).isEqualTo(before);
     }
@@ -577,6 +577,53 @@ class BackupApiTests extends ApiIntegrationTest {
         MvcTestResult result = mvc.post().uri("/backup/restore").contentType("text/csv").content("a,b").exchange();
 
         assertThat(result).hasStatus(HttpStatus.UNSUPPORTED_MEDIA_TYPE);
+    }
+
+    @Test
+    void formatTwoPreservesColorsAndUnusedTagsWhileFormatOneStillRestores() {
+        populate();
+        jdbc.update("update tag set color = 'BLUE' where lower(name) = 'series'");
+        jdbc.update("insert into tag (name, color) values ('Unused color', 'TEAL')");
+        byte[] file = backup();
+        JsonNode document = JSON.readTree(file);
+        assertThat(document.path("formatVersion").asInt()).isEqualTo(2);
+        assertThat(document.path("tags").size()).isEqualTo(4);
+        Map<String, JsonNode> before = views();
+        assertThat(restore(file, "?dryRun=true")).hasStatusOk().bodyJson()
+                .extractingPath("$.restored").isEqualTo(false);
+        assertThat(views()).isEqualTo(before);
+        assertThat(restore(file, "?replace=true")).hasStatusOk().bodyJson()
+                .extractingPath("$.restored").isEqualTo(true);
+        assertThat(views()).isEqualTo(before);
+        assertThat(jdbc.queryForObject("select color from tag where name = 'Unused color'", String.class)).isEqualTo("TEAL");
+        assertThat(jdbc.queryForObject("select count(*) from game_tag gt join tag t on t.id = gt.tag_id where t.name = 'Unused color'", Integer.class)).isZero();
+        byte[] legacy = edited(file, value -> { value.put("formatVersion", 1); value.remove("tags"); });
+        assertThat(restore(legacy, "?replace=true")).hasStatusOk().bodyJson()
+                .extractingPath("$.restored").isEqualTo(true);
+        assertThat(jdbc.queryForObject("select count(*) from tag where color is not null", Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from tag where name = 'Unused color'", Integer.class)).isZero();
+    }
+
+    @Test
+    void invalidTagDefinitionsNeverChangeTheInstallation() {
+        populate();
+        Map<String, JsonNode> before = views();
+        byte[] file = edited(backup(), document -> {
+            var tags = document.putArray("tags");
+            tags.addObject().put("name", "Series").put("color", "BLUE");
+            tags.addObject().put("name", "SERIES").put("color", "RED");
+        });
+        MvcTestResult result = restore(file, "?replace=true");
+        assertThat(result).hasStatusOk().bodyJson().extractingPath("$.restored").isEqualTo(false);
+        assertThat(errors(result)).anySatisfy(error -> assertThat(error).startsWith("tags[1].name DUPLICATE_TAG"));
+        assertThat(views()).isEqualTo(before);
+        byte[] invalid = edited(backup(), document -> document.putArray("tags").addObject().put("name", "Series").put("color", "#ff0000"));
+        assertThat(restore(invalid, "?replace=true")).hasStatus(HttpStatus.BAD_REQUEST).bodyJson()
+                .extractingPath("$.code").isEqualTo("BACKUP_FILE_MALFORMED");
+        assertThat(views()).isEqualTo(before);
+        byte[] missing = edited(backup(), document -> document.remove("tags"));
+        assertThat(restore(missing, "?replace=true")).hasStatus(HttpStatus.BAD_REQUEST);
+        assertThat(views()).isEqualTo(before);
     }
 
     // ---- data ----

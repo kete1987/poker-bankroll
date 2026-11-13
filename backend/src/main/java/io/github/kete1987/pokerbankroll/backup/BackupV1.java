@@ -89,7 +89,7 @@ final class BackupV1 {
                     map(movements, Movement::toData),
                     map(templates, Template::toData),
                     baseCurrencyCode,
-                    map(exchangeRates, ExchangeRate::toData));
+                    map(exchangeRates, ExchangeRate::toData), List.of());
         }
     }
 

@@ -47,7 +47,7 @@ class McpApiTests extends ApiIntegrationTest {
         }
         assertThat(call("get_catalog", Map.of()).path("gameTypes").toString()).contains("TOURNAMENT", "CASH");
         for (String write : List.of("start_game", "finish_game", "add_re_entry", "add_rebuy", "record_movement",
-                "set_game_notes", "set_game_tags", "update_game_metadata", "apply_tag_change")) {
+                "set_game_notes", "set_game_tags", "update_game_metadata", "apply_tag_change", "set_tag_color")) {
             assertThat(rpc("tools/call", Map.of("name", write, "arguments", Map.of())).has("error")).isTrue();
         }
         assertThat(jdbc.queryForObject("select count(*) from mcp_operation", Integer.class)).isZero();

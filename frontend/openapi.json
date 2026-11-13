@@ -1666,8 +1666,22 @@
         "required" : [ "converted", "currencies" ],
         "type" : "object"
       },
+      "TagColorRequest" : {
+        "properties" : {
+          "color" : {
+            "description" : "Palette code; null or omitted restores the neutral default",
+            "enum" : [ "RED", "PINK", "GRAPE", "VIOLET", "INDIGO", "BLUE", "CYAN", "TEAL", "GREEN", "LIME", "YELLOW", "ORANGE", null ],
+            "type" : [ "string", "null" ]
+          }
+        },
+        "type" : "object"
+      },
       "TagRef" : {
         "properties" : {
+          "color" : {
+            "enum" : [ "RED", "PINK", "GRAPE", "VIOLET", "INDIGO", "BLUE", "CYAN", "TEAL", "GREEN", "LIME", "YELLOW", "ORANGE", null ],
+            "type" : [ "string", "null" ]
+          },
           "id" : {
             "format" : "int64",
             "type" : "integer"
@@ -1691,6 +1705,10 @@
       },
       "TagResponse" : {
         "properties" : {
+          "color" : {
+            "enum" : [ "RED", "PINK", "GRAPE", "VIOLET", "INDIGO", "BLUE", "CYAN", "TEAL", "GREEN", "LIME", "YELLOW", "ORANGE", null ],
+            "type" : [ "string", "null" ]
+          },
           "games" : {
             "description" : "Games that have the tag, in play or finished",
             "format" : "int64",
@@ -3835,6 +3853,45 @@
           }
         },
         "summary" : "Rename a tag",
+        "tags" : [ "Tags" ]
+      }
+    },
+    "/tags/{id}/color" : {
+      "put" : {
+        "description" : "Changes only its color. Null or omitted color restores the neutral default.",
+        "operationId" : "setTagColor",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TagColorRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TagResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Set a tag color",
         "tags" : [ "Tags" ]
       }
     },

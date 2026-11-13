@@ -50,7 +50,7 @@ class McpWriteApiTests extends ApiIntegrationTest {
     @Test
     void writesAllSupportedOperationsWithRestParityAndAccurateAnnotations() throws Exception {
         JsonNode tools = rpc("tools/list", Map.of()).path("result").path("tools");
-        assertThat(tools.size()).isEqualTo(25);
+        assertThat(tools.size()).isEqualTo(26);
         for (JsonNode tool : tools) {
             String name = tool.path("name").asString();
             if (List.of("start_game", "finish_game", "add_re_entry", "add_rebuy", "record_movement",
@@ -681,6 +681,35 @@ class McpWriteApiTests extends ApiIntegrationTest {
                 continueMerge.countDown();
             }
         }
+    }
+
+    @Test
+    void tagColorsUseDurableReceiptsAndInvalidateStaleTagPreviews() throws Exception {
+        var fields = new java.util.HashMap<>(gameFields("TOURNAMENT", "1"));
+        fields.put("tags", List.of("Colored"));
+        long id = success("start_game", keyed(Map.of("game", fields))).path("id").asLong();
+        long tag = success("get_game", Map.of("gameId", id)).path("tags").get(0).path("id").asLong();
+        Map<String, Object> blue = keyed(Map.of("tagId", tag, "color", "BLUE"));
+        JsonNode original = success("set_tag_color", blue);
+        assertThat(original.path("color").asString()).isEqualTo("BLUE");
+        JsonNode preview = success("preview_tag_change", Map.of("tagId", tag, "newName", "Renamed"));
+        assertThat(preview.path("source").path("color").asString()).isEqualTo("BLUE");
+        success("set_tag_color", keyed(Map.of("tagId", tag, "color", "TEAL")));
+        assertError("apply_tag_change", keyed(Map.of("tagId", tag, "newName", "Renamed",
+                "expected", mapper.convertValue(preview, Map.class))), "MCP_STALE_METADATA");
+        assertThat(success("set_tag_color", blue)).isEqualTo(original);
+        assertThat(success("get_game", Map.of("gameId", id)).path("tags").get(0).path("color").asString()).isEqualTo("TEAL");
+        var conflict = new java.util.HashMap<>(blue);
+        conflict.put("color", "RED");
+        assertError("set_tag_color", conflict, "MCP_IDEMPOTENCY_CONFLICT");
+        assertError("set_tag_color", keyed(Map.of("tagId", tag, "color", "#ffffff")), "VALIDATION_FAILED");
+        assertError("set_tag_color", keyed(Map.of("tagId", 99999999, "color", "BLUE")), "NOT_FOUND");
+        assertThat(success("set_tag_color", keyed(Map.of("tagId", tag))).has("color")).isFalse();
+        JsonNode current = success("preview_tag_change", Map.of("tagId", tag, "newName", "Renamed"));
+        success("apply_tag_change", keyed(Map.of("tagId", tag, "newName", "Renamed", "expected", mapper.convertValue(current, Map.class))));
+        String backup = client.send(HttpRequest.newBuilder(uri("/backup")).GET().build(), HttpResponse.BodyHandlers.ofString()).body();
+        assertThat(restPostJson("/backup/restore?replace=true", backup).path("restored").asBoolean()).isTrue();
+        assertError("set_tag_color", blue, "MCP_OPERATION_INVALIDATED");
     }
 
     @FunctionalInterface interface Call { JsonNode call() throws Exception; }

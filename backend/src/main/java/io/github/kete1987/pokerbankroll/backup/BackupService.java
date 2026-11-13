@@ -29,6 +29,7 @@ import io.github.kete1987.pokerbankroll.backup.BackupData.MovementData;
 import io.github.kete1987.pokerbankroll.backup.BackupData.RateData;
 import io.github.kete1987.pokerbankroll.backup.BackupData.RoomData;
 import io.github.kete1987.pokerbankroll.backup.BackupData.TemplateData;
+import io.github.kete1987.pokerbankroll.backup.BackupData.TagData;
 import io.github.kete1987.pokerbankroll.backup.BackupData.VariantData;
 import io.github.kete1987.pokerbankroll.backup.BackupRestoreResponse.BackupContents;
 import io.github.kete1987.pokerbankroll.backup.BackupRestoreResponse.BackupError;
@@ -55,6 +56,8 @@ import io.github.kete1987.pokerbankroll.template.GameTemplate;
 import io.github.kete1987.pokerbankroll.template.GameTemplateRepository;
 import io.github.kete1987.pokerbankroll.template.GameTemplateRequest;
 import io.github.kete1987.pokerbankroll.tag.Tag;
+import io.github.kete1987.pokerbankroll.tag.TagColor;
+import io.github.kete1987.pokerbankroll.tag.TagRequest;
 import io.github.kete1987.pokerbankroll.tag.TagRef;
 import io.github.kete1987.pokerbankroll.variant.Variant;
 import io.github.kete1987.pokerbankroll.variant.VariantCreateRequest;
@@ -215,7 +218,10 @@ public class BackupService {
                 """, (row, number) -> new RateData(row.getString("currency_code"),
                         row.getObject("rate_date", LocalDate.class), row.getBigDecimal("rate"))));
         return new BackupData(BackupFormat.CURRENT_VERSION, appVersion, Instant.now().truncatedTo(ChronoUnit.SECONDS),
-                roomData, variantData, gameData, movementData, templateData, baseCurrency, rateData);
+                roomData, variantData, gameData, movementData, templateData, baseCurrency, rateData,
+                new ArrayList<>(jdbc.query("select name, color from tag order by lower(name), name", (row, number) ->
+                        new TagData(row.getString("name"), row.getString("color") == null ? null
+                                : TagColor.valueOf(row.getString("color"))))));
     }
 
     // ---- restore ----
@@ -330,10 +336,27 @@ public class BackupService {
         void check() {
             checkRooms();
             checkVariants();
+            checkTags();
             checkGames();
             checkMovements();
             checkTemplates();
             checkCurrencies();
+        }
+
+        private void checkTags() {
+            Set<String> names = new HashSet<>();
+            for (int i = 0; i < data.tags().size(); i++) {
+                String path = "tags[" + i + "]";
+                TagData tag = data.tags().get(i);
+                if (tag == null) {
+                    problem(path, BackupProblem.REQUIRED);
+                    continue;
+                }
+                violations(path, new TagRequest(tag.name()));
+                if (tag.name() != null && !names.add(key(tag.name()))) {
+                    problem(path + ".name", BackupProblem.DUPLICATE_TAG);
+                }
+            }
         }
 
         private void checkRooms() {
@@ -530,6 +553,10 @@ public class BackupService {
             writeTemplates(newRoomIds, newVariantIds);
             entityManager.flush();
             entityManager.clear();
+            jdbc.batchUpdate("insert into tag (name, color) values (?, ?)", data.tags(), BATCH, (statement, tag) -> {
+                statement.setString(1, tag.name().strip());
+                setNullable(statement, 2, tag.color() == null ? null : tag.color().name(), Types.VARCHAR);
+            });
             writeGames(newRoomIds, newVariantIds);
             writeCurrencies();
         }

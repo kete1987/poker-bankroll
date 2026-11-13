@@ -20,7 +20,7 @@ In the app, open **Import / Export** and go to *Backup of everything*.
 
 - **Download backup** saves one file, `poker-bankroll-backup-<date>.json`, with everything you
   created: rooms and their logos, your own variants and which built-in ones are active, every
-  game (those in play too) with its tags, every bankroll movement, the templates of the games
+  game (those in play too) with its tags, the tag names and colors (unused tags too), every bankroll movement, the templates of the games
   you play often, your base currency (when you chose one) and the exchange rates you typed by
   hand. The downloaded exchange rates are not in it: the app downloads them again. It is not encrypted: it holds all your data, so keep it where only you can read
   it.
@@ -61,7 +61,7 @@ A JSON document, readable with any text editor:
 
 ```json
 {
-  "formatVersion": 1,
+  "formatVersion": 2,
   "appVersion": "0.2.0",
   "exportedAt": "2026-10-02T10:15:30Z",
   "rooms": [
@@ -87,6 +87,7 @@ A JSON document, readable with any text editor:
     {"label": "Sunday KO", "roomId": 1, "gameType": "TOURNAMENT", "modality": "NLHE",
      "variantId": 2, "name": "Kill The Fish", "buyIn": 10.00}
   ],
+  "tags": [{"name": "Challenge", "color": "BLUE"}, {"name": "Satellite"}],
   "baseCurrencyCode": "EUR",
   "exchangeRates": [
     {"currencyCode": "USD", "date": "2026-02-14", "rate": 1.08500000}
@@ -104,8 +105,11 @@ A JSON document, readable with any text editor:
   downloaded rates of the installation stay.
 - Built-in variants (those with a `code`) are only there to say whether they are active; the
   ones with a `name` are yours.
-- Each game names its tags (`tags`, left out when it has none), and restoring creates them: a tag
-  that no game has is not kept. Files made before tags existed restore with games without tags.
+- Format 2 stores a `tags` catalog with each tag's name and optional palette `color`, including
+  tags without games. Each game still names its tags; names match ignoring case. Missing color
+  means neutral gray. The older format 1 remains readable: it reconstructs tags from games with
+  neutral colors, and has no catalog to preserve unused tags. Files made before tags existed
+  restore with games without tags.
 - Currencies are named by their code. A file with a currency the installation does not have is
   an error.
 - The file can be up to 32 MB, which is more than 100,000 games with their notes and dozens of

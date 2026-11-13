@@ -89,6 +89,16 @@ class TagSchemaTests {
         assertThat(jdbc.queryForObject("select count(*) from game", Integer.class)).isEqualTo(1);
     }
 
+    @Test
+    void tagColorsAreLimitedToThePaletteAndDefaultToNull() {
+        long tag = insertTag("Palette");
+        assertThat(jdbc.queryForObject("select color from tag where id = ?", String.class, tag)).isNull();
+        jdbc.update("update tag set color = 'BLUE' where id = ?", tag);
+        assertThatThrownBy(() -> jdbc.update("update tag set color = '#ff0000' where id = ?", tag))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThat(jdbc.queryForObject("select color from tag where id = ?", String.class, tag)).isEqualTo("BLUE");
+    }
+
     private long insertTag(String name) {
         return jdbc.queryForObject("insert into tag (name) values (?) returning id", Long.class, name);
     }

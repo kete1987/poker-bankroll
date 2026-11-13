@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { apiFetch } from './client';
-import type { Tag, TagRequest } from './types';
+import type { Tag, TagColor, TagRequest } from './types';
 
 /** Tags of one game at most, as the backend takes them. */
 export const MAX_TAGS = 10;
@@ -40,4 +40,11 @@ export function useRenameTag() {
 /** Deletes a tag: its games lose it. */
 export function useDeleteTag() {
   return useTagMutation((id: number) => apiFetch<void>(`/tags/${id}`, { method: 'DELETE' }));
+}
+
+/** Changes only the palette color; null restores the neutral default. */
+export function useSetTagColor() {
+  return useTagMutation(({ id, color }: { id: number; color: TagColor | null }) =>
+    apiFetch<Tag>(`/tags/${id}/color`, { method: 'PUT', body: JSON.stringify({ color }) }),
+  );
 }

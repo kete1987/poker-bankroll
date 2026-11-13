@@ -129,6 +129,14 @@ El interruptor es global: **todos los clientes con el token MCP actual podrán e
 | `set_game_tags` | `gameId`, `update: {"tags": ["challenge"]}`; **reemplaza todas** las etiquetas, array vacío las quita |
 | `update_game_metadata` | Lote atómico protegido de metadatos de 1–20 partidas concretas |
 | `apply_tag_change` | Aplica renombrado, unión o borrado de etiqueta revisado |
+| `set_tag_color` | `tagId`, código de paleta `color` opcional; null/omitido restaura gris sin cambiar nombre ni asociaciones |
+
+Los colores usan los códigos RED, PINK, GRAPE, VIOLET, INDIGO, BLUE, CYAN, TEAL, GREEN,
+LIME, YELLOW y ORANGE. Null/omitido es gris neutro. Las respuestas incluyen `color` solo
+cuando está definido: cópialo también al devolver una vista previa en `expected`.
+Cambiar el color deja obsoleta una vista previa de etiqueta. Renombrar conserva el color;
+unir conserva el del destino. `set_tag_color` cambia solo ese campo, requiere escrituras
+activadas y usa recibos TAG duraderos que una restauración invalida.
 
 Desde una plantilla se inicia siempre una partida en juego. Copia sala, tipo, variante,
 modalidad, nombre y buy-in guardados; solo se pueden añadir `playedAt`, `notes` y `tags`

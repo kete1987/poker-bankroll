@@ -281,6 +281,13 @@
         "confirm_one": "Delete the tag {{tag}}? {{formatted}} game loses it; the game is kept.",
         "confirm_other": "Delete the tag {{tag}}? {{formatted}} games lose it; the games are kept.",
         "done": "Tag deleted"
+      },
+      "color": {
+        "title": "Tag color",
+        "label": "Color",
+        "change": "Change color of {{tag}}",
+        "saved": "Tag color updated",
+        "preview": "Color preview"
       }
     },
     "currencies": {
@@ -784,5 +791,20 @@
       "days": "{{currency}} from {{from}} to {{to}}",
       "link": "Download or type the rates in Settings → Currencies"
     }
+  },
+  "tagColors": {
+    "DEFAULT": "Default (gray)",
+    "RED": "Red",
+    "PINK": "Pink",
+    "GRAPE": "Grape",
+    "VIOLET": "Violet",
+    "INDIGO": "Indigo",
+    "BLUE": "Blue",
+    "CYAN": "Cyan",
+    "TEAL": "Teal",
+    "GREEN": "Green",
+    "LIME": "Lime",
+    "YELLOW": "Yellow",
+    "ORANGE": "Orange"
   }
 }

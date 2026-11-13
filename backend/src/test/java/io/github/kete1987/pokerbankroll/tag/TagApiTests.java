@@ -158,6 +158,43 @@ class TagApiTests extends ApiIntegrationTest {
         assertThat(totalItems("?tagId=")).isEqualTo(4);
     }
 
+    @Test
+    void colorsAreSharedByListsGamesAndGroupsAndClearWithoutChangingTheTag() {
+        long game = createGame(game("\"tags\": [\"Series\"], \"status\":\"FINISHED\""));
+        long tag = tagId("Series");
+        assertThat(putJson("/tags/" + tag + "/color", "{\"color\":\"BLUE\"}")).hasStatusOk().bodyJson()
+                .extractingPath("$.color").isEqualTo("BLUE");
+        assertThat(mvc.get().uri("/tags")).bodyJson().extractingPath("$[0].color").isEqualTo("BLUE");
+        assertThat(mvc.get().uri("/games/" + game)).bodyJson().extractingPath("$.tags[0].color").isEqualTo("BLUE");
+        assertThat(mvc.get().uri("/games")).bodyJson().extractingPath("$.items[0].tags[0].color").isEqualTo("BLUE");
+        assertThat(mvc.get().uri("/stats/groups?groupBy=TAG")).bodyJson()
+                .extractingPath("$.currencies[0].groups[0].key.tag.color").isEqualTo("BLUE");
+        assertThat(putJson("/tags/" + tag, "{\"name\":\"Renamed\"}")).hasStatusOk().bodyJson()
+                .extractingPath("$.color").isEqualTo("BLUE");
+        assertThat(putJson("/tags/" + tag + "/color", "{\"color\":null}")).hasStatusOk().bodyJson()
+                .isEqualTo("{\"id\":%d,\"name\":\"Renamed\",\"games\":1}".formatted(tag));
+        assertThat(jdbc.queryForObject("select color from tag where id = ?", String.class, tag)).isNull();
+        assertThat(putJson("/tags/" + tag + "/color", "{}")).hasStatusOk();
+        assertThat(jdbc.queryForObject("select count(*) from game_tag where tag_id = ?", Integer.class, tag)).isEqualTo(1);
+    }
+
+    @Test
+    void mergingColoredTagsKeepsTheDestinationColorAndRejectsInvalidPaletteCodes() {
+        createGame(game("\"tags\": [\"Source\",\"Target\"]"));
+        long source = tagId("Source");
+        long target = tagId("Target");
+        assertThat(putJson("/tags/" + source + "/color", "{\"color\":\"RED\"}")).hasStatusOk();
+        assertThat(putJson("/tags/" + target + "/color", "{\"color\":\"TEAL\"}")).hasStatusOk();
+        assertThat(putJson("/tags/" + source, "{\"name\":\"target\"}")).hasStatusOk().bodyJson()
+                .extractingPath("$.color").isEqualTo("TEAL");
+        for (String invalid : List.of("blue", "#ff0000", "url(example.com)", "GRAY")) {
+            assertThat(putJson("/tags/" + target + "/color", "{\"color\":\"" + invalid + "\"}"))
+                    .hasStatus(HttpStatus.BAD_REQUEST);
+        }
+        assertThat(putJson("/tags/999999/color", "{\"color\":\"BLUE\"}")).hasStatus(HttpStatus.NOT_FOUND);
+        assertThat(jdbc.queryForObject("select color from tag where id = ?", String.class, target)).isEqualTo("TEAL");
+    }
+
     // ---- /tags ----
 
     @Test

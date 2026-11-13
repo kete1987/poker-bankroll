@@ -1,9 +1,11 @@
 package io.github.kete1987.pokerbankroll.tag;
 
 import java.util.Comparator;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import org.jspecify.annotations.Nullable;
 
 /** A tag as games and groups of statistics carry it. */
-public record TagRef(long id, String name) {
+public record TagRef(long id, String name, @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable TagColor color) {
 
     /** By name ignoring case; the id only makes the order stable. */
     public static final Comparator<TagRef> BY_NAME = Comparator.comparing(TagRef::name, String.CASE_INSENSITIVE_ORDER)

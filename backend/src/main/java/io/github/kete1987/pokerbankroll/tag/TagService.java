@@ -41,7 +41,8 @@ public class TagService {
     @Transactional(readOnly = true)
     public List<TagResponse> list() {
         return tags.findAllWithGames().stream()
-                .map(tag -> new TagResponse(tag.getId(), tag.getName(), tag.getGames()))
+                .map(tag -> new TagResponse(tag.getId(), tag.getName(), tag.getGames(),
+                        tag.getColor() == null ? null : TagColor.valueOf(tag.getColor())))
                 .sorted(BY_NAME)
                 .toList();
     }
@@ -103,7 +104,7 @@ public class TagService {
      * it: its games get the other tag and it is deleted. Returns the tag the games have now.
      */
     public TagResponse rename(long id, TagRequest request) {
-        Tag tag = find(id);
+        Tag tag = findForUpdate(id);
         String name = request.name().strip();
         Optional<Tag> other = findByNames(List.of(name)).stream()
                 .filter(one -> !one.getId().equals(tag.getId()))
@@ -122,11 +123,22 @@ public class TagService {
 
     /** Deletes a tag: its games lose it. */
     public void delete(long id) {
-        tags.delete(find(id));
+        tags.delete(findForUpdate(id));
+    }
+
+    /** Changes no name or associations, including when another edit happens concurrently. */
+    public TagResponse setColor(long id, TagColorRequest request) {
+        Tag tag = findForUpdate(id);
+        tag.setColor(request.color());
+        return response(tags.saveAndFlush(tag));
+    }
+
+    private Tag findForUpdate(long id) {
+        return tags.findForUpdateById(id).orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
     }
 
     private TagResponse response(Tag tag) {
-        return new TagResponse(tag.getId(), tag.getName(), tags.countGames(tag.getId()));
+        return new TagResponse(tag.getId(), tag.getName(), tags.countGames(tag.getId()), tag.getColor());
     }
 
     private Tag find(long id) {

@@ -51,4 +51,10 @@ class TagController {
     void deleteTag(@PathVariable long id) {
         service.delete(id);
     }
+
+    @PutMapping("/{id}/color")
+    @Operation(summary = "Set a tag color", description = "Changes only its color. Null or omitted color restores the neutral default.")
+    TagResponse setTagColor(@PathVariable long id, @Valid @RequestBody TagColorRequest request) {
+        return service.setColor(id, request);
+    }
 }

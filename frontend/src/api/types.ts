@@ -20,6 +20,7 @@ export type VariantCreateRequest = Schemas['VariantCreateRequest'];
 export type VariantUpdateRequest = Schemas['VariantUpdateRequest'];
 
 export type Tag = Schemas['TagResponse'];
+export type TagColor = NonNullable<Tag['color']>;
 export type TagRef = Schemas['TagRef'];
 export type TagRequest = Schemas['TagRequest'];
 

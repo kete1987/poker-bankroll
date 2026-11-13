@@ -47,6 +47,7 @@ import io.github.kete1987.pokerbankroll.stats.StatsSummaryResponse.CurrencySumma
 import io.github.kete1987.pokerbankroll.stats.StatsSummaryResponse.GameTypeSummary;
 import io.github.kete1987.pokerbankroll.stats.StatsSummaryResponse.InPlay;
 import io.github.kete1987.pokerbankroll.tag.Tag;
+import io.github.kete1987.pokerbankroll.tag.TagColor;
 import io.github.kete1987.pokerbankroll.tag.TagRef;
 import io.github.kete1987.pokerbankroll.variant.Variant;
 import org.jspecify.annotations.Nullable;
@@ -449,12 +450,12 @@ public class StatsService {
                 case WEEKDAY -> new Grouping(1, (game, cb) -> List.of(game.get("playedOn")),
                         row -> GroupKey.ofWeekday(row.get(FIRST_KEY, LocalDate.class).getDayOfWeek()));
                 // One row per tag of a game: a game with several tags counts in each of their groups.
-                case TAG -> new Grouping(2, (game, cb) -> {
+                case TAG -> new Grouping(3, (game, cb) -> {
                     Join<Game, Tag> tag = game.join("tags", JoinType.LEFT);
-                    return List.of(tag.get("id"), tag.get("name"));
+                    return List.of(tag.get("id"), tag.get("name"), tag.get("color"));
                 }, row -> {
                     Long id = row.get(FIRST_KEY, Long.class);
-                    return GroupKey.ofTag(id == null ? null : new TagRef(id, row.get(FIRST_KEY + 1, String.class)));
+                    return GroupKey.ofTag(id == null ? null : new TagRef(id, row.get(FIRST_KEY + 1, String.class), row.get(FIRST_KEY + 2, TagColor.class)));
                 });
             };
         }

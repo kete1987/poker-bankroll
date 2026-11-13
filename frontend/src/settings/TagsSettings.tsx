@@ -10,7 +10,7 @@ import {
   VisuallyHidden,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconPencil, IconTrash } from '@tabler/icons-react';
+import { IconPalette, IconPencil, IconTrash } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -22,8 +22,10 @@ import { ListPagination } from '../components/ListPagination';
 import { useListPagination } from '../components/useListPagination';
 import { useSubmit } from '../components/useSubmit';
 import { useFormat } from '../format/useFormat';
+import { TagBadge } from '../games/TagBadge';
+import { TagColorDialog } from './TagColorDialog';
 
-type Dialog = { kind: 'rename' | 'delete'; tag: Tag };
+type Dialog = { kind: 'rename' | 'delete' | 'color'; tag: Tag };
 
 /**
  * The tags of the games, with how many games have each. They are created from the form of a
@@ -53,12 +55,14 @@ export function TagsSettings({ tags }: { tags: Tag[] }) {
       <Text size="sm" c="dimmed">
         {t('settings.tags.help')}
       </Text>
-      <Table verticalSpacing="xs" highlightOnHover>
+      <Table verticalSpacing="xs" highlightOnHover style={{ tableLayout: 'fixed' }}>
         <Table.Thead>
           <Table.Tr>
             <Table.Th>{t('settings.tags.name')}</Table.Th>
-            <Table.Th ta="right">{t('settings.tags.games')}</Table.Th>
-            <Table.Th w={80}>
+            <Table.Th ta="right" w={80}>
+              {t('settings.tags.games')}
+            </Table.Th>
+            <Table.Th w={112}>
               <VisuallyHidden>{t('settings.tags.actions')}</VisuallyHidden>
             </Table.Th>
           </Table.Tr>
@@ -67,11 +71,19 @@ export function TagsSettings({ tags }: { tags: Tag[] }) {
           {shown.map((tag) => (
             <Table.Tr key={tag.id}>
               <Table.Td style={{ wordBreak: 'break-word' }}>
-                <Text size="sm">{tag.name}</Text>
+                <TagBadge tag={tag} size="lg" />
               </Table.Td>
               <Table.Td ta="right">{format.number(tag.games)}</Table.Td>
               <Table.Td>
                 <Group gap={4} wrap="nowrap" justify="flex-end">
+                  <IconButton
+                    variant="subtle"
+                    color="gray"
+                    label={t('settings.tags.color.change', { tag: tag.name })}
+                    onClick={() => setDialog({ kind: 'color', tag })}
+                  >
+                    <IconPalette size={16} stroke={1.5} />
+                  </IconButton>
                   <IconButton
                     variant="subtle"
                     color="gray"
@@ -96,6 +108,10 @@ export function TagsSettings({ tags }: { tags: Tag[] }) {
       </Table>
 
       {tags.length > 0 && <ListPagination {...pagination} />}
+
+      {dialog?.kind === 'color' && (
+        <TagColorDialog tag={dialog.tag} onClose={() => setDialog(null)} />
+      )}
 
       {dialog?.kind === 'rename' && (
         <RenameDialog tag={dialog.tag} tags={tags} onClose={() => setDialog(null)} />
