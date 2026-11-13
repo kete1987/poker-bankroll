@@ -60,6 +60,23 @@ class DemoDataSeederTests {
     }
 
     @Test
+    void tagColorsAreVisibleInSettingsAndGames() {
+        var tags = assertThat(mvc.get().uri("/tags")).hasStatusOk().bodyJson();
+        tags.extractingPath("$[*].name").asArray()
+                .containsExactly("Challenge", "Friends", "Satellite", "Winamax Series");
+        tags.extractingPath("$[*].color").asArray().containsExactly("BLUE", "TEAL", "VIOLET", "ORANGE");
+        assertThat(mvc.get().uri("/games?status=IN_PLAY")).hasStatusOk().bodyJson()
+                .extractingPath("$.items[*].tags[*].color").asArray().containsExactly("TEAL");
+        long game = jdbc.queryForObject("""
+                select min(gt.game_id) from game_tag gt join tag t on t.id = gt.tag_id
+                join game g on g.id = gt.game_id
+                where t.name = 'Challenge' and g.status = 'FINISHED'
+                """, Long.class);
+        assertThat(mvc.get().uri("/games/{id}", game)).hasStatusOk().bodyJson()
+                .extractingPath("$.tags[?(@.name == 'Challenge')].color").asArray().containsExactly("BLUE");
+    }
+
+    @Test
     void oneTemplateIsOfTheClosedRoom() {
         assertThat(mvc.get().uri("/game-templates")).hasStatusOk().bodyJson()
                 .extractingPath("$[?(@.usable == false)].room.name").asArray().containsExactly("Unibet");

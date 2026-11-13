@@ -492,7 +492,7 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 ### Demo data
 - The Spring profile `demo` (`demo/DemoDataSeeder`) fills an **empty** database on startup with a
   year of made-up results ending today: four rooms (EUR and USD, one inactive, three with a logo), a user-defined
-  variant, about 400 games of every type (some with tags), three games in play, bankroll movements
+  variant, about 400 games of every type (some with colored tags), three games in play, bankroll movements
   and four templates (one in the inactive room), and made-up daily dollar rates (1.05 to 1.15
   per euro, working days, written as downloaded ones) so that conversion works offline. It does
   nothing when the database already has a room, a game, a movement or a user-defined variant, and

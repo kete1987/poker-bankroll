@@ -22,6 +22,9 @@ import io.github.kete1987.pokerbankroll.game.GameStatus;
 import io.github.kete1987.pokerbankroll.room.RoomLogoService;
 import io.github.kete1987.pokerbankroll.room.RoomRequest;
 import io.github.kete1987.pokerbankroll.room.RoomService;
+import io.github.kete1987.pokerbankroll.tag.TagColor;
+import io.github.kete1987.pokerbankroll.tag.TagColorRequest;
+import io.github.kete1987.pokerbankroll.tag.TagService;
 import io.github.kete1987.pokerbankroll.template.GameTemplateRequest;
 import io.github.kete1987.pokerbankroll.template.GameTemplateService;
 import io.github.kete1987.pokerbankroll.variant.VariantCreateRequest;
@@ -59,6 +62,7 @@ public class DemoDataSeeder implements ApplicationRunner {
     private final GameService games;
     private final BankrollService bankroll;
     private final GameTemplateService templates;
+    private final TagService tags;
     private final JdbcClient jdbc;
 
     private final Random random = new Random(SEED);
@@ -73,13 +77,14 @@ public class DemoDataSeeder implements ApplicationRunner {
     private LocalDate challengeTo;
 
     DemoDataSeeder(RoomService rooms, RoomLogoService logos, VariantService variants, GameService games,
-            BankrollService bankroll, GameTemplateService templates, JdbcClient jdbc) {
+            BankrollService bankroll, GameTemplateService templates, TagService tags, JdbcClient jdbc) {
         this.rooms = rooms;
         this.logos = logos;
         this.variants = variants;
         this.games = games;
         this.bankroll = bankroll;
         this.templates = templates;
+        this.tags = tags;
         this.jdbc = jdbc;
     }
 
@@ -112,6 +117,7 @@ public class DemoDataSeeder implements ApplicationRunner {
             }
         }
         recordGamesInPlay(today);
+        colorTags();
         recordMovements(start, today);
         recordExchangeRates(start, today);
         rooms.update(unibet, new RoomRequest("Unibet", "EUR", false));
@@ -137,6 +143,19 @@ public class DemoDataSeeder implements ApplicationRunner {
         }
         long hyperTurbo = variants.create(new VariantCreateRequest(GameType.SIT_AND_GO, "Hyper Turbo 6-max")).id();
         variantIds.put("SIT_AND_GO/HYPER_TURBO", hyperTurbo);
+    }
+
+    /** Distinct colors visible in settings, finished games and games in play. */
+    private void colorTags() {
+        Map<String, TagColor> colors = Map.of(
+                "Challenge", TagColor.BLUE,
+                "Friends", TagColor.TEAL,
+                "Satellite", TagColor.VIOLET,
+                "Winamax Series", TagColor.ORANGE);
+        for (var tag : tags.list()) {
+            TagColor color = colors.get(tag.name());
+            if (color != null) tags.setColor(tag.id(), new TagColorRequest(color));
+        }
     }
 
     /** The games played most, to start them in a click; the one of Unibet stays when it is closed. */
