@@ -2,7 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { Game, StatsGroup, StatsGroups } from '../api/types';
+import type { Game, StatsGroup, StatsGroups, Tag } from '../api/types';
 import { game, page, ROOMS, statsGroups, statsSummary, TAGS, VARIANTS } from '../test/fixtures';
 import { onANarrowScreen } from '../test/narrowScreen';
 import { problem, renderApp, stubApi, type ApiCall } from '../test/renderApp';
@@ -54,6 +54,28 @@ function tagsOf(container: HTMLElement) {
 }
 
 describe('Tags of the games', () => {
+  it.each([false, true])('shows stored colors and neutral defaults (mobile=%s)', async (mobile) => {
+    if (mobile) onANarrowScreen();
+    stubGames([
+      game({
+        name: 'Colored game',
+        tags: [
+          { id: 30, name: 'Series', color: 'BLUE' },
+          { id: 31, name: 'Default' },
+        ],
+      }),
+    ]);
+    renderApp('/games');
+    await screen.findByText('Colored game');
+    const list = within(screen.getByRole('list', { name: 'Tags' }));
+    expect(list.getByText('Series')).toHaveStyle({
+      '--badge-bg': 'var(--mantine-color-blue-light)',
+    });
+    expect(list.getByText('Default')).toHaveStyle({
+      '--badge-bg': 'var(--mantine-color-gray-light)',
+    });
+  });
+
   it('are shown under the name of each game', async () => {
     stubGames([TAGGED, game({ id: 8, name: 'Untagged' })]);
     renderApp('/games');
@@ -199,6 +221,74 @@ describe('Statistics by tag', () => {
 });
 
 describe('Settings: tags', () => {
+  it('previews a color, saves only that field and refreshes the badge', async () => {
+    let tag: Tag = { id: 31, name: 'Friends', games: 1 };
+    const calls = stubApi({
+      'GET /tags': () => [tag],
+      'PUT /tags/31/color': (call: ApiCall) => {
+        tag = { ...tag, color: (call.body as { color: Tag['color'] }).color };
+        return tag;
+      },
+    });
+    renderApp('/settings?tab=tags');
+    await userEvent.click(await screen.findByRole('button', { name: 'Change color of Friends' }));
+    const dialog = within(await screen.findByRole('dialog', { name: 'Tag color' }));
+    expect(dialog.getByRole('radiogroup', { name: 'Color' })).toBeInTheDocument();
+    expect(dialog.getAllByRole('radio')).toHaveLength(13);
+    expect(dialog.getByRole('radio', { name: 'Default (gray)' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    await userEvent.click(dialog.getByRole('radio', { name: 'Blue' }));
+    expect(dialog.getByRole('radio', { name: 'Blue' })).toHaveAttribute('aria-checked', 'true');
+    await userEvent.keyboard('{ArrowRight}');
+    expect(dialog.getByRole('radio', { name: 'Cyan' })).toHaveAttribute('aria-checked', 'true');
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(dialog.getByRole('radio', { name: 'Blue' })).toHaveAttribute('aria-checked', 'true');
+    expect(dialog.getByText('Friends')).toHaveStyle({
+      '--badge-bg': 'var(--mantine-color-blue-light)',
+    });
+    expect(calls.filter((call) => call.method === 'PUT')).toHaveLength(0);
+    await userEvent.click(dialog.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(within(screen.getByRole('cell', { name: 'Friends' })).getByText('Friends')).toHaveStyle({
+      '--badge-bg': 'var(--mantine-color-blue-light)',
+    });
+    expect(
+      calls.filter((call) => call.method === 'PUT').map((call) => [call.path, call.body]),
+    ).toEqual([['/tags/31/color', { color: 'BLUE' }]]);
+    expect(tag.name).toBe('Friends');
+    expect(tag.games).toBe(1);
+  });
+
+  it('keeps failures visible and can reset a color to the neutral default', async () => {
+    let fail = true;
+    let tag: Tag = { id: 31, name: 'Friends', games: 1, color: 'TEAL' };
+    const calls = stubApi({
+      'GET /tags': () => [tag],
+      'PUT /tags/31/color': () => {
+        if (fail) return problem(500, 'INTERNAL_ERROR', 'Could not save color');
+        tag = { ...tag, color: null };
+        return tag;
+      },
+    });
+    renderApp('/settings?tab=tags');
+    await userEvent.click(await screen.findByRole('button', { name: 'Change color of Friends' }));
+    const dialog = within(await screen.findByRole('dialog', { name: 'Tag color' }));
+    expect(dialog.getByRole('radio', { name: 'Teal' })).toHaveAttribute('aria-checked', 'true');
+    await userEvent.click(dialog.getByRole('radio', { name: 'Default (gray)' }));
+    await userEvent.click(dialog.getByRole('button', { name: 'Save' }));
+    expect(await dialog.findByText('Could not save color')).toBeInTheDocument();
+    expect(tag.color).toBe('TEAL');
+    fail = false;
+    await userEvent.click(dialog.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(calls.filter((call) => call.method === 'PUT').at(-1)?.body).toEqual({ color: null });
+    expect(within(screen.getByRole('cell', { name: 'Friends' })).getByText('Friends')).toHaveStyle({
+      '--badge-bg': 'var(--mantine-color-gray-light)',
+    });
+  });
+
   function stubTags(handlers: Record<string, unknown> = {}) {
     return stubApi({ 'GET /tags': TAGS, ...handlers });
   }

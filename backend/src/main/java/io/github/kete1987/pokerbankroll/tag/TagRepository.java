@@ -1,12 +1,19 @@
 package io.github.kete1987.pokerbankroll.tag;
 
 import java.util.List;
+import java.util.Optional;
+import jakarta.persistence.LockModeType;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 
 interface TagRepository extends JpaRepository<Tag, Long> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select t from Tag t where t.id = :id")
+    Optional<Tag> findForUpdateById(long id);
 
     /**
      * Creates the tag unless there is one with that name ignoring case. Two requests creating the
@@ -18,7 +25,7 @@ interface TagRepository extends JpaRepository<Tag, Long> {
 
     /** Every tag with the number of games that have it. */
     @Query(value = """
-            select t.id, t.name, count(gt.game_id) as games
+            select t.id, t.name, t.color, count(gt.game_id) as games
             from tag t left join game_tag gt on gt.tag_id = t.id
             group by t.id, t.name
             """, nativeQuery = true)
@@ -42,6 +49,8 @@ interface TagRepository extends JpaRepository<Tag, Long> {
         long getId();
 
         String getName();
+
+        String getColor();
 
         long getGames();
     }

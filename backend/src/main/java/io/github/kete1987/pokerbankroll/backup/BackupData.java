@@ -10,6 +10,7 @@ import io.github.kete1987.pokerbankroll.bankroll.MovementType;
 import io.github.kete1987.pokerbankroll.catalog.GameType;
 import io.github.kete1987.pokerbankroll.catalog.Modality;
 import io.github.kete1987.pokerbankroll.game.GameStatus;
+import io.github.kete1987.pokerbankroll.tag.TagColor;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -18,8 +19,7 @@ import org.jspecify.annotations.Nullable;
  * (see {@link BackupV1}) that are mapped to and from these, so the restore only knows this model.
  *
  * <p>Rooms and variants have an {@code id} that only means something inside the backup: games,
- * movements and templates name them by it. Tags are not apart: each game names its own, and the
- * restore creates them. Everything can be missing, since it may come from a file: the restore
+ * movements and templates name them by it. Tags retain their names and colors, including unused tags; each game names its own. Everything can be missing, since it may come from a file: the restore
  * checks it.
  *
  * <p>Of the currencies, the base currency chosen by the user ({@code null}: automatic) and the
@@ -38,7 +38,11 @@ record BackupData(
         List<@Nullable MovementData> movements,
         List<@Nullable TemplateData> templates,
         @Nullable String baseCurrencyCode,
-        List<@Nullable RateData> exchangeRates) {
+        List<@Nullable RateData> exchangeRates,
+        List<@Nullable TagData> tags) {
+
+    record TagData(@Nullable String name, @Nullable TagColor color) {
+    }
 
     record RoomData(
             @Nullable Long id,

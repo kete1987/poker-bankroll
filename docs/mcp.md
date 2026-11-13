@@ -130,6 +130,13 @@ The default is false: write tools are neither listed nor callable. This switch i
 | `set_game_tags` | `gameId`, `update: {"tags": ["challenge"]}`; **replaces all** tags, empty array clears them |
 | `update_game_metadata` | Guarded atomic batch of 1–20 explicit game metadata changes |
 | `apply_tag_change` | Apply a reviewed tag rename, merge or deletion |
+| `set_tag_color` | `tagId`, optional `color` palette code; null/omitted resets to neutral gray, preserving name and associations |
+
+Tag colors use the codes RED, PINK, GRAPE, VIOLET, INDIGO, BLUE, CYAN, TEAL, GREEN, LIME,
+YELLOW and ORANGE. Null/omitted is neutral gray. Tag responses carry `color` only when set;
+copy it too when passing a tag preview back as `expected`. A color change makes an old tag
+preview stale. Renaming preserves color; merging keeps the destination color. `set_tag_color`
+is a field-only, write-gated operation with durable TAG receipts and restore invalidation.
 
 A template start is always in play. It copies the saved room, type, variant, modality, name
 and buy-in; only `playedAt`, `notes` and `tags` can be provided alongside `templateId`

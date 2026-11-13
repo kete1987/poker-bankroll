@@ -1,0 +1,5 @@
+ALTER TABLE tag ADD COLUMN color VARCHAR(16);
+ALTER TABLE tag ADD CONSTRAINT tag_color_check CHECK (color IN (
+    'RED', 'PINK', 'GRAPE', 'VIOLET', 'INDIGO', 'BLUE', 'CYAN',
+    'TEAL', 'GREEN', 'LIME', 'YELLOW', 'ORANGE'
+));

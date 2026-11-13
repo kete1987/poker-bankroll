@@ -19,13 +19,12 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code formatVersion}.
  *
  * <p>A backup is always written in the {@linkplain #CURRENT_VERSION current version}; every version
- * up to it can be read, each by its own records, and a newer one is refused. Adding version 2 is:
- * a {@code BackupV2} class, {@link #CURRENT_VERSION} and {@link #write} moved to it, and a case in
- * {@link #read} — {@link BackupV1} stays as it is, to keep reading the files of today.
+ * up to it can be read, each by its own records, and a newer one is refused. Format 2 adds
+ * the tag catalog and colors while the immutable format 1 representations remain readable.
  */
 final class BackupFormat {
 
-    static final int CURRENT_VERSION = BackupV1.VERSION;
+    static final int CURRENT_VERSION = BackupV2.VERSION;
 
     /**
      * Its own mapper, not the one of the API: the format of the file must not change with the
@@ -47,7 +46,7 @@ final class BackupFormat {
     }
 
     static byte[] write(BackupData data) {
-        return JSON.writeValueAsBytes(BackupV1.File.of(data));
+        return JSON.writeValueAsBytes(BackupV2.File.of(data));
     }
 
     /**
@@ -72,6 +71,7 @@ final class BackupFormat {
             // One case per version, each with its own records.
             return switch (version) {
                 case BackupV1.VERSION -> readV1(content);
+                case BackupV2.VERSION -> readV2(content);
                 default -> throw new IllegalStateException("No reader for the format " + version);
             };
         } catch (JacksonException ex) {
@@ -85,6 +85,13 @@ final class BackupFormat {
         if (missing != null) {
             throw malformed(in(missing));
         }
+        return file.toData();
+    }
+
+    private static BackupData readV2(byte[] content) {
+        BackupV2.File file = JSON.readValue(content, BackupV2.File.class);
+        String missing = file.missingList();
+        if (missing != null) throw malformed(in(missing));
         return file.toData();
     }
 

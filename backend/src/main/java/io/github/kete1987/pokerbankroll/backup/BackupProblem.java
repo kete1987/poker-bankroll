@@ -8,6 +8,8 @@ package io.github.kete1987.pokerbankroll.backup;
 enum BackupProblem {
 
     REQUIRED,
+    /** Two tag definitions with the same name ignoring case. */
+    DUPLICATE_TAG,
     /** Two rooms, or two variants, with the same id: what names them would be ambiguous. */
     DUPLICATE_ID,
     /** Two exchange rates typed by hand of the same currency and day. */

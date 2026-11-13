@@ -2,10 +2,13 @@ package io.github.kete1987.pokerbankroll.tag;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Free-form label of games. Names are unique ignoring case: a game is given a tag by its name, and
@@ -23,6 +26,10 @@ public class Tag {
     @Column(name = "name", nullable = false, length = TagName.MAX_LENGTH)
     private String name;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "color", length = 16)
+    private @Nullable TagColor color;
+
     protected Tag() {
     }
 
@@ -39,6 +46,14 @@ public class Tag {
     }
 
     public TagRef toRef() {
-        return new TagRef(id, name);
+        return new TagRef(id, name, color);
+    }
+
+    public @Nullable TagColor getColor() {
+        return color;
+    }
+
+    void setColor(@Nullable TagColor color) {
+        this.color = color;
     }
 }

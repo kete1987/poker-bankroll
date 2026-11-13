@@ -281,6 +281,13 @@
         "confirm_one": "¿Eliminar la etiqueta {{tag}}? {{formatted}} partida la pierde; la partida se conserva.",
         "confirm_other": "¿Eliminar la etiqueta {{tag}}? {{formatted}} partidas la pierden; las partidas se conservan.",
         "done": "Etiqueta eliminada"
+      },
+      "color": {
+        "title": "Color de etiqueta",
+        "label": "Color",
+        "change": "Cambiar color de {{tag}}",
+        "saved": "Color actualizado",
+        "preview": "Vista previa del color"
       }
     },
     "currencies": {
@@ -784,5 +791,20 @@
       "days": "{{currency}} del {{from}} al {{to}}",
       "link": "Descarga o escribe los tipos en Ajustes → Divisas"
     }
+  },
+  "tagColors": {
+    "DEFAULT": "Predeterminado (gris)",
+    "RED": "Rojo",
+    "PINK": "Rosa",
+    "GRAPE": "Morado",
+    "VIOLET": "Violeta",
+    "INDIGO": "Índigo",
+    "BLUE": "Azul",
+    "CYAN": "Cian",
+    "TEAL": "Verde azulado",
+    "GREEN": "Verde",
+    "LIME": "Lima",
+    "YELLOW": "Amarillo",
+    "ORANGE": "Naranja"
   }
 }

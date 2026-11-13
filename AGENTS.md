@@ -291,7 +291,7 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   requests on the same game (a double click, a re-entry racing a finish) run one after another and
   none is lost.
 - `GameRequest.tags` (names) is optional: omitted or `null` is no tags, and a `PUT` replaces them.
-  `GameResponse.tags` are `TagRef`s (`{id, name}`) by name. `GET /tags` lists every tag with its
+  `GameResponse.tags` are `TagRef`s (`{id, name, color?}`) by name. `GET /tags` lists every tag with its
   number of games (a plain list), `PUT /tags/{id}` renames (or merges) and `DELETE /tags/{id}`
   takes it off its games. Tags of games are loaded in batches (`Game.TAG_BATCH`), also by
   `GameService.forEach`, which hands games over a batch at a time.
@@ -369,8 +369,9 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
     `BackupFormat.read`: every older version stays readable, a newer one is refused
     (`BACKUP_FORMAT_TOO_NEW`). A new column of a game, a room... that must survive a backup goes
     in `BackupData` and in the records of the current version (optional there, so files made
-    before it still restore), both ways in `BackupService`. Tags are not a list of the file: each
-    game names its own (`tags`), and the restore creates them after writing the games.
+    before it still restore), both ways in `BackupService`. Each
+    game names its own (`tags`). Format 2 also stores a tag catalog (name and optional palette color),
+    including unused tags; format 1 remains readable and restores neutral colors.
   - Besides the data, the base currency chosen (`baseCurrencyCode`, left out when automatic) and
     the rates typed by hand (`exchangeRates`), both optional in format 1; the downloaded rates are
     not backed up (they are downloaded again) and a restore leaves them.
@@ -491,7 +492,7 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 ### Demo data
 - The Spring profile `demo` (`demo/DemoDataSeeder`) fills an **empty** database on startup with a
   year of made-up results ending today: four rooms (EUR and USD, one inactive, three with a logo), a user-defined
-  variant, about 400 games of every type (some with tags), three games in play, bankroll movements
+  variant, about 400 games of every type (some with colored tags), three games in play, bankroll movements
   and four templates (one in the inactive room), and made-up daily dollar rates (1.05 to 1.15
   per euro, working days, written as downloaded ones) so that conversion works offline. It does
   nothing when the database already has a room, a game, a movement or a user-defined variant, and
@@ -568,9 +569,16 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   `FilterBar`), and anything read from the URL goes through `components/urlParams` (invalid values
   are dropped there).
 - Tags of a game are typed in `games/TagsField` (a `TagsInput` suggesting `useTags`, also in the
-  form of several games, where they go to every game); they are shown as small gray badges under its
+  form of several games, where they go to every game); they are shown as small colored badges under its
   name (`GameName`). Settings has a tab of tags (`settings/TagsSettings`): rename, with the merge
-  said before saving, and delete. Changing a tag invalidates every query (`api/tags.ts`).
+  said before saving, color, and delete. `TagBadge` shares the palette across game views and settings.
+  `PUT /tags/{id}/color` changes only the nullable `TagColor` code; null/omitted means neutral gray.
+  The database checks the palette too. Tag rename, color and delete acquire a ROW EXCLUSIVE table
+  lock before the tag row lock, coordinating with MCP maintenance's table locks; merging
+  keeps the destination's color. `set_tag_color` exposes the same field-only write through MCP,
+  with a TAG receipt. Colored tag definitions are part of the stale-preview comparison; neutral
+  colors are omitted from JSON to preserve pre-color receipt fingerprints. Changing a tag
+  invalidates every query (`api/tags.ts`).
 - The name of a game is a `games/NameInput` fed by `games/useNameSuggestions` (debounced, from 2
   characters, for the type of the form), shared by the game form and the bulk add. Picking a name
   fills the buy-in, variant and modality of a **new** game, except the ones the user has set by hand
