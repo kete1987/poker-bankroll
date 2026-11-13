@@ -410,8 +410,8 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   MCP Java SDK 2.1.0 and Spring AI MVC transport 2.0.2, registered explicitly (no starter or
   automatic tool scanning). Streamable HTTP is stateless; no stdio or model provider. Tool
   handlers delegate to application services, including `CatalogService` and `GameSort` shared
-  with REST. `McpTools` registers reads (including templates and operation traces);
-  `McpWriteTools` registers seven writes only with `poker-bankroll.mcp.write-enabled=true`.
+  with REST. `McpTools` registers reads (including a complete game by ID, templates and operation traces);
+  `McpWriteTools` and the metadata/tag tools register writes only with `poker-bankroll.mcp.write-enabled=true`.
   `MCP_WRITE_ENABLED` in Compose defaults to false. It is global: the same bearer token
   authorizes writes for all clients when enabled. Annotations are hints, not enforced approval.
 - `poker-bankroll.mcp.enabled` defaults to false. Enabling requires `.token` (32–256 URL-safe
@@ -435,6 +435,18 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   original snapshot; different tool/input fails. Failed transactions reserve no key. Receipts
   have resource type/ID and time; no automatic game tag. Never prune keys casually: it would
   allow old retries to duplicate writes. `list_mcp_operations` exposes bounded metadata.
+- Metadata batches (`McpMetadataTools`, `GameService.editMetadata`) contain 1–20 explicit
+  distinct games. A preview reports complete before states and canonical proposed metadata;
+  apply compares `updatedAt` and tag names after locking game rows in ID order and then tag
+  tables. Names, notes and tags are the only fields changed; omitted operations are preserved.
+  A stale or invalid item aborts the entire transaction and reports its zero-based index. The
+  receipt identifies the first game but stores the whole batch; resource-ID receipt searches
+  find the first game only. Tag changes (`McpTagTools`, `McpTagMaintenance`) preview the exact
+  intended operation, source/target and association fingerprints, and reject stale previews;
+  deletion removes the tag and its associations, never games. TAG receipts identify the source
+  even after merge/deletion. Both paths use the same durable receipt/restore invalidation rules.
+  The read-only `McpBackupTools` holds at most one 32 MiB JSON snapshot for ten minutes and
+  sends 256 KiB base64 chunks; a new snapshot supersedes the old one. It exposes no restore.
 - Notes/tags writes use `GameService.setNotes/setTags`, acquiring `findForUpdateById` and
   replacing only that field; never reconstruct a full update from stale game data. Their
   annotations warn about replacement. Templates start in play without overriding saved fields.

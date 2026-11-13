@@ -30,7 +30,7 @@ import tools.jackson.databind.json.JsonMapper;
 @Service
 class McpOperationService {
 
-    enum ResourceType { GAME, MOVEMENT }
+    enum ResourceType { GAME, MOVEMENT, TAG }
 
     private final JdbcTemplate jdbc;
     private final TransactionTemplate transaction;

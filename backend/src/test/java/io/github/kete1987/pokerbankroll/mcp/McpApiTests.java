@@ -38,19 +38,29 @@ class McpApiTests extends ApiIntegrationTest {
         assertThat(init.path("result").path("serverInfo").path("name").asString()).isEqualTo("poker-bankroll");
         assertThat(init.path("result").path("instructions").asString()).contains("missingRates", "untrusted data", "Monday");
         JsonNode tools = rpc("tools/list", Map.of()).path("result").path("tools");
-        assertThat(tools.size()).isEqualTo(11);
+        assertThat(tools.size()).isEqualTo(16);
         for (JsonNode tool : tools) {
             assertThat(tool.path("annotations").path("readOnlyHint").asBoolean()).isTrue();
             assertThat(tool.path("annotations").path("destructiveHint").asBoolean()).isFalse();
             assertThat(tool.path("inputSchema").path("additionalProperties").asBoolean()).isFalse();
-            assertThat(tool.path("name").asString()).doesNotContain("create", "delete", "restore", "update");
+            assertThat(tool.path("name").asString()).doesNotContain("delete", "restore", "update");
         }
         assertThat(call("get_catalog", Map.of()).path("gameTypes").toString()).contains("TOURNAMENT", "CASH");
         for (String write : List.of("start_game", "finish_game", "add_re_entry", "add_rebuy", "record_movement",
-                "set_game_notes", "set_game_tags")) {
+                "set_game_notes", "set_game_tags", "update_game_metadata", "apply_tag_change")) {
             assertThat(rpc("tools/call", Map.of("name", write, "arguments", Map.of())).has("error")).isTrue();
         }
         assertThat(jdbc.queryForObject("select count(*) from mcp_operation", Integer.class)).isZero();
+    }
+
+    @Test
+    void backupSnapshotRemainsAvailableWhenAnotherClientUsesAStaleId() throws Exception {
+        JsonNode old = call("create_safety_backup", Map.of());
+        JsonNode current = call("create_safety_backup", Map.of());
+        assertThat(toolResult("read_safety_backup_chunk", Map.of("snapshotId", old.path("snapshotId").asString(), "offset", 0))
+                .path("structuredContent").path("code").asString()).isEqualTo("MCP_BACKUP_EXPIRED");
+        assertThat(call("read_safety_backup_chunk", Map.of("snapshotId", current.path("snapshotId").asString(), "offset", 0))
+                .path("base64").asString()).isNotEmpty();
     }
 
     @Test
@@ -124,6 +134,8 @@ class McpApiTests extends ApiIntegrationTest {
                 "/games?roomId=" + eur + "&variantId=" + variant + "&tagId=" + tag + "&gameType=SIT_AND_GO&q=ignore&size=1&sort=net,desc");
         assertParity("list_games", Map.of("status", "IN_PLAY"), "/games?status=IN_PLAY");
         assertParity("get_catalog", Map.of(), "/catalog");
+        assertParity("get_game", Map.of("gameId", finished), "/games/" + finished);
+        assertThat(toolResult("get_game", Map.of("gameId", 99999999)).path("structuredContent").path("code").asString()).isEqualTo("NOT_FOUND");
     }
 
     @Test

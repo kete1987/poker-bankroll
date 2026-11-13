@@ -73,9 +73,7 @@ class McpToolExecutor {
                 Object value = action.apply(input);
                 Object result = value instanceof McpOperationService.OperationResult operation ? operation.resource() : value;
                 String json = mapper.writeValueAsString(result);
-                if (json.getBytes(StandardCharsets.UTF_8).length > MAX_RESULT_BYTES) {
-                    return error(ErrorCode.MCP_RESULT_TOO_LARGE, List.of());
-                }
+                ensureJsonFits(json);
                 var response = CallToolResult.builder().structuredContent(result).addTextContent(json).isError(false);
                 if (value instanceof McpOperationService.OperationResult operation) {
                     response.meta(Map.of("pokerBankrollOperation", operation.receipt()));
@@ -87,7 +85,10 @@ class McpToolExecutor {
                                 "code", v.getConstraintDescriptor().getAnnotation().annotationType().getSimpleName(),
                                 "message", v.getMessage())).toList());
             } catch (ApiException ex) {
-                return error(ex.getCode(), List.of(), ex.getArgs());
+                return errorAtIndex(ex);
+            } catch (org.springframework.dao.PessimisticLockingFailureException
+                    | jakarta.persistence.PessimisticLockException | jakarta.persistence.LockTimeoutException ex) {
+                return error(ErrorCode.CONFLICT, List.of());
             } catch (DataIntegrityViolationException ex) {
                 return error(ErrorCode.CONFLICT, List.of());
             } catch (Exception ex) {
@@ -97,10 +98,30 @@ class McpToolExecutor {
         });
     }
 
+    /** Check a write's response before committing its changes and durable receipt. */
+    void ensureResultFits(Object result) {
+        ensureJsonFits(mapper.writeValueAsString(result));
+    }
+
+    private static void ensureJsonFits(String json) {
+        if (json.getBytes(StandardCharsets.UTF_8).length > MAX_RESULT_BYTES) {
+            throw new ApiException(ErrorCode.MCP_RESULT_TOO_LARGE);
+        }
+    }
+
     /** Also validate requests assembled from templates, after filling their fields. */
     void validate(Object input) {
         var violations = validator.validate(input);
         if (!violations.isEmpty()) throw new ConstraintViolationException(violations);
+    }
+
+    private CallToolResult errorAtIndex(ApiException ex) {
+        if (ex.getIndex() == null) return error(ex.getCode(), List.of(), ex.getArgs());
+        Map<String, Object> problem = Map.of("code", ex.getCode().name(), "detail",
+                messages.getMessage(ex.getCode().messageKey(), ex.getArgs(), ex.getCode().name(), Locale.ENGLISH),
+                "errors", List.of(), "index", ex.getIndex());
+        return CallToolResult.builder().isError(true).structuredContent(problem)
+                .addTextContent(mapper.writeValueAsString(problem)).build();
     }
 
     private CallToolResult error(ErrorCode code, List<?> violations, Object... args) {
