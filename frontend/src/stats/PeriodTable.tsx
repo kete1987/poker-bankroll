@@ -1,7 +1,9 @@
-import { Group, Pagination, Stack, Table, Text } from '@mantine/core';
+import { Stack, Table, Text } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 
 import type { GameType, StatsFigures } from '../api/types';
+import { ListPagination } from '../components/ListPagination';
+import { PERIOD_PAGE_SIZE } from '../components/pagination';
 import { CompactTable, type CompactRow } from '../components/CompactTable';
 import { useNarrowScreen } from '../components/useNarrowScreen';
 import { NO_VALUE } from '../format/format';
@@ -26,11 +28,11 @@ interface PeriodTableProps {
   /** Zero-based; a page past the end shows the last one. */
   page: number;
   onPageChange: (page: number) => void;
+  pageSize: number;
+  onPageSizeChange: (size: number) => void;
 }
 
 const GAME_TYPES: readonly GameType[] = ['TOURNAMENT', 'SIT_AND_GO', 'CASH'];
-/** A month of days fits in a page. */
-const PAGE_SIZE = 31;
 
 /**
  * Results per period, with the net of each game type next to the totals: the "Totales por día"
@@ -44,14 +46,16 @@ export function PeriodTable({
   periodLabel,
   page,
   onPageChange,
+  pageSize,
+  onPageSizeChange,
 }: PeriodTableProps) {
   const { t } = useTranslation();
   const format = useFormat();
   const narrow = useNarrowScreen();
-  const pageCount = Math.ceil(rows.length / PAGE_SIZE);
+  const pageCount = Math.ceil(rows.length / pageSize);
   // The page comes from the URL and the rows can shrink under it: stay within them.
   const current = Math.min(page + 1, Math.max(pageCount, 1));
-  const shown = rows.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
+  const shown = rows.slice((current - 1) * pageSize, current * pageSize);
 
   // Only the game types that were played, so a filter by type leaves no empty columns.
   const gameTypes = GAME_TYPES.filter((type) => totalNetByGameType[type] !== undefined);
@@ -172,17 +176,14 @@ export function PeriodTable({
           </Table>
         </Table.ScrollContainer>
       )}
-      {pageCount > 1 && (
-        <Group justify="flex-end">
-          <Pagination
-            total={pageCount}
-            value={current}
-            onChange={(chosen) => onPageChange(chosen - 1)}
-            getControlProps={(control) => ({ 'aria-label': t(`games.list.pages.${control}`) })}
-            getItemProps={(item) => ({ 'aria-label': t('games.list.pages.page', { page: item }) })}
-          />
-        </Group>
-      )}
+      <ListPagination
+        page={current - 1}
+        pageSize={pageSize}
+        defaultPageSize={PERIOD_PAGE_SIZE}
+        totalPages={pageCount}
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
+      />
     </Stack>
   );
 }

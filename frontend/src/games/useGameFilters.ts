@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router';
 
 import type { GameQuery } from '../api/games';
 import type { GameType } from '../api/types';
+import { DEFAULT_PAGE_SIZE, parsePageSize } from '../components/pagination';
 import { parseDate, parseList, parseOneOf, parsePositiveInteger } from '../components/urlParams';
 
 /** Columns the table can be ordered by, as the API names them. */
@@ -20,11 +21,12 @@ export interface GameFilters {
   q?: string;
   /** Zero-based. */
   page: number;
+  pageSize: number;
   sortField: SortField;
   sortDescending: boolean;
 }
 
-export const PAGE_SIZE = 25;
+export const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 const GAME_TYPES: readonly GameType[] = ['TOURNAMENT', 'SIT_AND_GO', 'CASH'];
 
 function parse(params: URLSearchParams): GameFilters {
@@ -39,6 +41,7 @@ function parse(params: URLSearchParams): GameFilters {
     q: params.get('q')?.trim() || undefined,
     // The page is one-based in the URL, as people count.
     page: (parsePositiveInteger(params.get('page')) ?? 1) - 1,
+    pageSize: parsePageSize(params.get('size')),
     sortField: (SORT_FIELDS as readonly string[]).includes(sortField ?? '')
       ? (sortField as SortField)
       : 'playedOn',
@@ -68,6 +71,7 @@ function serialize(filters: GameFilters): URLSearchParams {
   if (filters.page > 0) {
     params.set('page', String(filters.page + 1));
   }
+  if (filters.pageSize !== PAGE_SIZE) params.set('size', String(filters.pageSize));
   return params;
 }
 
@@ -91,7 +95,18 @@ export function useGameFilters() {
     [setParams],
   );
 
-  const clear = useCallback(() => setParams(new URLSearchParams(), { replace: true }), [setParams]);
+  const clear = useCallback(
+    () =>
+      setParams(
+        (current) =>
+          serialize({
+            ...parse(new URLSearchParams()),
+            pageSize: parse(current).pageSize,
+          }),
+        { replace: true },
+      ),
+    [setParams],
+  );
 
   const hasFilters = Boolean(
     filters.from ||
@@ -118,7 +133,7 @@ export function toGameQuery(filters: GameFilters): GameQuery {
     q: filters.q,
     status: 'FINISHED',
     page: filters.page,
-    size: PAGE_SIZE,
+    size: filters.pageSize,
     sort: `${filters.sortField},${filters.sortDescending ? 'desc' : 'asc'}`,
   };
 }

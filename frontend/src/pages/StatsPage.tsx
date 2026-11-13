@@ -305,6 +305,8 @@ export function StatsPage() {
                 currencyCode={currencyCode}
                 periodLabel={t(`stats.granularity.${drawn}`)}
                 page={filters.page}
+                pageSize={filters.pageSize}
+                onPageSizeChange={(pageSize) => update({ pageSize })}
                 onPageChange={(page) => update({ page })}
               />
             </>

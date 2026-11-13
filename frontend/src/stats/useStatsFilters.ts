@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router';
 
 import type { StatsQuery } from '../api/stats';
+import { PERIOD_PAGE_SIZE, parsePageSize } from '../components/pagination';
 import type { GameType, GroupBy } from '../api/types';
 import { rangeOf, type DateRange } from '../components/period';
 import { parseDate, parseList, parseOneOf, parsePositiveInteger } from '../components/urlParams';
@@ -60,6 +61,7 @@ export interface StatsFilters extends GameScope {
   chart: ChartMode;
   /** Page of the table of periods, zero-based. */
   page: number;
+  pageSize: number;
 }
 
 const GAME_TYPES: readonly GameType[] = ['TOURNAMENT', 'SIT_AND_GO', 'CASH'];
@@ -104,6 +106,7 @@ function parse(params: URLSearchParams): StatsFilters {
     chart: params.get('chart') === 'period' ? 'period' : 'cumulative',
     // The page is one-based in the URL, as people count.
     page: (parsePositiveInteger(params.get('page')) ?? 1) - 1,
+    pageSize: parsePageSize(params.get('size'), PERIOD_PAGE_SIZE),
   };
 }
 
@@ -151,6 +154,7 @@ function serialize(filters: StatsFilters): URLSearchParams {
   if (filters.page > 0) {
     params.set('page', String(filters.page + 1));
   }
+  if (filters.pageSize !== PERIOD_PAGE_SIZE) params.set('size', String(filters.pageSize));
   return params;
 }
 

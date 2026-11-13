@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router';
 
 import type { MovementType, TimePeriod } from '../api/types';
 import type { DateRange } from '../components/period';
+import { DEFAULT_PAGE_SIZE, parsePageSize } from '../components/pagination';
 import { parseDate, parseList, parseOneOf, parsePositiveInteger } from '../components/urlParams';
 
 export const MOVEMENT_TYPES: readonly MovementType[] = [
@@ -11,7 +12,7 @@ export const MOVEMENT_TYPES: readonly MovementType[] = [
   'BONUS',
   'ADJUSTMENT',
 ];
-export const MOVEMENTS_PAGE_SIZE = 25;
+export const MOVEMENTS_PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 /** How the time is cut in the chart of the bankroll, when it is not left to the length of the period. */
 export const GRANULARITIES: readonly TimePeriod[] = ['DAY', 'WEEK', 'MONTH', 'YEAR'];
@@ -25,6 +26,7 @@ export interface BankrollFilters {
   type?: MovementType;
   /** Page of the list of movements, zero-based. */
   page: number;
+  pageSize: number;
   /** How the chart cuts the time, when chosen; otherwise it follows the length of the period. */
   granularity?: TimePeriod;
 }
@@ -36,6 +38,7 @@ function parse(params: URLSearchParams): BankrollFilters {
     type: parseOneOf(params.get('type'), MOVEMENT_TYPES),
     // The page is one-based in the URL, as people count.
     page: (parsePositiveInteger(params.get('page')) ?? 1) - 1,
+    pageSize: parsePageSize(params.get('size')),
     granularity: parseOneOf(params.get('group')?.toUpperCase() ?? null, GRANULARITIES),
   };
 }
@@ -55,6 +58,7 @@ function serialize(filters: BankrollFilters): URLSearchParams {
     params.set('page', String(filters.page + 1));
   }
   set('group', filters.granularity?.toLowerCase());
+  if (filters.pageSize !== MOVEMENTS_PAGE_SIZE) params.set('size', String(filters.pageSize));
   return params;
 }
 
