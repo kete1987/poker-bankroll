@@ -39,6 +39,7 @@ record McpQuery(
         @Nullable Boolean byGameType,
         @Nullable Boolean active,
         @Nullable GameType gameType,
+        @Positive @Nullable Long gameId,
         @Nullable ResourceType resourceType,
         @Positive @Nullable Long resourceId) {
 

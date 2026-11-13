@@ -10,6 +10,10 @@ import org.springframework.http.HttpStatusCode;
  */
 public enum ErrorCode {
 
+    MCP_BACKUP_EXPIRED(HttpStatus.NOT_FOUND),
+    MCP_DUPLICATE_GAME(HttpStatus.BAD_REQUEST),
+    MCP_STALE_METADATA(HttpStatus.CONFLICT),
+    MCP_METADATA_LIMIT(HttpStatus.BAD_REQUEST),
     VALIDATION_FAILED(HttpStatus.BAD_REQUEST),
     MALFORMED_REQUEST(HttpStatus.BAD_REQUEST),
     NOT_FOUND(HttpStatus.NOT_FOUND),

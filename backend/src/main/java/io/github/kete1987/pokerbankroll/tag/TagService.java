@@ -46,6 +46,12 @@ public class TagService {
                 .toList();
     }
 
+    /** One tag and its current game count. */
+    @Transactional(readOnly = true)
+    public TagResponse get(long id) {
+        return response(find(id));
+    }
+
     /**
      * The tags with these names, created when they do not exist. Names are stripped and matched
      * ignoring case, so an existing tag keeps how it is written; names repeated ignoring case are one
@@ -74,6 +80,22 @@ public class TagService {
             found = findByNames(byKey.values());
         }
         return found;
+    }
+
+    /** Canonical spelling for a preview without creating missing tags. */
+    public List<String> previewNames(Collection<String> names) {
+        Map<String, String> result = new TreeMap<>();
+        for (String name : names) result.putIfAbsent(key(name), name.strip());
+        if (!result.isEmpty()) {
+            for (Tag tag : findByNames(result.values())) result.put(key(tag.getName()), tag.getName());
+        }
+        return List.copyOf(result.values());
+    }
+
+    /** The existing merge target, using the same database comparison as rename. */
+    public @Nullable TagResponse previewTarget(long sourceId, String name) {
+        return findByNames(List.of(name.strip())).stream().filter(tag -> tag.getId() != sourceId)
+                .findFirst().map(this::response).orElse(null);
     }
 
     /**

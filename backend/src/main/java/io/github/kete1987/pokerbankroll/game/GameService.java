@@ -2,6 +2,11 @@ package io.github.kete1987.pokerbankroll.game;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.HashSet;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -173,6 +178,96 @@ public class GameService {
         game.setTags(tags.resolve(request.tags()));
         return GameResponse.of(games.saveAndFlush(game));
     }
+
+    /**
+     * Previews or applies one explicit batch atomically. Game rows are locked in ID order, then tag tables are locked. Concurrent tag edits or game edits either precede the
+     * comparison or wait; stale snapshots are rejected. PostgreSQL may abort a deadlock when an
+     * older writer acquired locks in the opposite order, in which case no changes are committed.
+     */
+    public List<MetadataPreview> editMetadata(List<GameMetadataChange> changes, boolean apply) {
+        var seen = new HashSet<Long>();
+        for (int i = 0; i < changes.size(); i++) {
+            if (!seen.add(changes.get(i).gameId())) throw new ApiException(ErrorCode.MCP_DUPLICATE_GAME).atIndex(i);
+        }
+        Map<Long, Game> locked = new java.util.HashMap<>();
+        for (long id : seen.stream().sorted().toList()) {
+            try {
+                locked.put(id, findForUpdate(id));
+            } catch (ApiException ex) {
+                int index = java.util.stream.IntStream.range(0, changes.size())
+                        .filter(i -> changes.get(i).gameId() == id).findFirst().orElseThrow();
+                throw ex.atIndex(index);
+            }
+        }
+        // Existing game writers lock games before touching tags. Follow the same order, then
+        // protect tag names and associations until comparison and commit.
+        entityManager.createNativeQuery("lock table tag, game_tag in share row exclusive mode").executeUpdate();
+        List<MetadataPreview> previews = new ArrayList<>();
+        // Names not yet in the database are created in request order. Preview every later
+        // occurrence with the spelling the first item will create.
+        Map<String, String> batchTagNames = new TreeMap<>();
+        for (int i = 0; i < changes.size(); i++) {
+            GameMetadataChange change = changes.get(i);
+            Game game = locked.get(change.gameId());
+            try {
+                GameResponse before = GameResponse.of(game);
+                List<String> currentTags = before.tags().stream().map(tag -> tag.name()).toList();
+                if (!before.updatedAt().equals(change.expectedUpdatedAt()) || !sameTags(currentTags, change.expectedTags())) {
+                    throw new ApiException(ErrorCode.MCP_STALE_METADATA);
+                }
+                String name = change.name() == null ? before.name() : blankToNull(change.name().value());
+                String notes = before.notes();
+                if (change.notes() != null) {
+                    String value = change.notes().value();
+                    notes = change.notes().mode() == GameMetadataChange.NotesMode.REPLACE ? blankToNull(value)
+                            : blankToNull((notes == null ? "" : notes + "\n") + value.strip());
+                }
+                if (notes != null && notes.length() > 5000) throw new ApiException(ErrorCode.MCP_METADATA_LIMIT);
+                Map<String, String> names = tagNames(currentTags);
+                if (change.tags() != null) {
+                    if (change.tags().mode() == GameMetadataChange.TagsMode.REPLACE) names.clear();
+                    for (String value : change.tags().values()) {
+                        String key = value.strip().toLowerCase(Locale.ROOT);
+                        if (change.tags().mode() == GameMetadataChange.TagsMode.REMOVE) names.remove(key);
+                        else names.putIfAbsent(key, value.strip());
+                    }
+                }
+                if (names.size() > GameRequest.MAX_TAGS) throw new ApiException(ErrorCode.MCP_METADATA_LIMIT);
+                List<String> proposedTags = tags.previewNames(names.values()).stream().map(value -> {
+                    String key = value.strip().toLowerCase(Locale.ROOT);
+                    return batchTagNames.computeIfAbsent(key, ignored -> value);
+                }).toList();
+                previews.add(new MetadataPreview(before, name, notes, proposedTags));
+            } catch (ApiException ex) {
+                throw ex.atIndex(i);
+            }
+        }
+        if (apply) {
+            for (int i = 0; i < changes.size(); i++) {
+                Game game = locked.get(changes.get(i).gameId());
+                MetadataPreview preview = previews.get(i);
+                // Resolve before changing fields: SQL in resolve can flush the persistence context.
+                List<Tag> resolved = tags.resolve(preview.tags());
+                game.setName(preview.name());
+                game.setNotes(preview.notes());
+                game.setTags(resolved);
+                games.saveAndFlush(game);
+            }
+        }
+        return previews;
+    }
+
+    private static Map<String, String> tagNames(List<String> values) {
+        Map<String, String> names = new TreeMap<>();
+        for (String value : values) names.put(value.strip().toLowerCase(Locale.ROOT), value.strip());
+        return names;
+    }
+
+    private static boolean sameTags(List<String> current, List<String> expected) {
+        return Objects.equals(tagNames(current), tagNames(expected));
+    }
+
+    public record MetadataPreview(GameResponse before, @Nullable String name, @Nullable String notes, List<String> tags) { }
 
     /** Sets the result of a game in play and finishes it. */
     public GameResponse finish(long id, FinishGameRequest result) {
