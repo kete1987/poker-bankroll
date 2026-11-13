@@ -573,7 +573,8 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
   name (`GameName`). Settings has a tab of tags (`settings/TagsSettings`): rename, with the merge
   said before saving, color, and delete. `TagBadge` shares the palette across game views and settings.
   `PUT /tags/{id}/color` changes only the nullable `TagColor` code; null/omitted means neutral gray.
-  The database checks the palette too. Tag rename, color and delete acquire a tag row lock; merging
+  The database checks the palette too. Tag rename, color and delete acquire a ROW EXCLUSIVE table
+  lock before the tag row lock, coordinating with MCP maintenance's table locks; merging
   keeps the destination's color. `set_tag_color` exposes the same field-only write through MCP,
   with a TAG receipt. Colored tag definitions are part of the stale-preview comparison; neutral
   colors are omitted from JSON to preserve pre-color receipt fingerprints. Changing a tag

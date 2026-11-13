@@ -134,6 +134,11 @@ public class TagService {
     }
 
     private Tag findForUpdate(long id) {
+        // Reserve the table lock needed by UPDATE/DELETE before holding a row lock. Otherwise
+        // MCP maintenance can take SHARE ROW EXCLUSIVE between SELECT FOR UPDATE and the write,
+        // then wait for our row while we wait to upgrade our table lock. ROW EXCLUSIVE permits
+        // ordinary tag writes to run concurrently and also works inside MCP's stronger lock.
+        entityManager.createNativeQuery("lock table tag in row exclusive mode").executeUpdate();
         return tags.findForUpdateById(id).orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
     }
 
