@@ -2,6 +2,9 @@
   "app": {
     "name": "poker-bankroll"
   },
+  "pagination": {
+    "pageSize": "Rows per page"
+  },
   "header": {
     "language": "Language",
     "toggleColorScheme": "Switch between light and dark mode"

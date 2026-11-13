@@ -8,6 +8,8 @@ import { useDeleteTemplate } from '../api/templates';
 import type { GameTemplate, Room, Variant } from '../api/types';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { IconButton } from '../components/IconButton';
+import { ListPagination } from '../components/ListPagination';
+import { useListPagination } from '../components/useListPagination';
 import { RoomLabel } from '../components/RoomLabel';
 import { useNarrowScreen } from '../components/useNarrowScreen';
 import { useFormat } from '../format/useFormat';
@@ -32,6 +34,11 @@ export function TemplatesSettings({ templates, rooms, variants }: TemplatesSetti
   const format = useFormat();
   const narrow = useNarrowScreen();
   const [dialog, setDialog] = useState<Dialog | null>(null);
+  const pagination = useListPagination(templates.length);
+  const shown = templates.slice(
+    pagination.page * pagination.pageSize,
+    (pagination.page + 1) * pagination.pageSize,
+  );
   const deleteTemplate = useDeleteTemplate();
 
   /** What the games started from it are: type, variant, name and modality. */
@@ -90,7 +97,7 @@ export function TemplatesSettings({ templates, rooms, variants }: TemplatesSetti
         <Text c="dimmed">{t('templates.empty')}</Text>
       ) : narrow ? (
         <Stack gap="xs" component="ul" p={0} m={0} style={{ listStyle: 'none' }}>
-          {templates.map((template) => {
+          {shown.map((template) => {
             const label = templateLabel(t, format, template);
             return (
               <Card
@@ -135,7 +142,7 @@ export function TemplatesSettings({ templates, rooms, variants }: TemplatesSetti
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {templates.map((template) => {
+              {shown.map((template) => {
                 const label = templateLabel(t, format, template);
                 return (
                   <Table.Tr key={template.id}>
@@ -162,6 +169,8 @@ export function TemplatesSettings({ templates, rooms, variants }: TemplatesSetti
           </Table>
         </Table.ScrollContainer>
       )}
+
+      {templates.length > 0 && <ListPagination {...pagination} />}
 
       {(dialog?.kind === 'add' || dialog?.kind === 'edit') && (
         <TemplateDialog

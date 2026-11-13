@@ -557,6 +557,12 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - Filters, order and page of a list live in the URL (`games/useGameFilters.ts`): they survive a
   reload and the back button. Lists are written with commas (`room=1,2`). Invalid values in the
   URL are ignored.
+- List page sizes also live in the URL (`size`), with 25 rows by default for games, movements,
+  tags and templates, and 31 for the statistics period table. `components/ListPagination` shares
+  the size selector and responsive page controls. Changing size returns to the first page.
+  Settings tags/templates paginate locally with `useListPagination`; keep their complete API
+  lists available for tag merge detection, suggestions, template pickers and quick starts.
+  Statistics paginate only the displayed table, never the chart series or aggregate totals.
 - Type, room, variant and tag are chosen with `games/ScopeFilters` (`tag=1,2` in the URL; the
   filter of tags only shows when there are tags; `games/scope.ts` counts the ones set for a
   `FilterBar`), and anything read from the URL goes through `components/urlParams` (invalid values

@@ -1,4 +1,4 @@
-import { Alert, Button, Group, Loader, Modal, Pagination, Stack, Text } from '@mantine/core';
+import { Alert, Button, Group, Loader, Modal, Stack, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconPlaylistAdd, IconPlus } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
@@ -25,6 +25,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ExportMenu } from '../components/ExportMenu';
 import { useNarrowScreen } from '../components/useNarrowScreen';
 import { Page } from '../components/Page';
+import { ListPagination } from '../components/ListPagination';
 import { useFormat } from '../format/useFormat';
 import { BulkAddForm } from '../games/BulkAddForm';
 import { FinishGameDialog } from '../games/FinishGameDialog';
@@ -217,23 +218,20 @@ export function GamesPage() {
             onSaveAsTemplate={saveAsTemplate}
             onDelete={(game) => setDialog({ kind: 'delete', game })}
           />
-          <Group justify="space-between">
+          <ListPagination
+            page={filters.page}
+            pageSize={filters.pageSize}
+            totalPages={pageCount}
+            onPageChange={(page) => update({ page })}
+            onPageSizeChange={(pageSize) => update({ pageSize })}
+          >
             <Text size="sm" c="dimmed">
               {t('games.list.total', {
                 count: games.data.totalItems,
                 formatted: format.number(games.data.totalItems),
               })}
             </Text>
-            {pageCount > 1 && (
-              <Pagination
-                total={pageCount}
-                value={filters.page + 1}
-                onChange={(page) => update({ page: page - 1 })}
-                getControlProps={(control) => ({ 'aria-label': t(`games.list.pages.${control}`) })}
-                getItemProps={(page) => ({ 'aria-label': t('games.list.pages.page', { page }) })}
-              />
-            )}
-          </Group>
+          </ListPagination>
         </Stack>
       )}
 

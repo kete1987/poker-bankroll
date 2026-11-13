@@ -337,6 +337,17 @@ describe('Statistics page', () => {
     expect(table.getAllByRole('rowheader')).toHaveLength(10);
     expect(table.getAllByRole('rowheader')[0]).toHaveTextContent('09/01/2026');
     expect(table.getAllByRole('rowheader').at(-1)).toHaveTextContent('Total');
+    const chartBefore = screen.getByTestId('chart').getAttribute('data-option');
+    await userEvent.click(screen.getByRole('combobox', { name: 'Rows per page' }));
+    await userEvent.click(await screen.findByRole('option', { name: '10', hidden: true }));
+    expect(screen.getByRole('button', { name: 'Page 1' })).toHaveAttribute('aria-current', 'page');
+    expect(table.getAllByRole('rowheader')).toHaveLength(11);
+    expect(table.getAllByRole('rowheader')[0]).toHaveTextContent('09/02/2026');
+    expect(table.getAllByRole('rowheader').at(-1)).toHaveTextContent('Total');
+    expect(screen.getByTestId('chart').getAttribute('data-option')).toBe(chartBefore);
+    await userEvent.click(screen.getByRole('combobox', { name: 'Rows per page' }));
+    await userEvent.click(await screen.findByRole('option', { name: '31', hidden: true }));
+    expect(table.getAllByRole('rowheader')).toHaveLength(32);
   });
 
   it('takes the page of the table from the URL and goes back to the first when a filter changes', async () => {

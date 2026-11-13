@@ -5,7 +5,6 @@ import {
   Loader,
   Modal,
   MultiSelect,
-  Pagination,
   Select,
   SimpleGrid,
   Stack,
@@ -34,15 +33,12 @@ import { MovementForm } from '../bankroll/MovementForm';
 import { MovementsTable } from '../bankroll/MovementsTable';
 import { RoomsTable } from '../bankroll/RoomsTable';
 import { roomsTableData } from '../bankroll/roomsTableData';
-import {
-  MOVEMENT_TYPES,
-  MOVEMENTS_PAGE_SIZE,
-  useBankrollFilters,
-} from '../bankroll/useBankrollFilters';
+import { MOVEMENT_TYPES, useBankrollFilters } from '../bankroll/useBankrollFilters';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { FilterBar } from '../components/FilterBar';
 import { ExportMenu } from '../components/ExportMenu';
 import { Page } from '../components/Page';
+import { ListPagination } from '../components/ListPagination';
 import { isSingleDay } from '../components/period';
 import { PeriodFilter } from '../components/PeriodFilter';
 import { StatCard } from '../components/StatCard';
@@ -111,7 +107,7 @@ export function BankrollPage() {
   const movements = useMovements({
     ...movementFilters,
     page: filters.page,
-    size: MOVEMENTS_PAGE_SIZE,
+    size: filters.pageSize,
   });
   const createMovement = useCreateMovement();
   const updateMovement = useUpdateMovement();
@@ -289,25 +285,20 @@ export function BankrollPage() {
               onEdit={(movement) => setDialog({ kind: 'edit', movement })}
               onDelete={(movement) => setDialog({ kind: 'delete', movement })}
             />
-            <Group justify="space-between">
+            <ListPagination
+              page={filters.page}
+              pageSize={filters.pageSize}
+              totalPages={pageCount}
+              onPageChange={(page) => update({ page })}
+              onPageSizeChange={(pageSize) => update({ pageSize })}
+            >
               <Text size="sm" c="dimmed">
                 {t('bankroll.total', {
                   count: movements.data.totalItems,
                   formatted: format.number(movements.data.totalItems),
                 })}
               </Text>
-              {pageCount > 1 && (
-                <Pagination
-                  total={pageCount}
-                  value={filters.page + 1}
-                  onChange={(page) => update({ page: page - 1 })}
-                  getControlProps={(control) => ({
-                    'aria-label': t(`games.list.pages.${control}`),
-                  })}
-                  getItemProps={(page) => ({ 'aria-label': t('games.list.pages.page', { page }) })}
-                />
-              )}
-            </Group>
+            </ListPagination>
           </Stack>
         )}
       </Stack>

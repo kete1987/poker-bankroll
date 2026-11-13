@@ -18,6 +18,8 @@ import { MAX_TAG_LENGTH, useDeleteTag, useRenameTag } from '../api/tags';
 import type { Tag } from '../api/types';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { IconButton } from '../components/IconButton';
+import { ListPagination } from '../components/ListPagination';
+import { useListPagination } from '../components/useListPagination';
 import { useSubmit } from '../components/useSubmit';
 import { useFormat } from '../format/useFormat';
 
@@ -31,6 +33,11 @@ export function TagsSettings({ tags }: { tags: Tag[] }) {
   const { t } = useTranslation();
   const format = useFormat();
   const [dialog, setDialog] = useState<Dialog | null>(null);
+  const pagination = useListPagination(tags.length);
+  const shown = tags.slice(
+    pagination.page * pagination.pageSize,
+    (pagination.page + 1) * pagination.pageSize,
+  );
   const deleteTag = useDeleteTag();
 
   if (tags.length === 0) {
@@ -57,7 +64,7 @@ export function TagsSettings({ tags }: { tags: Tag[] }) {
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {tags.map((tag) => (
+          {shown.map((tag) => (
             <Table.Tr key={tag.id}>
               <Table.Td style={{ wordBreak: 'break-word' }}>
                 <Text size="sm">{tag.name}</Text>
@@ -87,6 +94,8 @@ export function TagsSettings({ tags }: { tags: Tag[] }) {
           ))}
         </Table.Tbody>
       </Table>
+
+      {tags.length > 0 && <ListPagination {...pagination} />}
 
       {dialog?.kind === 'rename' && (
         <RenameDialog tag={dialog.tag} tags={tags} onClose={() => setDialog(null)} />

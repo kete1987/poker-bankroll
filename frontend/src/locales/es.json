@@ -2,6 +2,9 @@
   "app": {
     "name": "poker-bankroll"
   },
+  "pagination": {
+    "pageSize": "Filas por página"
+  },
   "header": {
     "language": "Idioma",
     "toggleColorScheme": "Cambiar entre modo claro y oscuro"
