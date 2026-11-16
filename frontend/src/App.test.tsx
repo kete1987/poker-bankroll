@@ -60,11 +60,14 @@ describe('App', () => {
     },
   );
 
-  it('has a button to open the menu on narrow screens', async () => {
+  it('opens the menu and closes it after choosing a section', async () => {
     stubApi({});
     renderApp();
 
-    const burger = screen.getByRole('button', { name: 'Open or close the menu' });
+    // jsdom evaluates CSS media queries at a fixed desktop width, so the mobile button is
+    // hidden. Check its interaction here independently of responsive layout.
+    const burger = screen.getByLabelText('Open or close the menu');
+    expect(burger).toHaveRole('button');
     expect(burger).toHaveAttribute('aria-expanded', 'false');
     await userEvent.click(burger);
     expect(burger).toHaveAttribute('aria-expanded', 'true');
@@ -72,6 +75,7 @@ describe('App', () => {
     // Choosing a section closes it again.
     await userEvent.click(screen.getByRole('link', { name: 'Games' }));
     expect(burger).toHaveAttribute('aria-expanded', 'false');
+    expect(await screen.findByRole('heading', { name: 'Games', level: 2 })).toBeInTheDocument();
   });
 
   it('shows the API as online when the backend is healthy', async () => {

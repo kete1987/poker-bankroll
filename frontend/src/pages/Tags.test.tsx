@@ -53,6 +53,13 @@ function tagsOf(container: HTMLElement) {
     .map((item) => item.textContent);
 }
 
+/** Check the color assigned to the badge, before jsdom resolves inherited CSS variables. */
+function expectTagColor(label: HTMLElement, color: 'blue' | 'gray') {
+  const badge = label.closest<HTMLElement>('.mantine-Badge-root');
+  expect(badge).not.toBeNull();
+  expect(badge?.style.getPropertyValue('--badge-bg')).toBe(`var(--mantine-color-${color}-light)`);
+}
+
 describe('Tags of the games', () => {
   it.each([false, true])('shows stored colors and neutral defaults (mobile=%s)', async (mobile) => {
     if (mobile) onANarrowScreen();
@@ -68,12 +75,8 @@ describe('Tags of the games', () => {
     renderApp('/games');
     await screen.findByText('Colored game');
     const list = within(screen.getByRole('list', { name: 'Tags' }));
-    expect(list.getByText('Series')).toHaveStyle({
-      '--badge-bg': 'var(--mantine-color-blue-light)',
-    });
-    expect(list.getByText('Default')).toHaveStyle({
-      '--badge-bg': 'var(--mantine-color-gray-light)',
-    });
+    expectTagColor(list.getByText('Series'), 'blue');
+    expectTagColor(list.getByText('Default'), 'gray');
   });
 
   it('are shown under the name of each game', async () => {
@@ -245,15 +248,14 @@ describe('Settings: tags', () => {
     expect(dialog.getByRole('radio', { name: 'Cyan' })).toHaveAttribute('aria-checked', 'true');
     await userEvent.keyboard('{ArrowLeft}');
     expect(dialog.getByRole('radio', { name: 'Blue' })).toHaveAttribute('aria-checked', 'true');
-    expect(dialog.getByText('Friends')).toHaveStyle({
-      '--badge-bg': 'var(--mantine-color-blue-light)',
-    });
+    expectTagColor(dialog.getByText('Friends'), 'blue');
     expect(calls.filter((call) => call.method === 'PUT')).toHaveLength(0);
     await userEvent.click(dialog.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    expect(within(screen.getByRole('cell', { name: 'Friends' })).getByText('Friends')).toHaveStyle({
-      '--badge-bg': 'var(--mantine-color-blue-light)',
-    });
+    expectTagColor(
+      within(screen.getByRole('cell', { name: 'Friends' })).getByText('Friends'),
+      'blue',
+    );
     expect(
       calls.filter((call) => call.method === 'PUT').map((call) => [call.path, call.body]),
     ).toEqual([['/tags/31/color', { color: 'BLUE' }]]);
@@ -284,9 +286,10 @@ describe('Settings: tags', () => {
     await userEvent.click(dialog.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(calls.filter((call) => call.method === 'PUT').at(-1)?.body).toEqual({ color: null });
-    expect(within(screen.getByRole('cell', { name: 'Friends' })).getByText('Friends')).toHaveStyle({
-      '--badge-bg': 'var(--mantine-color-gray-light)',
-    });
+    expectTagColor(
+      within(screen.getByRole('cell', { name: 'Friends' })).getByText('Friends'),
+      'gray',
+    );
   });
 
   function stubTags(handlers: Record<string, unknown> = {}) {
