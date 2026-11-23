@@ -327,6 +327,58 @@ describe('Name of a game', () => {
     expect(form.getByRole('combobox', { name: 'Variant' })).toHaveValue('KO');
   });
 
+  it('does not reuse a cached suggestion without its newly saved variant', async () => {
+    let latest: GameName = { ...KILL_THE_FISH, variant: null };
+    let releaseSearch: () => void = () => {};
+    const searchCanFinish = new Promise<void>((resolve) => {
+      releaseSearch = resolve;
+    });
+    let prefixSearches = 0;
+    const calls = stubApi({
+      'GET /rooms': ROOMS,
+      'GET /variants': VARIANTS,
+      'GET /games': page([]),
+      'GET /games/names': async (call: ApiCall) => {
+        if (call.query.get('q') === 'kill' && ++prefixSearches > 1) {
+          await searchCanFinish;
+        }
+        return [latest];
+      },
+      'POST /games': (call: ApiCall) => {
+        const { buyIn, variantId } = call.body as GameRequest;
+        latest = { ...latest, buyIn, variant: variantId === 10 ? KILL_THE_FISH.variant : null };
+        return game({ buyIn, variant: latest.variant });
+      },
+    });
+    renderApp('/games');
+    const form = await openForm();
+    await choose(form, 'Room', 'Winamax (EUR)');
+    const name = form.getByRole('combobox', { name: 'Name' });
+    const variant = form.getByRole('combobox', { name: 'Variant' });
+
+    await userEvent.type(name, 'kill');
+    await userEvent.click(await suggested(/Kill The Fish/));
+    await choose(form, 'Variant', 'KO');
+    // Let the search move to the full name, so the earlier prefix is cached but no longer active.
+    await waitFor(() =>
+      expect(nameSearches(calls)).toContainEqual({ q: 'Kill The Fish', gameType: 'TOURNAMENT' }),
+    );
+    await userEvent.click(form.getByRole('button', { name: 'Save and add another' }));
+    await waitFor(() => expect(name).toHaveValue(''));
+    expect(saved(calls, 'POST')[0]).toMatchObject({ name: 'Kill The Fish', variantId: 10 });
+    expect(variant).toHaveValue('KO');
+
+    await userEvent.type(name, 'kill');
+    await waitFor(() => expect(prefixSearches).toBe(2));
+    expect(screen.queryByRole('option', { name: /Kill The Fish/, hidden: true })).toBeNull();
+
+    releaseSearch();
+    const updated = await suggested(/Kill The Fish/);
+    expect(updated).toHaveTextContent('€5.00 · KO');
+    await userEvent.click(updated);
+    expect(variant).toHaveValue('KO');
+  });
+
   it('only changes the name of a game being edited', async () => {
     const original = game({ id: 7, name: 'Monday Special', buyIn: 3, entries: 2 });
     const calls = stubNamesApi([KILL_THE_FISH], [original]);

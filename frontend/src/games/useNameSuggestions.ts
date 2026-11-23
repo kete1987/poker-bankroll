@@ -53,14 +53,18 @@ export function useNameSuggestions<V extends NameFields>(
 
   // Names are suggested from the second character, once typing pauses; none for the name a game
   // being edited already has.
-  const [nameSearch] = useDebouncedValue(form.values.name.trim(), NAME_SEARCH_DELAY_MS);
+  const name = form.values.name.trim();
+  const [nameSearch] = useDebouncedValue(name, NAME_SEARCH_DELAY_MS);
   const searchesName =
-    nameSearch.length >= MIN_NAME_SEARCH_LENGTH && nameSearch !== (editing?.name ?? '');
+    name.length >= MIN_NAME_SEARCH_LENGTH &&
+    nameSearch.length >= MIN_NAME_SEARCH_LENGTH &&
+    nameSearch !== (editing?.name ?? '');
   const names = useGameNames(searchesName ? nameSearch : '', gameType);
-  // Those of the previous search stay while the next one loads, but not after the type changes.
-  const suggestions = searchesName
-    ? (names.data ?? []).filter((suggestion) => suggestion.gameType === gameType)
-    : [];
+  // A cached result being refreshed can still describe the game before it was saved.
+  const suggestions =
+    searchesName && (!names.isFetching || names.isPlaceholderData)
+      ? (names.data ?? []).filter((suggestion) => suggestion.gameType === gameType)
+      : [];
 
   function setValues(values: Partial<NameFields>) {
     form.setValues(values as Partial<V>);

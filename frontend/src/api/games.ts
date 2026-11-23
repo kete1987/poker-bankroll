@@ -51,8 +51,8 @@ export const MIN_NAME_SEARCH_LENGTH = 2;
 
 /**
  * Names of recorded games of a type that contain the text, most used first, each with what its
- * most recent game had. Nothing is asked for a shorter text; while another text loads, the
- * previous names stay.
+ * most recent game had. Nothing is asked for a shorter text; while another text loads, previous
+ * names can stay if a game change has not invalidated them.
  */
 export function useGameNames(text: string, gameType: GameType) {
   const q = text.trim();
@@ -60,7 +60,8 @@ export function useGameNames(text: string, gameType: GameType) {
     queryKey: ['games', 'names', gameType, q],
     queryFn: () => apiFetch<GameName[]>(`/games/names?${toQueryString({ q, gameType })}`),
     enabled: q.length >= MIN_NAME_SEARCH_LENGTH,
-    placeholderData: keepPreviousData,
+    placeholderData: (previous, previousQuery) =>
+      previousQuery?.state.isInvalidated ? undefined : previous,
   });
 }
 
