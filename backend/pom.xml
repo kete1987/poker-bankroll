@@ -37,7 +37,7 @@
         <commons-csv.version>1.14.1</commons-csv.version>
         <fastexcel.version>0.20.2</fastexcel.version>
         <spring-ai.version>2.0.2</spring-ai.version>
-        <mcp.version>2.1.0</mcp.version>
+        <mcp.version>2.2.0</mcp.version>
         <!-- Extended by plugins such as JaCoCo; referenced by surefire as @{argLine}. -->
         <argLine/>
     </properties>
