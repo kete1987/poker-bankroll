@@ -52,6 +52,9 @@ public record GameResponse(
 
     /** Either {@code code} (built-in, translated by the client) or {@code name} (user-defined). */
     public record VariantRef(long id, @Nullable String code, @Nullable String name) {
+        static @Nullable VariantRef of(@Nullable Variant variant) {
+            return variant == null ? null : new VariantRef(variant.getId(), variant.getCode(), variant.getName());
+        }
     }
 
     static GameResponse of(Game game) {
@@ -63,7 +66,7 @@ public record GameResponse(
                 new RoomRef(game.getRoom().getId(), game.getRoom().getName()),
                 game.getGameType(),
                 game.getModality(),
-                variant == null ? null : new VariantRef(variant.getId(), variant.getCode(), variant.getName()),
+                VariantRef.of(variant),
                 game.getStatus(),
                 game.getName(),
                 game.getRoom().getCurrencyCode(),

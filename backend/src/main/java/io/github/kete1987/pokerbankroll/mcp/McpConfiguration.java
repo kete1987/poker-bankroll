@@ -42,8 +42,9 @@ class McpConfiguration {
             Before finishing/re-entering/rebuying, resolve the exact game ID; ask when ambiguous.
             Templates supply room, type, variant, modality, name and buy-in; template starts are in play.
             set_game_notes and set_game_tags REPLACE their fields, including clearing them with "" or [].
-            For metadata cleanup, inspect all selected games, present exact IDs and before/after mapping,
-            and obtain user approval. Preview changes and pass the same changes to the guarded batch write.
+            For metadata cleanup (name, notes, tags, variant), inspect all selected games, present exact IDs
+            and before/after mapping, and obtain user approval. Preview changes and pass the same changes
+            to the guarded batch write.
             Preserve existing notes and tags unless explicitly requested; never invent additional tags.
             Tag rename may merge, and tag deletion removes associations but never games. Preview first.
             Verify changed games and use backend summaries to check results and bankroll after cleanup.

@@ -127,7 +127,7 @@ El interruptor es global: **todos los clientes con el token MCP actual podrán e
 | `record_movement` | `movement`: occurredOn, type (DEPOSIT/WITHDRAWAL/BONUS), amount, roomId O currencyCode, notes opcional |
 | `set_game_notes` | `gameId`, `update: {"notes": "..."}`; **reemplaza** notas, cadena vacía las borra |
 | `set_game_tags` | `gameId`, `update: {"tags": ["challenge"]}`; **reemplaza todas** las etiquetas, array vacío las quita |
-| `update_game_metadata` | Lote atómico protegido de metadatos de 1–20 partidas concretas |
+| `update_game_metadata` | Lote atómico protegido de metadatos (nombre, notas, etiquetas, variante) de 1–20 partidas concretas |
 | `apply_tag_change` | Aplica renombrado, unión o borrado de etiqueta revisado |
 | `set_tag_color` | `tagId`, código de paleta `color` opcional; null/omitido restaura gris sin cambiar nombre ni asociaciones |
 
@@ -202,7 +202,13 @@ actuales como `expectedTags`. Omite una operación para conservar el campo. `nam
 reemplaza el nombre; una cadena vacía lo borra. `notes: {"mode": "REPLACE"|"APPEND", "value": "..."}`
 reemplaza o añade en una línea nueva; reemplazar por vacío borra. `tags: {"mode": "REPLACE"|"ADD"|"REMOVE", "values": [...]}`
 reemplaza, añade o quita nombres sin distinguir mayúsculas; reemplazar por `[]` las quita.
-La vista previa incluye la partida anterior completa y los metadatos propuestos; conserva
+`variant: {"variantId": 12}` asigna una variante, predefinida o propia, del mismo tipo que la
+partida (IDs de `list_variants`); `variant: {"variantId": null}` la quita. Una variante de otro
+tipo falla con `VARIANT_GAME_TYPE_MISMATCH`, una desconocida con `UNKNOWN_VARIANT` y una inactiva
+con `VARIANT_INACTIVE`, salvo que la partida ya la tenga. Las partidas de salas inactivas también
+se pueden corregir. Sala, tipo, modalidad, fechas, estado, entradas e importes nunca cambian.
+La vista previa incluye la partida anterior completa y los metadatos propuestos (`name`,
+`notes`, `tags` y `variant`); conserva
 la escritura de etiquetas existentes y no crea etiquetas. También rige el límite de 64 KiB:
 la selección nunca se recorta silenciosamente.
 
