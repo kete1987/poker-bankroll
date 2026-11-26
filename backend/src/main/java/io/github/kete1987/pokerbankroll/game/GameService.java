@@ -203,6 +203,7 @@ public class GameService {
         // protect tag names and associations until comparison and commit.
         entityManager.createNativeQuery("lock table tag, game_tag in share row exclusive mode").executeUpdate();
         List<MetadataPreview> previews = new ArrayList<>();
+        List<@Nullable Variant> proposedVariants = new ArrayList<>();
         // Names not yet in the database are created in request order. Preview every later
         // occurrence with the spelling the first item will create.
         Map<String, String> batchTagNames = new TreeMap<>();
@@ -237,7 +238,11 @@ public class GameService {
                     String key = value.strip().toLowerCase(Locale.ROOT);
                     return batchTagNames.computeIfAbsent(key, ignored -> value);
                 }).toList();
-                previews.add(new MetadataPreview(before, name, notes, proposedTags));
+                // Same rules as editing the game: its own type, and an inactive variant only when it already has it.
+                Variant variant = change.variant() == null ? game.getVariant()
+                        : variantOf(change.variant().variantId(), game.getGameType(), game.getVariant());
+                proposedVariants.add(variant);
+                previews.add(new MetadataPreview(before, name, notes, proposedTags, GameResponse.VariantRef.of(variant)));
             } catch (ApiException ex) {
                 throw ex.atIndex(i);
             }
@@ -251,6 +256,7 @@ public class GameService {
                 game.setName(preview.name());
                 game.setNotes(preview.notes());
                 game.setTags(resolved);
+                game.setVariant(proposedVariants.get(i));
                 games.saveAndFlush(game);
             }
         }
@@ -267,7 +273,8 @@ public class GameService {
         return Objects.equals(tagNames(current), tagNames(expected));
     }
 
-    public record MetadataPreview(GameResponse before, @Nullable String name, @Nullable String notes, List<String> tags) { }
+    public record MetadataPreview(GameResponse before, @Nullable String name, @Nullable String notes, List<String> tags,
+            GameResponse.@Nullable VariantRef variant) { }
 
     /** Sets the result of a game in play and finishes it. */
     public GameResponse finish(long id, FinishGameRequest result) {
@@ -371,12 +378,16 @@ public class GameService {
 
     /** Same rule as rooms: an inactive variant can be kept by a game, but not newly chosen. */
     private @Nullable Variant variantOf(GameRequest request, @Nullable Variant current) {
-        if (request.variantId() == null) {
+        return variantOf(request.variantId(), request.gameType(), current);
+    }
+
+    private @Nullable Variant variantOf(@Nullable Long variantId, GameType gameType, @Nullable Variant current) {
+        if (variantId == null) {
             return null;
         }
-        Variant variant = variants.findById(request.variantId())
-                .orElseThrow(() -> new ApiException(ErrorCode.UNKNOWN_VARIANT, String.valueOf(request.variantId())));
-        if (variant.getGameType() != request.gameType()) {
+        Variant variant = variants.findById(variantId)
+                .orElseThrow(() -> new ApiException(ErrorCode.UNKNOWN_VARIANT, String.valueOf(variantId)));
+        if (variant.getGameType() != gameType) {
             throw new ApiException(ErrorCode.VARIANT_GAME_TYPE_MISMATCH);
         }
         boolean unchanged = current != null && current.getId().equals(variant.getId());

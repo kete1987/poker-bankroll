@@ -340,6 +340,119 @@ class McpWriteApiTests extends ApiIntegrationTest {
     }
 
     @Test
+    void variantCorrectionViaMcpChangesOnlyTheVariantAndReplaysSafely() throws Exception {
+        long spaceKo = builtInVariantId("TOURNAMENT", "SPACE_KO");
+        long custom = insertCustomVariant("TOURNAMENT", "Bounty Builder");
+        var fields = new java.util.HashMap<>(gameFields("TOURNAMENT", "5"));
+        fields.putAll(Map.of("name", "ATOM", "notes", "Kept note", "tags", List.of("Series"), "status", "FINISHED",
+                "prize", 12, "bounty", new BigDecimal("3.40"), "entries", 2, "modality", "PLO", "playedAt", "21:30"));
+        long id = success("start_game", keyed(Map.of("game", fields))).path("id").asLong();
+        long other = success("start_game", keyed(Map.of("game", gameFields("TOURNAMENT", "2")))).path("id").asLong();
+        JsonNode original = success("get_game", Map.of("gameId", id));
+        JsonNode statsBefore = success("get_stats_summary", Map.of());
+        JsonNode bankrollBefore = success("get_bankroll_summary", Map.of());
+        JsonNode otherBefore = success("get_game", Map.of("gameId", other));
+
+        Map<String, Object> change = variantChange(original, spaceKo);
+        JsonNode preview = success("preview_game_metadata", Map.of("changes", List.of(change)));
+        assertThat(preview.get(0).path("before").path("variant").isNull()).isTrue();
+        assertThat(preview.get(0).path("variant").path("code").asString()).isEqualTo("SPACE_KO");
+        assertThat(preview.get(0).path("name").asString()).isEqualTo("ATOM");
+        assertThat(preview.get(0).path("notes").asString()).isEqualTo("Kept note");
+        assertThat(preview.get(0).path("tags").toString()).isEqualTo("[\"Series\"]");
+        assertThat(success("get_game", Map.of("gameId", id))).isEqualTo(original);
+
+        var request = keyed(Map.of("changes", List.of(change)));
+        JsonNode applied = success("update_game_metadata", request);
+        assertThat(applied).isEqualTo(preview);
+        assertThat(success("update_game_metadata", request)).isEqualTo(applied);
+        JsonNode after = success("get_game", Map.of("gameId", id));
+        assertThat(after.path("variant").path("id").asLong()).isEqualTo(spaceKo);
+        assertOnlyVariantChanged(original, after);
+        assertThat(success("get_game", Map.of("gameId", other))).isEqualTo(otherBefore);
+        assertThat(success("get_stats_summary", Map.of())).isEqualTo(statsBefore);
+        assertThat(success("get_bankroll_summary", Map.of())).isEqualTo(bankrollBefore);
+        // The snapshot is stale now: the same change cannot overwrite the new state.
+        assertError("update_game_metadata", keyed(Map.of("changes", List.of(change))), "MCP_STALE_METADATA");
+
+        // User-defined variant, then clearing, even once the room is inactive (a game already there can be edited).
+        success("update_game_metadata", keyed(Map.of("changes", List.of(variantChange(after, custom)))));
+        JsonNode withCustom = success("get_game", Map.of("gameId", id));
+        assertThat(withCustom.path("variant").path("name").asString()).isEqualTo("Bounty Builder");
+        jdbc.update("update room set active = false where id = ?", room);
+        success("update_game_metadata", keyed(Map.of("changes", List.of(variantChange(withCustom, null)))));
+        JsonNode cleared = success("get_game", Map.of("gameId", id));
+        assertThat(cleared.path("variant").isNull()).isTrue();
+        assertOnlyVariantChanged(original, cleared);
+    }
+
+    @Test
+    void variantCorrectionRejectsInvalidVariantsAndRollsBackTheWholeBatch() throws Exception {
+        long spaceKo = builtInVariantId("TOURNAMENT", "SPACE_KO");
+        long expresso = builtInVariantId("SIT_AND_GO", "EXPRESSO");
+        long retired = insertCustomVariant("TOURNAMENT", "Retired");
+        long first = success("start_game", keyed(Map.of("game", gameFields("TOURNAMENT", "1")))).path("id").asLong();
+        var withRetired = new java.util.HashMap<>(gameFields("TOURNAMENT", "3"));
+        withRetired.put("variantId", retired);
+        long second = success("start_game", keyed(Map.of("game", withRetired))).path("id").asLong();
+        jdbc.update("update variant set active = false where id = ?", retired);
+        JsonNode a = success("get_game", Map.of("gameId", first));
+        JsonNode b = success("get_game", Map.of("gameId", second));
+
+        Map<String, Object> good = variantChange(a, spaceKo);
+        JsonNode mismatch = assertError("update_game_metadata",
+                keyed(Map.of("changes", List.of(good, variantChange(b, expresso)))), "VARIANT_GAME_TYPE_MISMATCH");
+        assertThat(mismatch.path("structuredContent").path("index").asInt()).isEqualTo(1);
+        JsonNode unknown = assertError("update_game_metadata",
+                keyed(Map.of("changes", List.of(good, variantChange(b, 99999999L)))), "UNKNOWN_VARIANT");
+        assertThat(unknown.path("structuredContent").path("index").asInt()).isEqualTo(1);
+        JsonNode inactive = assertError("preview_game_metadata",
+                Map.of("changes", List.of(variantChange(a, retired))), "VARIANT_INACTIVE");
+        assertThat(inactive.path("structuredContent").path("index").asInt()).isZero();
+        assertError("preview_game_metadata", Map.of("changes", List.of(variantChange(a, 0L))), "VALIDATION_FAILED");
+        var noId = new java.util.HashMap<>(good);
+        noId.put("variant", Map.of());
+        assertError("preview_game_metadata", Map.of("changes", List.of(noId)), "VALIDATION_FAILED");
+        assertThat(success("get_game", Map.of("gameId", first))).isEqualTo(a);
+        assertThat(success("get_game", Map.of("gameId", second))).isEqualTo(b);
+        assertThat(jdbc.queryForObject("select count(*) from mcp_operation where tool_name = 'update_game_metadata'",
+                Integer.class)).isZero();
+
+        // A game keeps the inactive variant it has; the batch then applies both changes together.
+        JsonNode both = success("update_game_metadata",
+                keyed(Map.of("changes", List.of(good, variantChange(b, retired)))));
+        assertThat(both.get(1).path("variant").path("id").asLong()).isEqualTo(retired);
+        assertThat(success("get_game", Map.of("gameId", first)).path("variant").path("id").asLong()).isEqualTo(spaceKo);
+        assertThat(success("get_game", Map.of("gameId", second)).path("variant").path("id").asLong()).isEqualTo(retired);
+    }
+
+    @Test
+    void metadataChangesWithoutVariantKeepTheirReceiptFingerprint() {
+        var change = new io.github.kete1987.pokerbankroll.game.GameMetadataChange(1L, java.time.Instant.EPOCH, List.of(),
+                null, null, null, null);
+        assertThat(mapper.convertValue(change, Map.class)).doesNotContainKey("variant");
+        var clear = new io.github.kete1987.pokerbankroll.game.GameMetadataChange(1L, java.time.Instant.EPOCH, List.of(),
+                null, null, null, new io.github.kete1987.pokerbankroll.game.GameMetadataChange.VariantChange(null));
+        assertThat(mapper.convertValue(clear, Map.class).get("variant")).isEqualTo(java.util.Collections.singletonMap("variantId", null));
+    }
+
+    private static Map<String, Object> variantChange(JsonNode game, Long variantId) {
+        var tags = new ArrayList<String>();
+        for (JsonNode tag : game.path("tags")) tags.add(tag.path("name").asString());
+        return Map.of("gameId", game.path("id").asLong(), "expectedUpdatedAt", game.path("updatedAt").asString(),
+                "expectedTags", tags, "variant", java.util.Collections.singletonMap("variantId", variantId));
+    }
+
+    private static void assertOnlyVariantChanged(JsonNode before, JsonNode after) {
+        var expected = before.deepCopy();
+        var actual = after.deepCopy();
+        for (var node : List.of(expected, actual)) {
+            ((tools.jackson.databind.node.ObjectNode) node).remove(List.of("variant", "updatedAt"));
+        }
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
     void tagPreviewMergeDeleteAndBackupChunksWorkOverMcp() throws Exception {
         var fields = new java.util.HashMap<>(gameFields("TOURNAMENT", "2"));
         fields.put("tags", List.of("Source", "Target"));

@@ -128,7 +128,7 @@ The default is false: write tools are neither listed nor callable. This switch i
 | `record_movement` | `movement`: occurredOn, type (DEPOSIT/WITHDRAWAL/BONUS), amount, roomId OR currencyCode, optional notes |
 | `set_game_notes` | `gameId`, `update: {"notes": "..."}`; **replaces** notes, empty string clears them |
 | `set_game_tags` | `gameId`, `update: {"tags": ["challenge"]}`; **replaces all** tags, empty array clears them |
-| `update_game_metadata` | Guarded atomic batch of 1–20 explicit game metadata changes |
+| `update_game_metadata` | Guarded atomic batch of 1–20 explicit game metadata changes (name, notes, tags, variant) |
 | `apply_tag_change` | Apply a reviewed tag rename, merge or deletion |
 | `set_tag_color` | `tagId`, optional `color` palette code; null/omitted resets to neutral gray, preserving name and associations |
 
@@ -200,7 +200,13 @@ Omit an operation to preserve that field. `name: {"value": "..."}` replaces the 
 empty clears it. `notes: {"mode": "REPLACE"|"APPEND", "value": "..."}` replaces or
 appends on a new line; an empty replacement clears it. `tags: {"mode": "REPLACE"|"ADD"|"REMOVE", "values": [...]}`
 replaces, adds or removes names case-insensitively; an empty replacement clears them.
-The preview includes each complete previous game and the proposed metadata. Existing tag
+`variant: {"variantId": 12}` sets a built-in or user-defined variant of the game's own type
+(IDs from `list_variants`); `variant: {"variantId": null}` clears it. A variant of another type
+fails with `VARIANT_GAME_TYPE_MISMATCH`, an unknown one with `UNKNOWN_VARIANT`, and an inactive
+one with `VARIANT_INACTIVE` unless the game already has it. Games in inactive rooms can still be
+corrected. Room, type, modality, dates, status, entries and amounts are never changed.
+The preview includes each complete previous game and the proposed metadata (`name`, `notes`,
+`tags` and `variant`). Existing tag
 spelling is retained. It never creates tags. Observe the 64 KiB request limit as well as
 the 20-game limit; no selection is truncated.
 

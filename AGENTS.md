@@ -439,7 +439,11 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - Metadata batches (`McpMetadataTools`, `GameService.editMetadata`) contain 1–20 explicit
   distinct games. A preview reports complete before states and canonical proposed metadata;
   apply compares `updatedAt` and tag names after locking game rows in ID order and then tag
-  tables. Names, notes and tags are the only fields changed; omitted operations are preserved.
+  tables. Names, notes, tags and the variant are the only fields changed; omitted operations are
+  preserved. A variant (`variant.variantId`, `null` clears it) follows the rules of editing the game:
+  its own type, an inactive one only when the game already has it; inactive rooms do not matter.
+  `GameMetadataChange.variant` is left out of JSON when omitted, so older receipts keep their
+  fingerprint: a new optional operation must do the same.
   A stale or invalid item aborts the entire transaction and reports its zero-based index. The
   receipt identifies the first game but stores the whole batch; resource-ID receipt searches
   find the first game only. Tag changes (`McpTagTools`, `McpTagMaintenance`) preview the exact
