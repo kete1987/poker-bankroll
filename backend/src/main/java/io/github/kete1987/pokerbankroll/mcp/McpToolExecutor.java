@@ -24,6 +24,7 @@ import org.springframework.context.MessageSource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.MapperFeature;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -71,7 +72,8 @@ class McpToolExecutor {
             try {
                 validate(input);
                 Object value = action.apply(input);
-                Object result = value instanceof McpOperationService.OperationResult operation ? operation.resource() : value;
+                Object result = structured(
+                        value instanceof McpOperationService.OperationResult operation ? operation.resource() : value);
                 String json = mapper.writeValueAsString(result);
                 ensureJsonFits(json);
                 var response = CallToolResult.builder().structuredContent(result).addTextContent(json).isError(false);
@@ -100,7 +102,16 @@ class McpToolExecutor {
 
     /** Check a write's response before committing its changes and durable receipt. */
     void ensureResultFits(Object result) {
-        ensureJsonFits(mapper.writeValueAsString(result));
+        ensureJsonFits(mapper.writeValueAsString(structured(result)));
+    }
+
+    /**
+     * MCP requires structuredContent to be a JSON object, and clients reject anything else. A list
+     * (a metadata batch, or its receipt stored as an array before this rule) goes under "items".
+     */
+    private Object structured(Object result) {
+        JsonNode node = result instanceof JsonNode tree ? tree : mapper.valueToTree(result);
+        return node.isObject() ? result : Map.of("items", result);
     }
 
     private static void ensureJsonFits(String json) {

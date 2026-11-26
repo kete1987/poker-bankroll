@@ -423,6 +423,9 @@ Before pushing frontend changes: `npm run typecheck && npm run lint && npm run f
 - MCP tools share `McpToolExecutor`: strict JSON schema, typed input (`McpQuery` for reads,
   `McpWriteInputs` with validated application requests for writes), Bean Validation, structured
   errors and bounded results. The transport reads decimal JSON numbers as BigDecimal.
+  `structuredContent` is always a JSON object (clients reject anything else): a list result goes
+  under `items` (`McpToolExecutor.structured`), also when replaying a receipt stored as an array.
+  Tests check it on every call (`McpApiTests.assertProtocolResult`): plain HTTP calls would not.
   Lists are paged (50 default, 200 maximum), request
   bodies limited to 64 KiB including chunked bodies, serialized tool data to 1 MiB. Oversized
   results fail explicitly; never silently truncate aggregate totals or drop `missingRates`.

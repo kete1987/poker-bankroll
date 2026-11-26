@@ -313,9 +313,9 @@ class McpWriteApiTests extends ApiIntegrationTest {
                 "notes", Map.of("mode", "APPEND", "value", "Event 12"),
                 "tags", Map.of("mode", "REMOVE", "values", List.of("excess")));
         var preview = success("preview_game_metadata", Map.of("changes", List.of(change)));
-        assertThat(preview.get(0).path("name").asString()).isEqualTo("Demo");
-        assertThat(preview.get(0).path("notes").asString()).isEqualTo("Existing note\nEvent 12");
-        assertThat(preview.get(0).path("tags").toString()).isEqualTo("[\"Series\"]");
+        assertThat(preview.path("items").get(0).path("name").asString()).isEqualTo("Demo");
+        assertThat(preview.path("items").get(0).path("notes").asString()).isEqualTo("Existing note\nEvent 12");
+        assertThat(preview.path("items").get(0).path("tags").toString()).isEqualTo("[\"Series\"]");
         var request = keyed(Map.of("changes", List.of(change)));
         JsonNode applied = success("update_game_metadata", request);
         assertThat(success("update_game_metadata", request)).isEqualTo(applied);
@@ -355,16 +355,19 @@ class McpWriteApiTests extends ApiIntegrationTest {
 
         Map<String, Object> change = variantChange(original, spaceKo);
         JsonNode preview = success("preview_game_metadata", Map.of("changes", List.of(change)));
-        assertThat(preview.get(0).path("before").path("variant").isNull()).isTrue();
-        assertThat(preview.get(0).path("variant").path("code").asString()).isEqualTo("SPACE_KO");
-        assertThat(preview.get(0).path("name").asString()).isEqualTo("ATOM");
-        assertThat(preview.get(0).path("notes").asString()).isEqualTo("Kept note");
-        assertThat(preview.get(0).path("tags").toString()).isEqualTo("[\"Series\"]");
+        assertThat(preview.path("items").get(0).path("before").path("variant").isNull()).isTrue();
+        assertThat(preview.path("items").get(0).path("variant").path("code").asString()).isEqualTo("SPACE_KO");
+        assertThat(preview.path("items").get(0).path("name").asString()).isEqualTo("ATOM");
+        assertThat(preview.path("items").get(0).path("notes").asString()).isEqualTo("Kept note");
+        assertThat(preview.path("items").get(0).path("tags").toString()).isEqualTo("[\"Series\"]");
         assertThat(success("get_game", Map.of("gameId", id))).isEqualTo(original);
 
         var request = keyed(Map.of("changes", List.of(change)));
         JsonNode applied = success("update_game_metadata", request);
         assertThat(applied).isEqualTo(preview);
+        // The receipt keeps the batch as it was always stored (an array); every reply is an object.
+        assertThat(jdbc.queryForObject("select jsonb_typeof(result) from mcp_operation where idempotency_key = ?::uuid",
+                String.class, request.get("idempotencyKey"))).isEqualTo("array");
         assertThat(success("update_game_metadata", request)).isEqualTo(applied);
         JsonNode after = success("get_game", Map.of("gameId", id));
         assertThat(after.path("variant").path("id").asLong()).isEqualTo(spaceKo);
@@ -421,7 +424,7 @@ class McpWriteApiTests extends ApiIntegrationTest {
         // A game keeps the inactive variant it has; the batch then applies both changes together.
         JsonNode both = success("update_game_metadata",
                 keyed(Map.of("changes", List.of(good, variantChange(b, retired)))));
-        assertThat(both.get(1).path("variant").path("id").asLong()).isEqualTo(retired);
+        assertThat(both.path("items").get(1).path("variant").path("id").asLong()).isEqualTo(retired);
         assertThat(success("get_game", Map.of("gameId", first)).path("variant").path("id").asLong()).isEqualTo(spaceKo);
         assertThat(success("get_game", Map.of("gameId", second)).path("variant").path("id").asLong()).isEqualTo(retired);
     }
@@ -570,7 +573,7 @@ class McpWriteApiTests extends ApiIntegrationTest {
         Map<String, Object> add = Map.of("gameId", id, "expectedUpdatedAt", current.path("updatedAt").asString(),
                 "expectedTags", List.of(), "tags", Map.of("mode", "ADD", "values", List.of("canonical", "New")));
         JsonNode preview = success("preview_game_metadata", Map.of("changes", List.of(add)));
-        assertThat(preview.get(0).path("tags").toString()).isEqualTo("[\"Canonical\",\"New\"]");
+        assertThat(preview.path("items").get(0).path("tags").toString()).isEqualTo("[\"Canonical\",\"New\"]");
         success("update_game_metadata", keyed(Map.of("changes", List.of(add))));
         JsonNode after = success("get_game", Map.of("gameId", id));
         assertThat(after.path("tags").get(0).path("name").asString()).isEqualTo("Canonical");
@@ -695,8 +698,8 @@ class McpWriteApiTests extends ApiIntegrationTest {
                 "tags", Map.of("mode", "ADD", "values", List.of("series")));
         var changes = List.of(one, two);
         JsonNode preview = success("preview_game_metadata", Map.of("changes", changes));
-        assertThat(preview.get(0).path("tags").get(0).asString()).isEqualTo("Series");
-        assertThat(preview.get(1).path("tags").get(0).asString()).isEqualTo("Series");
+        assertThat(preview.path("items").get(0).path("tags").get(0).asString()).isEqualTo("Series");
+        assertThat(preview.path("items").get(1).path("tags").get(0).asString()).isEqualTo("Series");
         success("update_game_metadata", keyed(Map.of("changes", changes)));
         assertThat(success("get_game", Map.of("gameId", second)).path("tags").get(0).path("name").asString()).isEqualTo("Series");
     }
@@ -875,7 +878,7 @@ class McpWriteApiTests extends ApiIntegrationTest {
     }
 
     private JsonNode result(String name, Map<String, Object> args) throws Exception {
-        return rpc("tools/call", Map.of("name", name, "arguments", args)).path("result");
+        return McpApiTests.assertProtocolResult(rpc("tools/call", Map.of("name", name, "arguments", args)).path("result"));
     }
 
     private JsonNode rpc(String method, Map<String, Object> params) throws Exception {

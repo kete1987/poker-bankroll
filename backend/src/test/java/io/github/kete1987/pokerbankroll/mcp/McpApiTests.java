@@ -179,7 +179,18 @@ class McpApiTests extends ApiIntegrationTest {
     }
 
     private JsonNode toolResult(String name, Map<String, Object> arguments) throws Exception {
-        return rpc("tools/call", Map.of("name", name, "arguments", arguments)).path("result");
+        return assertProtocolResult(rpc("tools/call", Map.of("name", name, "arguments", arguments)).path("result"));
+    }
+
+    /**
+     * What MCP clients check of a tool result and a plain HTTP call does not: structuredContent is a
+     * JSON object (Claude Code rejects an array), and the text content is the same JSON.
+     */
+    static JsonNode assertProtocolResult(JsonNode result) {
+        if (result.has("structuredContent")) {
+            assertThat(result.path("structuredContent").isObject()).as("structuredContent must be an object: %s", result).isTrue();
+        }
+        return result;
     }
 
     private JsonNode rpc(String method, Map<String, Object> params) throws Exception {

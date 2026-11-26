@@ -205,8 +205,8 @@ replaces, adds or removes names case-insensitively; an empty replacement clears 
 fails with `VARIANT_GAME_TYPE_MISMATCH`, an unknown one with `UNKNOWN_VARIANT`, and an inactive
 one with `VARIANT_INACTIVE` unless the game already has it. Games in inactive rooms can still be
 corrected. Room, type, modality, dates, status, entries and amounts are never changed.
-The preview includes each complete previous game and the proposed metadata (`name`, `notes`,
-`tags` and `variant`). Existing tag
+The preview returns `{"items": [...]}`, one item per game in request order, with each complete
+previous game (`before`) and the proposed metadata (`name`, `notes`, `tags` and `variant`). Existing tag
 spelling is retained. It never creates tags. Observe the 64 KiB request limit as well as
 the 20-game limit; no selection is truncated.
 
