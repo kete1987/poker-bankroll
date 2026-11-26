@@ -207,8 +207,8 @@ partida (IDs de `list_variants`); `variant: {"variantId": null}` la quita. Una v
 tipo falla con `VARIANT_GAME_TYPE_MISMATCH`, una desconocida con `UNKNOWN_VARIANT` y una inactiva
 con `VARIANT_INACTIVE`, salvo que la partida ya la tenga. Las partidas de salas inactivas también
 se pueden corregir. Sala, tipo, modalidad, fechas, estado, entradas e importes nunca cambian.
-La vista previa incluye la partida anterior completa y los metadatos propuestos (`name`,
-`notes`, `tags` y `variant`); conserva
+La vista previa devuelve `{"items": [...]}`, un elemento por partida en el orden pedido, con la
+partida anterior completa (`before`) y los metadatos propuestos (`name`, `notes`, `tags` y `variant`); conserva
 la escritura de etiquetas existentes y no crea etiquetas. También rige el límite de 64 KiB:
 la selección nunca se recorta silenciosamente.
 
